@@ -9,11 +9,11 @@ class Station(models.Model):
     def __str__(self):
         return self.name
 
-    def get_delete_url(self):
-        return "/stations/{}/delete".format(self.pk)
+    # def get_delete_url(self):
+    #     return "/stations/{}/delete".format(self.pk)
 
-    def get_update_url(self):
-        return "/stations/{}/update".format(self.pk)
+    # def get_update_url(self):
+    #     return "/stations/{}/update".format(self.pk)
 
     def get_absolute_url(self):
         return "/stations/{}/".format(self.pk)
