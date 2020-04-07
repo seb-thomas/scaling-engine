@@ -1,6 +1,14 @@
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.http import HttpResponse
+from rest_framework import viewsets
+
+from .serializers import StationSerializer
 from .models import Station
+
+
+class StationView(viewsets.ModelViewSet):
+    serializer_class = StationSerializer
+    queryset = Station.objects.all()
 
 
 def index(request):

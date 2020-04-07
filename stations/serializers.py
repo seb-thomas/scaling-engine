@@ -2,7 +2,7 @@
 from rest_framework import serializers
 from .models import Station
 
-class TodoSerializer(serializers.ModelSerializer):
-    class meta:
+class StationSerializer(serializers.ModelSerializer):
+    class Meta:
         model = Station
         fields = ('name', 'url')

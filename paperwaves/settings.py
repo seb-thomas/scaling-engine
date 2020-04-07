@@ -27,12 +27,12 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
-CORS_ORIGIN_WHITELIST = "localhost:3000/"
+CORS_ORIGIN_WHITELIST = ("http://localhost:3000",)
 
 # Application definition
 
 INSTALLED_APPS = [
-    "stations.apps.StationConfig",
+    "stations",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
