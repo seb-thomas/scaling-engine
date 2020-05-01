@@ -16,6 +16,7 @@ psycopg2-binary = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 scrapy = "*"
+colorlog = "*"
 
 [requires]
 python_version = "3.7"
