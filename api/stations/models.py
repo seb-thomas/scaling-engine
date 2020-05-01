@@ -13,6 +13,8 @@ class Station(models.Model):
 class Brand(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
+    url = models.URLField()
+    created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name

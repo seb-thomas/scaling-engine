@@ -15,6 +15,7 @@ django = "*"
 psycopg2-binary = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
+scrapy = "*"
 
 [requires]
 python_version = "3.7"
