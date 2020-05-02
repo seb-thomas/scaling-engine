@@ -42,6 +42,17 @@ def _get_handler_custom(*args, **kwargs):
 
 scrapy.utils.log._get_handler = _get_handler_custom
 
+# Link to django app
+import sys
+import os
+import django
+
+sys.path.append(os.path.dirname(os.path.abspath(".")))
+
+os.environ["DJANGO_SETTINGS_MODULE"] = "paperwaves.settings"
+
+django.setup()
+
 BOT_NAME = "scraper"
 
 SPIDER_MODULES = ["scraper.spiders"]

@@ -17,6 +17,7 @@ djangorestframework = "*"
 django-cors-headers = "*"
 scrapy = "*"
 colorlog = "*"
+scrapy-djangoitem = "*"
 
 [requires]
 python_version = "3.7"
