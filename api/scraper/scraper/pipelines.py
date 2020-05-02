@@ -8,10 +8,19 @@
 from scrapy.exceptions import DropItem
 
 
-class ScraperPipeline:
+class ContainsKeywordPipeline:
     def process_item(self, item, spider):
-        if item.get("text"):
-            if "better" in item["text"]:
-                return item
-            else:
-                raise DropItem("Not in %s" % item["author"])
+        if "Albert" in item["name"]:
+            return item
+        else:
+            raise DropItem("Not in %s" % item["name"])
+
+
+class SaveToDbPipeline:
+    def process_item(self, item, spider):
+        try:
+            item.save()
+            print("Added %s" % item["name"])
+        except:
+            print("Could not add %s" % item["name"])
+        return item
