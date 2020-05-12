@@ -19,8 +19,9 @@ class ContainsKeywordPipeline:
 class SaveToDbPipeline:
     def process_item(self, item, spider):
         try:
+            item["brand"] = spider.brand
             item.save()
-            print("Added %s" % item["name"])
+            print("Added %s" % item["title"])
         except:
-            print("Could not add %s" % item["name"])
+            print("Could not add %s" % item["title"])
         return item

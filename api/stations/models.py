@@ -23,11 +23,14 @@ class Brand(models.Model):
 
 
 class Episode(models.Model):
-    brand = models.ForeignKey(Brand, on_delete=models.CASCADE)
+    brand = models.ForeignKey(
+        Brand, on_delete=models.CASCADE, default=None, blank=True, null=True
+    )
     title = models.CharField(max_length=255)
+    url = models.URLField(default="")
 
     def __str__(self):
-        return self.name
+        return self.title
 
 
 class Book(models.Model):
@@ -35,4 +38,4 @@ class Book(models.Model):
     title = models.CharField(max_length=255)
 
     def __str__(self):
-        return self.name
+        return self.title

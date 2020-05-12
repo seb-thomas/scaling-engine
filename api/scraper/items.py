@@ -7,8 +7,12 @@
 
 import scrapy
 from scrapy_djangoitem import DjangoItem
-from stations.models import Station
+from stations.models import Station, Episode
 
 
 class StationItem(DjangoItem):
     django_model = Station
+
+
+class EpisodeItem(DjangoItem):
+    django_model = Episode
