@@ -14,7 +14,6 @@ class Station(models.Model):
 class Brand(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
-    pid = models.CharField(max_length=120, default="")
     url = models.URLField()
     created = models.DateTimeField(auto_now_add=True)
 
