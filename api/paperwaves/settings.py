@@ -82,7 +82,6 @@ WSGI_APPLICATION = "paperwaves.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
         "NAME": "paperwaves",
         "USER": "sebastianthomas",
         "PASSWORD": "",
@@ -123,3 +122,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = "/static/"
+
+# CELERY STUFF
+CELERY_BROKER_URL = "redis://localhost:6379/0"
+CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
+CELERY_RESULT_BACKEND = "redis://localhost:6379"
