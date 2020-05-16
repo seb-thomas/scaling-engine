@@ -9,7 +9,7 @@ class BbcEpisodeSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = [
-            f"{self.brand.url}/episodes/player",
+            f"{self.brand.url}/episodes/player?page=299",
             # "http://www.google.com"
         ]
         for url in urls:
@@ -23,4 +23,4 @@ class BbcEpisodeSpider(scrapy.Spider):
             item["url"] = titles.css("a::attr(href)").get()
             yield item
 
-        # yield from response.follow_all(css="ul.pager a", callback=self.parse)
+        # yield from response.follow_all(css="li.pagination__next a", callback=self.parse)

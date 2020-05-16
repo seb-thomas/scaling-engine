@@ -26,7 +26,7 @@ class Episode(models.Model):
         Brand, on_delete=models.CASCADE, default=None, blank=True, null=True
     )
     title = models.CharField(max_length=255)
-    url = models.URLField(default="")
+    url = models.URLField(default="", unique=True)
 
     def __str__(self):
         return self.title

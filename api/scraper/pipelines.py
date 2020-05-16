@@ -4,7 +4,7 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-
+import sys
 from scrapy.exceptions import DropItem
 
 
@@ -23,5 +23,7 @@ class SaveToDbPipeline:
             item.save()
             print("Added %s" % item["title"])
         except:
-            print("Could not add %s" % item["title"])
+            e = sys.exc_info()[1]
+            print("ERROR. Could not add %s" % item["title"])
+            print(e)
         return item
