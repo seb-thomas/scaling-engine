@@ -27,7 +27,7 @@ class Episode(models.Model):
     )
     title = models.CharField(max_length=255)
     url = models.URLField(default="", unique=True)
-    hasBook = models.BooleanField(default=False)
+    has_book = models.BooleanField(default=False)
 
     def __str__(self):
         return self.title
