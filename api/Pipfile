@@ -9,7 +9,6 @@ black = "*"
 
 [packages]
 requests = "*"
-beautifulsoup4 = "*"
 lxml = "*"
 django = "*"
 psycopg2-binary = "*"

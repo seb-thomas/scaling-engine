@@ -28,3 +28,10 @@
   - Only add episodes to db,
   - If they have keywords
   - If they have not been checked already
+
+### Checking for keywords
+
+- Given the 'easy' route, we need to check for keywords outside of the Scrapy pipeline.
+- An episode is saved to the db
+- A process runs which checks it for keywords
+- Can be on every save, or periodically
