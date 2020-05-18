@@ -33,7 +33,7 @@ CORS_ORIGIN_WHITELIST = ("http://localhost:3000",)
 
 INSTALLED_APPS = [
     "scraper",
-    "stations",
+    "stations.apps.StationsConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

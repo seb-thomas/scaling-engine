@@ -35,3 +35,18 @@
 - An episode is saved to the db
 - A process runs which checks it for keywords
 - Can be on every save, or periodically
+  - A function to check for keywords and update with true or false (utils)
+  - A task to call the function (tasks)
+  - A post save signal added to Scrapy pipeline save
+- Will the function
+  1. be sent an Episode pk and process?
+  2. or iterate over Episode.objects.all()?
+- Yes, both
+  1. On post save signal.
+     - On save
+     - Send signal
+     - With instance
+     - Process single instance
+     - Save to db, or pass
+  2. Periodic or manual
+     - x
