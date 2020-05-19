@@ -7,5 +7,5 @@ logger = get_task_logger(__name__)
 
 @shared_task(name="stations.tasks.contains_keywords_task")
 def contains_keywords_task(episode_id):
-    logger.info("TASK contains_keywords_task %s" % (episode_id))
+    logger.info("contains_keywords_task %s" % (episode_id))
     return contains_keywords(episode_id)
