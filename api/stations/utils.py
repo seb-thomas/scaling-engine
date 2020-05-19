@@ -6,8 +6,10 @@ logger = get_task_logger(__name__)
 
 def contains_keywords(episode_id):
     try:
+        test_list = ["Kate", "Paul", "Ian", "Emma"]
         episode = Episode.objects.get(pk=episode_id)
-        if "Paul" in episode.title:
+
+        if any(item in episode.title for item in test_list):
             episode.has_book = True
             episode.save(update_fields=["has_book"])
         logger.info("episode %s" % (episode.__dict__))
