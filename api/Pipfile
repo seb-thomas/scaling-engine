@@ -18,6 +18,7 @@ scrapy = "*"
 colorlog = "*"
 scrapy-djangoitem = "*"
 celery = {extras = ["redis"],version = "*"}
+flower = "*"
 
 [requires]
 python_version = "3.7"
