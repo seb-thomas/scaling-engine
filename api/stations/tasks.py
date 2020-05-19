@@ -7,5 +7,5 @@ logger = get_task_logger(__name__)
 @shared_task(name="stations.tasks.call_func")
 def call_func(x, y):
     logger.info("Sent feedback email")
-    print("call_func")
+    print("call_func %s" % (x + y))
     return x + y
