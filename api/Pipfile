@@ -19,6 +19,7 @@ colorlog = "*"
 scrapy-djangoitem = "*"
 celery = {extras = ["redis"],version = "*"}
 flower = "*"
+django-debug-toolbar = "*"
 
 [requires]
 python_version = "3.7"

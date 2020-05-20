@@ -1,15 +1,14 @@
 from celery.utils.log import get_task_logger
-from stations.models import Episode
+from stations.models import Episode, Phrase
 
 logger = get_task_logger(__name__)
 
 
 def contains_keywords(episode_id):
     try:
-        test_list = ["Kate", "Paul", "Ian", "Emma"]
         episode = Episode.objects.get(pk=episode_id)
 
-        if any(item in episode.title for item in test_list):
+        if any(item in episode.title for item in Phrase().keyword_list):
             episode.has_book = True
             episode.save(update_fields=["has_book"])
         logger.info("episode %s" % (episode.__dict__))
