@@ -1,6 +1,6 @@
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from stations.utils import contains_keywords
+from .utils import contains_keywords
 
 logger = get_task_logger(__name__)
 

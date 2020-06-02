@@ -9,7 +9,7 @@ class BbcEpisodeSpider(scrapy.Spider):
 
     def start_requests(self):
         urls = [
-            f"{self.brand.url}/episodes/player?page=299",
+            f"{self.brand.url}/episodes/player?page=1",
             # "http://www.google.com"
         ]
         for url in urls:

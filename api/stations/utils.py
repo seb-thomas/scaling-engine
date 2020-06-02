@@ -1,5 +1,5 @@
 from celery.utils.log import get_task_logger
-from stations.models import Episode, Phrase
+from .models import Episode, Phrase
 
 logger = get_task_logger(__name__)
 
