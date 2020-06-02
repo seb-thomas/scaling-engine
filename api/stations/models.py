@@ -1,4 +1,4 @@
-from django.db import models, transaction
+from django.db import models
 from django.utils.functional import cached_property
 
 
@@ -29,18 +29,6 @@ class Episode(models.Model):
     title = models.CharField(max_length=255)
     url = models.URLField(default="", unique=True)
     has_book = models.BooleanField(default=False, editable=False)
-
-    def update_has_book(self):
-        from .tasks import contains_keywords_task
-
-        print(self.pk)
-        print(self.title)
-        if not self.has_book:
-            transaction.on_commit(lambda: contains_keywords_task.delay(self.pk))
-
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        self.update_has_book()
 
     def __str__(self):
         return self.title
