@@ -6,20 +6,18 @@ verify_ssl = true
 [dev-packages]
 pylint = "*"
 black = "*"
+colorlog = "*"
+flower = "*"
+django-debug-toolbar = "*"
 
 [packages]
-requests = "*"
-lxml = "*"
 django = "*"
 psycopg2-binary = "*"
 djangorestframework = "*"
 django-cors-headers = "*"
 scrapy = "*"
-colorlog = "*"
 scrapy-djangoitem = "*"
 celery = {extras = ["redis"],version = "*"}
-flower = "*"
-django-debug-toolbar = "*"
 
 [requires]
 python_version = "3.7"

@@ -1,32 +1,25 @@
-# For more information, please refer to https://aka.ms/vscode-docker-python
-FROM python:3.8-slim-buster
+# pull official base image
+FROM python:3.8.3-alpine
 
-EXPOSE 8000
+# set work directory
+WORKDIR /usr/src/api
 
-# Keeps Python from generating .pyc files in the container
+# set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
-
-# Turns off buffering for easier container logging
 ENV PYTHONUNBUFFERED 1
 
-ENV SQL_ENGINE django.db.backends.sqlite3
-ENV SQL_DATABASE ./db.sqlite3
-ENV SQL_HOST db
+# install psycopg2 dependencies
+RUN apk update \
+  && apk add postgresql-dev gcc python3-dev musl-dev libffi-dev openssl-dev libxslt-dev libxml2-dev
 
-# Install pip requirements
-RUN apt-get update \
-  && apt-get install gcc -y \
-  && apt-get clean
-ADD requirements.txt .
-RUN python -m pip install -r requirements.txt
+# install dependencies
+RUN pip install --upgrade pip
+COPY ./requirements.txt .
+RUN pip install -r requirements.txt
 
-WORKDIR /app
-ADD . /app
+# copy project
+COPY . .
 
 # Switching to a non-root user, please refer to https://aka.ms/vscode-docker-python-user-rights
-RUN useradd appuser && chown -R appuser /app
-USER appuser
-
-# During debugging, this entry point will be overridden. For more information, please refer to https://aka.ms/vscode-docker-python-debug
-# File wsgi.py was not found in subfolder:api. Please enter the Python path to wsgi file.
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "pythonPath.to.wsgi"]
+# RUN useradd appuser && chown -R appuser /app
+# USER appuser
