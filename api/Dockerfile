@@ -17,9 +17,15 @@ RUN pip install --upgrade pip
 COPY ./requirements.txt .
 RUN pip install -r requirements.txt
 
-# copy project
-COPY . .
-
 # Switching to a non-root user, please refer to https://aka.ms/vscode-docker-python-user-rights
 # RUN useradd appuser && chown -R appuser /app
 # USER appuser
+
+# copy entrypoint.sh
+COPY ./entrypoint.sh .
+
+# copy project
+COPY . .
+
+# run entrypoint.sh
+ENTRYPOINT ["/usr/src/api/entrypoint.sh"]
