@@ -13,6 +13,9 @@ import copy
 
 from colorlog import ColoredFormatter
 import scrapy.utils.log
+import sys
+import os
+import django
 
 color_formatter = ColoredFormatter(
     (
@@ -43,9 +46,6 @@ def _get_handler_custom(*args, **kwargs):
 scrapy.utils.log._get_handler = _get_handler_custom
 
 # Link to django app
-import sys
-import os
-import django
 
 sys.path.append(os.path.dirname(os.path.abspath(".")))
 
