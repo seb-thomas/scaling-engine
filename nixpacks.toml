@@ -1,0 +1,11 @@
+[phases.setup]
+nixPkgs = ["python312", "postgresql"]
+
+[phases.install]
+cmds = ["cd api && pip install -r requirements.txt"]
+
+[phases.build]
+cmds = ["cd api && python manage.py collectstatic --noinput"]
+
+[start]
+cmd = "cd api && python manage.py migrate && gunicorn paperwaves.wsgi:application --bind 0.0.0.0:$PORT"
