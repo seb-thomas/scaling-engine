@@ -12,6 +12,8 @@ services:
       - ./.env.dev
     depends_on:
       - db
+      - redis
+
   db:
     image: postgres:16-alpine
     volumes:
@@ -22,6 +24,22 @@ services:
       - POSTGRES_DB=hello_django_dev
     ports:
       - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: ./api
+    command: celery -A paperwaves worker --loglevel=info
+    volumes:
+      - ./api:/usr/src/api
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+      - redis
 
 volumes:
   postgres_data:
