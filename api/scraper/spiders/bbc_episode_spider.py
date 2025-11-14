@@ -32,4 +32,5 @@ class BbcEpisodeSpider(scrapy.Spider):
             item["url"] = titles.css("a::attr(href)").get()
             yield item
 
-        # yield from response.follow_all(css="li.pagination__next a", callback=self.parse)
+        # Follow pagination to scrape all episodes
+        yield from response.follow_all(css="li.pagination__next a", callback=self.parse)

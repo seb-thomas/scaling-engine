@@ -12,7 +12,11 @@ class TestStationViewSet:
         response = api_client.get('/api/stations/')
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1
+        assert response.data[0]['id'] == station.pk
         assert response.data[0]['name'] == 'Test Radio'
+        assert response.data[0]['station_id'] == 'test_radio'
+        assert response.data[0]['url'] == 'https://example.com/test'
+        assert 'created' in response.data[0]
 
     def test_list_empty_stations(self, api_client):
         """Test listing when no stations exist."""
@@ -24,8 +28,11 @@ class TestStationViewSet:
         """Test retrieving a single station."""
         response = api_client.get(f'/api/stations/{station.pk}/')
         assert response.status_code == status.HTTP_200_OK
+        assert response.data['id'] == station.pk
         assert response.data['name'] == 'Test Radio'
+        assert response.data['station_id'] == 'test_radio'
         assert response.data['url'] == 'https://example.com/test'
+        assert 'created' in response.data
 
     def test_create_station(self, api_client):
         """Test creating a new station."""
@@ -36,7 +43,10 @@ class TestStationViewSet:
         }
         response = api_client.post('/api/stations/', data, format='json')
         assert response.status_code == status.HTTP_201_CREATED
+        assert 'id' in response.data
         assert response.data['name'] == 'New Station'
+        assert response.data['station_id'] == 'new_station'
+        assert 'created' in response.data
 
     def test_update_station(self, api_client, station):
         """Test updating a station."""
@@ -47,7 +57,9 @@ class TestStationViewSet:
         }
         response = api_client.put(f'/api/stations/{station.pk}/', data, format='json')
         assert response.status_code == status.HTTP_200_OK
+        assert response.data['id'] == station.pk
         assert response.data['name'] == 'Updated Station'
+        assert 'created' in response.data
 
     def test_delete_station(self, api_client, station):
         """Test deleting a station."""

@@ -5,4 +5,4 @@ from .models import Station
 class StationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Station
-        fields = ('name', 'url')
+        fields = ('id', 'name', 'station_id', 'url', 'created')
