@@ -146,3 +146,7 @@ INTERNAL_IPS = [
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379")
+
+# AI / BOOK EXTRACTION
+# Set to 'ai' to use Claude AI, 'keyword' for legacy keyword matching, 'both' for both
+BOOK_EXTRACTION_MODE = os.environ.get("BOOK_EXTRACTION_MODE", "keyword")
