@@ -4,8 +4,12 @@
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
 # See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-import sys
+import logging
+from django.db import IntegrityError, DatabaseError
+from django.core.exceptions import ValidationError
 from scrapy.exceptions import DropItem
+
+logger = logging.getLogger(__name__)
 
 
 class ContainsKeywordPipeline:
@@ -21,9 +25,19 @@ class SaveToDbPipeline:
         try:
             item["brand"] = spider.brand
             item.save()
-            print("Added %s" % item["title"])
-        except:
-            e = sys.exc_info()[1]
-            print("ERROR. Could not add %s" % item["title"])
-            print(e)
+            logger.info(f"Added episode: {item['title']}")
+        except IntegrityError as e:
+            # Duplicate entry (URL already exists) - this is expected, just skip
+            logger.debug(f"Episode already exists: {item['title']} - {e}")
+        except ValidationError as e:
+            # Data validation failed - log and skip
+            logger.error(f"Validation error for episode {item['title']}: {e}")
+        except DatabaseError as e:
+            # Database connection issues - log and re-raise to trigger retry
+            logger.error(f"Database error while saving {item['title']}: {e}")
+            raise
+        except Exception as e:
+            # Unexpected error - log with full context and re-raise
+            logger.exception(f"Unexpected error saving episode {item['title']}: {e}")
+            raise
         return item
