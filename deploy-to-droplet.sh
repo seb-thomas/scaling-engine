@@ -27,30 +27,57 @@ if ! command -v docker-compose &> /dev/null; then
     apt-get install -y docker-compose
 fi
 
-# Check if .env.prod exists, if not create from example
+# Check if .env.prod exists, if not create it
 if [ ! -f .env.prod ]; then
-    echo "⚙️  Creating .env.prod from example..."
-    cp .env.prod.example .env.prod
+    echo "⚙️  Creating .env.prod..."
 
-    # Generate random secret key
-    SECRET_KEY=$(openssl rand -base64 50 | tr -d "=+/" | cut -c1-50)
-    sed -i "s|change-me-to-a-secure-random-string|$SECRET_KEY|" .env.prod
+    # Generate random secret key and db password
+    SECRET_KEY=$(openssl rand -hex 50)
+    DB_PASSWORD=$(openssl rand -hex 20)
 
-    # Generate random db password
-    DB_PASSWORD=$(openssl rand -base64 20 | tr -d "=+/" | cut -c1-20)
-    sed -i "s|change-me-to-a-secure-password|$DB_PASSWORD|" .env.prod
+    # Get server IP for ALLOWED_HOSTS
+    SERVER_IP=$(curl -s ifconfig.me || echo "localhost")
 
-    echo "⚠️  Please edit .env.prod and set DJANGO_ALLOWED_HOSTS to your domain!"
-    echo "   Current value needs to be updated from 'yourdomain.com'"
+    cat > .env.prod << EOF
+# Django Settings
+DEBUG=0
+SECRET_KEY=$SECRET_KEY
+DJANGO_ALLOWED_HOSTS=$SERVER_IP
+
+# Database Settings
+SQL_ENGINE=django.db.backends.postgresql
+SQL_DATABASE=paperwaves_prod
+SQL_USER=paperwaves_user
+SQL_PASSWORD=$DB_PASSWORD
+SQL_HOST=db
+SQL_PORT=5432
+
+# Celery Settings
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379
+
+# AI / Book Extraction
+# Options: 'keyword' (legacy), 'ai' (Claude), 'both' (run both methods)
+BOOK_EXTRACTION_MODE=keyword
+# ANTHROPIC_API_KEY=your-api-key-here  # Only needed if BOOK_EXTRACTION_MODE is 'ai' or 'both'
+EOF
+
+    echo "⚠️  .env.prod created with server IP: $SERVER_IP"
+    echo "⚠️  You can add a custom domain to DJANGO_ALLOWED_HOSTS later if needed"
 fi
 
 if [ ! -f .env.prod.db ]; then
-    echo "⚙️  Creating .env.prod.db from example..."
-    cp .env.prod.db.example .env.prod.db
+    echo "⚙️  Creating .env.prod.db..."
 
     # Use the same DB password as .env.prod
     DB_PASSWORD=$(grep SQL_PASSWORD .env.prod | cut -d '=' -f2)
-    sed -i "s|change-me-to-a-secure-password|$DB_PASSWORD|" .env.prod.db
+
+    cat > .env.prod.db << EOF
+# PostgreSQL Database Configuration
+POSTGRES_USER=paperwaves_user
+POSTGRES_PASSWORD=$DB_PASSWORD
+POSTGRES_DB=paperwaves_prod
+EOF
 fi
 
 # Pull latest code (if this is an update)
