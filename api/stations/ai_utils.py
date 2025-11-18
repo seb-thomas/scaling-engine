@@ -162,11 +162,29 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         # Extract from title (could extend to description if available)
         result = extractor.extract_books(episode.title)
 
-        # Update episode if books found
-        if result['has_book'] and not episode.has_book:
-            episode.has_book = True
-            episode.save(update_fields=['has_book'])
-            logger.info(f"Episode {episode_id} marked as has_book=True by AI")
+        # Update episode and save books if found
+        if result['has_book']:
+            if not episode.has_book:
+                episode.has_book = True
+                episode.save(update_fields=['has_book'])
+                logger.info(f"Episode {episode_id} marked as has_book=True by AI")
+
+            # Save extracted books to database
+            from .models import Book
+            logger.info(f"Saving {len(result.get('books', []))} books to database for episode {episode_id}")
+            for book_data in result.get('books', []):
+                book_title = book_data.get('title', '').strip()
+                logger.info(f"Processing book: {book_title}")
+                if book_title:
+                    # Create or get book (avoid duplicates)
+                    book, created = Book.objects.get_or_create(
+                        episode=episode,
+                        title=book_title
+                    )
+                    if created:
+                        logger.info(f"Created book: {book_title} for episode {episode_id}")
+                    else:
+                        logger.info(f"Book already exists: {book_title} for episode {episode_id}")
 
         return result
 

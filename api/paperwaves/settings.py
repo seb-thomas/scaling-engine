@@ -27,7 +27,18 @@ SECRET_KEY = os.environ.get("SECRET_KEY")
 DEBUG = int(os.environ.get("DEBUG", default=0))
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = [host for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(" ") if host]
+ALLOWED_HOSTS = [host for host in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if host]
+
+# CSRF trusted origins for production
+CSRF_TRUSTED_ORIGINS = [
+    "http://159.65.18.16:8080",
+    "http://159.65.18.16:1337",
+    "http://159.65.18.16",
+]
+
+# Use X-Forwarded-Host for CSRF checks
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 # CORS settings (updated for django-cors-headers 4.x)
 CORS_ALLOWED_ORIGINS = [
