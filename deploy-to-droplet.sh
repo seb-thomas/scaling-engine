@@ -34,11 +34,11 @@ if [ ! -f .env.prod ]; then
 
     # Generate random secret key
     SECRET_KEY=$(openssl rand -base64 50 | tr -d "=+/" | cut -c1-50)
-    sed -i "s/change-me-to-a-secure-random-string/$SECRET_KEY/" .env.prod
+    sed -i "s|change-me-to-a-secure-random-string|$SECRET_KEY|" .env.prod
 
     # Generate random db password
     DB_PASSWORD=$(openssl rand -base64 20 | tr -d "=+/" | cut -c1-20)
-    sed -i "s/change-me-to-a-secure-password/$DB_PASSWORD/" .env.prod
+    sed -i "s|change-me-to-a-secure-password|$DB_PASSWORD|" .env.prod
 
     echo "⚠️  Please edit .env.prod and set DJANGO_ALLOWED_HOSTS to your domain!"
     echo "   Current value needs to be updated from 'yourdomain.com'"
@@ -50,7 +50,7 @@ if [ ! -f .env.prod.db ]; then
 
     # Use the same DB password as .env.prod
     DB_PASSWORD=$(grep SQL_PASSWORD .env.prod | cut -d '=' -f2)
-    sed -i "s/change-me-to-a-secure-password/$DB_PASSWORD/" .env.prod.db
+    sed -i "s|change-me-to-a-secure-password|$DB_PASSWORD|" .env.prod.db
 fi
 
 # Pull latest code (if this is an update)
