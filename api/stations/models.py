@@ -27,6 +27,8 @@ class Episode(models.Model):
     )
     title = models.CharField(max_length=255)
     url = models.URLField(default="", unique=True)
+    description = models.TextField(blank=True, default="")
+    aired_at = models.DateTimeField(blank=True, null=True)
     has_book = models.BooleanField(default=False, editable=False)
 
     def __str__(self):
@@ -36,6 +38,7 @@ class Episode(models.Model):
 class Book(models.Model):
     episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
+    author = models.CharField(max_length=255, blank=True, default="")
 
     def __str__(self):
         return self.title

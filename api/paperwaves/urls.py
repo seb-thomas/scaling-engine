@@ -24,7 +24,7 @@ router.register(r"stations", views.StationView, "stations")
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # path("stations/", include("stations.urls")),
+    path("", include("stations.urls")),
     path("api/", include(router.urls)),
 ]
 

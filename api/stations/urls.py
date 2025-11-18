@@ -3,7 +3,7 @@ from . import views
 
 app_name = "stations"
 
-# urlpatterns = [
-#     path("", views.index, name="index"),
-#     path("<int:station_id>/", views.detail, name="detail"),
-# ]
+urlpatterns = [
+    path("", views.index, name="index"),
+    path("book/<int:book_id>/", views.book_detail, name="book_detail"),
+]
