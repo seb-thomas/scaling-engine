@@ -64,11 +64,11 @@ export function HomePage() {
       {shows.length > 0 && (
         <section>
           <div className="border-b border-gray-200 dark:border-gray-800 mb-8">
-            <h2 className="text-sm tracking-wider uppercase mb-4">All Shows</h2>
+            <h2 className="text-sm tracking-wider uppercase mb-4">Top Shows</h2>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {shows.map(show => (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {shows.slice(0, 6).map(show => (
               <ShowCard key={show.id} show={show} />
             ))}
           </div>

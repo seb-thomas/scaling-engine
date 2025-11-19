@@ -95,15 +95,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
             >
               Latest Books
             </Link>
-            {stations.map(station => (
-              <Link
-                key={station.id}
-                to={`/station/${station.station_id}`}
-                className={`hover:opacity-70 transition-opacity ${location.pathname.startsWith(`/station/${station.station_id}`) ? 'opacity-100' : 'opacity-70'}`}
-              >
-                {station.name}
-              </Link>
-            ))}
+            <Link
+              to="/shows"
+              className={`hover:opacity-70 transition-opacity ${location.pathname === '/shows' ? 'opacity-100' : 'opacity-70'}`}
+            >
+              All Shows
+            </Link>
           </nav>
         </div>
       </header>
