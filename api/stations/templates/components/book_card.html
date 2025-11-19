@@ -1,0 +1,40 @@
+{% comment %}
+Book Card Component
+Props: book (required), featured (optional, default: False)
+{% endcomment %}
+
+<article class="book-card {% if featured %}book-card--featured{% endif %}">
+    <a href="{% url 'stations:book_detail' book.id %}" class="book-card__link">
+        {% if featured and book.cover_image %}
+        <div class="book-card__image">
+            <img src="{{ book.cover_image }}" alt="{{ book.title }} cover" loading="lazy">
+        </div>
+        {% endif %}
+
+        <div class="book-card__content">
+            <div class="book-card__category">{{ book.episode.brand.name }}</div>
+
+            <h3 class="book-card__title {% if featured %}book-card__title--featured{% endif %}">
+                {{ book.title }}
+            </h3>
+
+            {% if book.author %}
+            <div class="book-card__author">By {{ book.author }}</div>
+            {% endif %}
+
+            {% if featured and book.description %}
+            <p class="book-card__description">{{ book.description }}</p>
+            {% endif %}
+
+            <div class="book-card__meta">
+                <span class="book-card__meta-item">{{ book.episode.brand.station.name }}</span>
+                {% if book.episode.aired_at %}
+                <span class="book-card__meta-item">{{ book.episode.aired_at|date:"F j, Y" }}</span>
+                {% endif %}
+                {% if not featured %}
+                <span class="book-card__meta-item">{{ book.episode.title|truncatewords:10 }}</span>
+                {% endif %}
+            </div>
+        </div>
+    </a>
+</article>

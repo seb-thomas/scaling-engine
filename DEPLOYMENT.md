@@ -2,6 +2,72 @@
 
 This guide explains how to deploy the Paperwaves BBC Radio scraping engine to production.
 
+## 🚀 Easiest Deployment Method: DigitalOcean Droplet
+
+**Want everything running in 5 minutes with zero configuration?** Use the automated deployment script.
+
+### Why DigitalOcean Droplet?
+
+✅ Deploy your entire `docker-compose.prod.yml` as-is
+✅ No separate database setup - everything runs together
+✅ One command deployment
+✅ All services included (web, db, redis, celery, nginx)
+✅ Simple and cheap ($6-12/month)
+
+### Quick Start
+
+1. **Create a DigitalOcean Droplet**
+   - Go to [DigitalOcean](https://www.digitalocean.com/) → Create Droplet
+   - Choose: Ubuntu 22.04 LTS, $12/month plan
+   - Copy the IP address
+
+2. **SSH into your Droplet**
+   ```bash
+   ssh root@your-droplet-ip
+   ```
+
+3. **Clone and Deploy**
+   ```bash
+   git clone https://github.com/seb-thomas/scaling-engine.git
+   cd scaling-engine
+   chmod +x deploy-to-droplet.sh
+   ./deploy-to-droplet.sh
+   ```
+
+   The script automatically:
+   - Installs Docker & Docker Compose
+   - Generates secure random passwords
+   - Builds and starts all services
+   - Runs database migrations
+   - Prompts you to create a superuser
+
+4. **Access Your App**
+   - Visit: `http://your-droplet-ip:1337`
+   - Admin: `http://your-droplet-ip:1337/admin/`
+
+5. **Set Up Your Domain (Optional)**
+   - Edit `.env.prod` and update `DJANGO_ALLOWED_HOSTS`
+   - Point your domain's A record to the droplet IP
+   - Restart: `docker-compose -f docker-compose.prod.yml restart web`
+
+6. **Enable HTTPS (Recommended)**
+   ```bash
+   # Install Caddy for automatic HTTPS
+   apt install -y caddy
+
+   # Create Caddyfile
+   echo "yourdomain.com {
+       reverse_proxy localhost:1337
+   }" > /etc/caddy/Caddyfile
+
+   # Restart Caddy
+   systemctl restart caddy
+   ```
+
+That's it! Everything runs from your docker-compose.yml with zero external services.
+
+---
+
 ## Architecture Overview
 
 The production stack includes:
@@ -265,24 +331,28 @@ All commits must pass tests before merging to master.
 
 ## Production Hosting Recommendations
 
-### Option 1: DigitalOcean Droplet
+### Option 1: DigitalOcean Droplet ⭐ RECOMMENDED
 - **Cost**: $12-24/month
-- **Pros**: Full control, simple Docker setup
-- **Setup**: Use Docker Droplet with 2GB RAM minimum
+- **Pros**: Full control, simple Docker setup, **no external database needed**, everything runs from docker-compose
+- **Cons**: You manage the server (minimal effort)
+- **Setup**: Use the `deploy-to-droplet.sh` script - 5 minutes to deploy!
 
 ### Option 2: AWS (EC2 + RDS)
 - **Cost**: ~$30-50/month
 - **Pros**: Managed database, auto-scaling
+- **Cons**: More expensive, requires separate RDS setup
 - **Setup**: EC2 t3.small + RDS PostgreSQL
 
 ### Option 3: Railway.app
 - **Cost**: $5-20/month
 - **Pros**: Zero-config deployment, built-in CI/CD
-- **Setup**: Connect GitHub repo, Railway auto-deploys
+- **Cons**: Requires separate database setup, doesn't use docker-compose
+- **Setup**: Connect GitHub repo, manually configure database
 
 ### Option 4: Heroku
 - **Cost**: $25-50/month
 - **Pros**: Managed platform, add-ons for Postgres/Redis
+- **Cons**: Expensive, requires separate add-ons
 - **Setup**: Use Heroku Postgres and Heroku Redis add-ons
 
 ## Support

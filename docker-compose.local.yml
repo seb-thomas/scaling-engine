@@ -1,0 +1,42 @@
+version: "3.7"
+
+services:
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - postgres_data_local:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=hello_django
+      - POSTGRES_PASSWORD=hello_django
+      - POSTGRES_DB=hello_django_dev
+    ports:
+      - "5433:5432"  # Use 5433 to avoid conflicts
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"  # Use 6380 to avoid conflicts
+
+  web:
+    image: scaling-engine-web  # Use existing image
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./api:/usr/src/api  # Mount local code for hot reload
+    ports:
+      - "8001:8000"
+    environment:
+      - DEBUG=1
+      - SECRET_KEY=local-dev-secret-key
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1
+      - SQL_ENGINE=django.db.backends.postgresql
+      - SQL_DATABASE=hello_django_dev
+      - SQL_USER=hello_django
+      - SQL_PASSWORD=hello_django
+      - SQL_HOST=db
+      - SQL_PORT=5432
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data_local:

@@ -1,274 +1,123 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ book.title }} - Radio Reads</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #fff;
-            --bg-cta: #f9f9f9;
-            --text-primary: #121212;
-            --text-secondary: #6b6b6b;
-            --text-tertiary: #999;
-            --text-link: #6b6b6b;
-            --border-color: #e5e5e5;
-            --btn-bg: #121212;
-            --btn-bg-hover: #333;
-            --btn-text: white;
-        }
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-primary: #1a1a1a;
-                --bg-secondary: #222;
-                --bg-cta: #252525;
-                --text-primary: #e5e5e5;
-                --text-secondary: #a0a0a0;
-                --text-tertiary: #757575;
-                --text-link: #a0a0a0;
-                --border-color: #333;
-                --btn-bg: #e5e5e5;
-                --btn-bg-hover: #ccc;
-                --btn-text: #121212;
-            }
-        }
+{% block title %}{{ book.title }} - Radio Reads{% endblock %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block content %}
+<div class="container" style="max-width: 720px;">
+    {# Back link #}
+    <div style="padding-top: 3rem;">
+        <a href="{% url 'stations:index' %}" class="back-link">Back to all books</a>
+    </div>
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 16px;
-            line-height: 1.7;
-            color: var(--text-primary);
-            background: var(--bg-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem 0;
-            background: var(--bg-secondary);
-        }
-
-        .container {
-            max-width: 720px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        .back-link {
-            display: inline-block;
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            text-decoration: none;
-            margin-bottom: 0.75rem;
-            transition: color 0.2s;
-        }
-
-        .back-link:hover {
-            color: var(--text-primary);
-        }
-
-        .back-link::before {
-            content: "← ";
-        }
-
-        h1 {
-            font-family: 'Libre Baskerville', serif;
-            font-size: 2rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            color: var(--text-primary);
-        }
-
-        .article-header {
-            padding: 3rem 0 2rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .book-category {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            margin-bottom: 1rem;
-        }
-
-        .book-title {
-            font-family: 'Libre Baskerville', serif;
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.3;
-            margin-bottom: 1rem;
-            letter-spacing: -0.5px;
-        }
-
-        .book-author {
-            font-size: 1.125rem;
-            color: var(--text-secondary);
-            margin-bottom: 1.5rem;
-            font-weight: 400;
-        }
-
-        .article-content {
-            padding: 2.5rem 0;
-        }
-
-        .info-section {
-            margin-bottom: 2rem;
-        }
-
-        .info-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-        }
-
-        .info-value {
-            font-size: 1rem;
-            color: var(--text-primary);
-            line-height: 1.7;
-        }
-
-        .info-value a {
-            color: var(--text-link);
-            text-decoration: underline;
-        }
-
-        .episode-title {
-            font-style: italic;
-            color: var(--text-primary);
-        }
-
-        .cta-section {
-            background: var(--bg-cta);
-            padding: 2rem;
-            margin-top: 3rem;
-            border-top: 1px solid var(--border-color);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .cta-section p {
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            margin-bottom: 1rem;
-        }
-
-        .btn {
-            display: inline-block;
-            background: var(--btn-bg);
-            color: var(--btn-text);
-            padding: 0.75rem 1.5rem;
-            border-radius: 2px;
-            text-decoration: none;
-            transition: background 0.2s;
-            font-size: 0.875rem;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-        }
-
-        .btn:hover {
-            background: var(--btn-bg-hover);
-        }
-
-        footer {
-            border-top: 1px solid var(--border-color);
-            padding: 2rem 0;
-            margin-top: 4rem;
-        }
-
-        footer p {
-            text-align: center;
-            font-size: 0.875rem;
-            color: var(--text-tertiary);
-        }
-
-        @media (max-width: 768px) {
-            .book-title {
-                font-size: 2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="container">
-            <a href="{% url 'stations:index' %}" class="back-link">Back to all books</a>
-            <h1>Radio Reads</h1>
+    {# Article #}
+    <article>
+        <div class="article-header" style="padding: 2rem 0; border-bottom: 1px solid var(--border-color);">
+            <div class="book-card__category">{{ book.episode.brand.name }}</div>
+            <h1 class="book-card__title book-card__title--featured" style="font-size: 2.5rem;">
+                {{ book.title }}
+            </h1>
+            {% if book.author %}
+            <div class="book-card__author" style="font-size: 1.125rem;">By {{ book.author }}</div>
+            {% endif %}
         </div>
-    </header>
 
-    <main class="container">
-        <article>
-            <div class="article-header">
-                <div class="book-category">{{ book.episode.brand.name }}</div>
-                <h2 class="book-title">{{ book.title }}</h2>
-                {% if book.author %}
-                <div class="book-author">By {{ book.author }}</div>
-                {% endif %}
+        <div class="article-content" style="padding: 2.5rem 0;">
+            {# Featured On #}
+            <div class="info-section" style="margin-bottom: 2rem;">
+                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
+                    Featured On
+                </div>
+                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
+                    {{ book.episode.brand.name }}, {{ book.episode.brand.station.name }}
+                </div>
             </div>
 
-            <div class="article-content">
-                <div class="info-section">
-                    <div class="info-label">Featured On</div>
-                    <div class="info-value">
-                        {{ book.episode.brand.name }}, {{ book.episode.brand.station.name }}
-                    </div>
+            {# Episode #}
+            <div class="info-section" style="margin-bottom: 2rem;">
+                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
+                    Episode
                 </div>
-
-                <div class="info-section">
-                    <div class="info-label">Episode</div>
-                    <div class="info-value episode-title">
-                        {{ book.episode.title }}
-                        {% if book.episode.url %}
-                        <br><a href="{{ book.episode.url }}" target="_blank" rel="noopener">Listen on BBC</a>
-                        {% endif %}
-                    </div>
-                </div>
-
-                {% if book.episode.aired_at %}
-                <div class="info-section">
-                    <div class="info-label">Aired</div>
-                    <div class="info-value">{{ book.episode.aired_at|date:"F j, Y" }}</div>
-                </div>
-                {% endif %}
-
-                {% if book.episode.description %}
-                <div class="info-section">
-                    <div class="info-label">About the Episode</div>
-                    <div class="info-value">{{ book.episode.description }}</div>
-                </div>
-                {% endif %}
-
-                <div class="cta-section">
-                    <p>Interested in reading this book?</p>
-                    <a href="https://www.google.com/search?q={{ book.title|urlencode }}{% if book.author %}+{{ book.author|urlencode }}{% endif %}+book"
-                       class="btn" target="_blank" rel="noopener">Find this book</a>
+                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
+                    <span style="font-style: italic;">{{ book.episode.title }}</span>
+                    {% if book.episode.url %}
+                    <br><a href="{{ book.episode.url }}" target="_blank" rel="noopener" style="color: var(--text-secondary); text-decoration: underline;">Listen on BBC</a>
+                    {% endif %}
                 </div>
             </div>
-        </article>
-    </main>
 
-    <footer>
-        <div class="container">
-            <p>Radio Reads &copy; 2025</p>
+            {# Aired Date #}
+            {% if book.episode.aired_at %}
+            <div class="info-section" style="margin-bottom: 2rem;">
+                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
+                    Aired
+                </div>
+                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
+                    {{ book.episode.aired_at|date:"F j, Y" }}
+                </div>
+            </div>
+            {% endif %}
+
+            {# Book Description (if available) #}
+            {% if book.description %}
+            <div class="info-section" style="margin-bottom: 2rem;">
+                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
+                    About the Book
+                </div>
+                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
+                    {{ book.description }}
+                </div>
+            </div>
+            {% endif %}
+
+            {# Episode Description #}
+            {% if book.episode.description %}
+            <div class="info-section" style="margin-bottom: 2rem;">
+                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
+                    About the Episode
+                </div>
+                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
+                    {{ book.episode.description }}
+                </div>
+            </div>
+            {% endif %}
+
+            {# CTA Section #}
+            <div style="background: var(--bg-tertiary); padding: 2rem; margin-top: 3rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-radius: 4px;">
+                <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem;">
+                    Interested in reading this book?
+                </p>
+                <a href="https://www.google.com/search?q={{ book.title|urlencode }}{% if book.author %}+{{ book.author|urlencode }}{% endif %}+book"
+                   class="btn"
+                   target="_blank"
+                   rel="noopener"
+                   style="display: inline-block; background: var(--accent-color); color: var(--bg-primary); padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; transition: opacity 0.2s; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.3px;">
+                    Find this book
+                </a>
+            </div>
         </div>
-    </footer>
-</body>
-</html>
+    </article>
+</div>
+
+<style>
+    .back-link {
+        display: inline-block;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+    .back-link:hover {
+        color: var(--text-primary);
+    }
+
+    .back-link::before {
+        content: "← ";
+    }
+
+    .btn:hover {
+        opacity: 0.85;
+    }
+</style>
+{% endblock %}

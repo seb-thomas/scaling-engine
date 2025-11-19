@@ -1,0 +1,18 @@
+name: Railway Deployment Status
+
+on:
+  # Trigger manually or via Railway webhook
+  workflow_dispatch:
+  repository_dispatch:
+    types: [railway-deploy]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deployment notification
+        run: |
+          echo "Railway deployment triggered"
+          echo "Service: ${{ github.event.client_payload.service }}"
+          echo "Status: ${{ github.event.client_payload.status }}"
+          echo "URL: ${{ github.event.client_payload.url }}"

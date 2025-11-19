@@ -15,7 +15,13 @@ class Brand(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
     url = models.URLField()
+    description = models.TextField(blank=True, default="")
     created = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def book_count(self):
+        """Count of books associated with this brand"""
+        return Book.objects.filter(episode__brand=self).count()
 
     def __str__(self):
         return self.name
@@ -39,6 +45,8 @@ class Book(models.Model):
     episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     author = models.CharField(max_length=255, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    cover_image = models.URLField(blank=True, default="")
 
     def __str__(self):
         return self.title

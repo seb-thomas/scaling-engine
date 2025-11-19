@@ -1,0 +1,22 @@
+{% comment %}
+Show Card Component
+Props: show (Brand instance required)
+{% endcomment %}
+
+<article class="show-card">
+    <a href="{% url 'stations:brand_detail' show.id %}" class="show-card__link">
+        <div class="show-card__content">
+            <h3 class="show-card__title">{{ show.name }}</h3>
+
+            <div class="show-card__station">{{ show.station.name }}</div>
+
+            {% if show.description %}
+            <p class="show-card__description">{{ show.description|truncatewords:20 }}</p>
+            {% endif %}
+
+            <div class="show-card__stats">
+                <span class="show-card__book-count">{{ show.book_count }} book{{ show.book_count|pluralize }}</span>
+            </div>
+        </div>
+    </a>
+</article>

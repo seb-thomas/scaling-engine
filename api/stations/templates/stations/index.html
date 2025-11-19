@@ -1,237 +1,60 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Radio Reads - Books from BBC Radio</title>
-    <link rel="icon" type="image/svg+xml" href="{% static 'favicon.svg' %}">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-primary: #ffffff;
-            --bg-secondary: #fff;
-            --text-primary: #121212;
-            --text-secondary: #6b6b6b;
-            --text-tertiary: #999;
-            --border-color: #e5e5e5;
-        }
+{% extends "base.html" %}
+{% load components %}
 
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg-primary: #1a1a1a;
-                --bg-secondary: #222;
-                --text-primary: #e5e5e5;
-                --text-secondary: #a0a0a0;
-                --text-tertiary: #757575;
-                --border-color: #333;
-            }
-        }
+{% block title %}Radio Reads - Books from Radio Shows{% endblock %}
+{% block nav_home %}active{% endblock %}
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+{% block content %}
+<div class="container">
+    {# Stats Section #}
+    <div class="stats">
+        <p><strong>{{ total_books }}</strong> book{{ total_books|pluralize }} discovered from radio shows</p>
+    </div>
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            font-size: 16px;
-            line-height: 1.7;
-            color: var(--text-primary);
-            background: var(--bg-primary);
-            transition: background-color 0.3s ease, color 0.3s ease;
-        }
-
-        header {
-            border-bottom: 1px solid var(--border-color);
-            padding: 1.5rem 0;
-            background: var(--bg-secondary);
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        h1 {
-            font-family: 'Libre Baskerville', serif;
-            font-size: 2.75rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .subtitle {
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-            letter-spacing: 0.3px;
-        }
-
-        .stats {
-            padding: 2rem 0;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 2.5rem;
-        }
-
-        .stats p {
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 500;
-        }
-
-        .stats strong {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .books-list {
-            margin-bottom: 4rem;
-        }
-
-        .book-item {
-            display: block;
-            text-decoration: none;
-            color: inherit;
-            padding: 2rem 0;
-            border-bottom: 1px solid var(--border-color);
-            transition: opacity 0.2s;
-        }
-
-        .book-item:hover {
-            opacity: 0.7;
-        }
-
-        .book-item:first-child {
-            padding-top: 0;
-        }
-
-        .book-category {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-        }
-
-        .book-title {
-            font-family: 'Libre Baskerville', serif;
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            line-height: 1.4;
-            margin-bottom: 0.75rem;
-            letter-spacing: -0.3px;
-        }
-
-        .book-author {
-            font-size: 0.95rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-            font-weight: 400;
-        }
-
-        .book-meta {
-            font-size: 0.875rem;
-            color: var(--text-tertiary);
-            margin-top: 0.75rem;
-            line-height: 1.5;
-        }
-
-        .book-meta-item {
-            display: inline;
-        }
-
-        .book-meta-item:not(:last-child)::after {
-            content: " · ";
-            margin: 0 0.5rem;
-        }
-
-        .no-books {
-            text-align: center;
-            padding: 4rem 2rem;
-        }
-
-        .no-books p {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            font-weight: 400;
-        }
-
-        footer {
-            border-top: 1px solid var(--border-color);
-            padding: 2rem 0;
-            margin-top: 4rem;
-        }
-
-        footer p {
-            text-align: center;
-            font-size: 0.875rem;
-            color: var(--text-tertiary);
-        }
-
-        @media (max-width: 768px) {
-            h1 {
-                font-size: 2rem;
-            }
-
-            .book-title {
-                font-size: 1.25rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="container">
-            <h1>Radio Reads</h1>
-            <p class="subtitle">Books discovered from BBC Radio shows</p>
-        </div>
-    </header>
-
-    <main class="container">
-        <div class="stats">
-            <p><strong>{{ total_books }}</strong> book{{ total_books|pluralize }} discovered</p>
+    {# Latest Books Section #}
+    {% if books %}
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">Latest Books</h2>
         </div>
 
-        {% if books %}
-        <div class="books-list">
+        <div class="max-w-4xl">
             {% for book in books %}
-            <a href="{% url 'stations:book_detail' book.id %}" class="book-item">
-                <div class="book-category">{{ book.episode.brand.name }}</div>
-                <h2 class="book-title">{{ book.title }}</h2>
-                {% if book.author %}
-                <div class="book-author">By {{ book.author }}</div>
+                {% if forloop.first and book.description %}
+                    {# First book is featured if it has a description #}
+                    {% book_card book=book featured=True %}
+                {% else %}
+                    {% book_card book=book featured=False %}
                 {% endif %}
-                <div class="book-meta">
-                    <span class="book-meta-item">{{ book.episode.brand.station.name }}</span>
-                    {% if book.episode.aired_at %}
-                    <span class="book-meta-item">{{ book.episode.aired_at|date:"F j, Y" }}</span>
-                    {% endif %}
-                    <span class="book-meta-item">{{ book.episode.title|truncatewords:12 }}</span>
-                </div>
-            </a>
             {% endfor %}
         </div>
-        {% else %}
-        <div class="no-books">
-            <p>No books have been discovered yet. Check back soon.</p>
-        </div>
-        {% endif %}
-    </main>
 
-    <footer>
-        <div class="container">
-            <p>Radio Reads &copy; 2025</p>
+        {# Pagination #}
+        {% if page_obj %}
+            {% pagination current_page=page_obj.number total_pages=page_obj.paginator.num_pages url_name='stations:index' %}
+        {% endif %}
+    </section>
+    {% else %}
+    <div class="empty-state">
+        <p>No books have been discovered yet. Check back soon!</p>
+    </div>
+    {% endif %}
+
+    {# All Shows Section - if we have brands #}
+    {% comment %}
+    {% if brands %}
+    <section class="section">
+        <div class="section-header">
+            <h2 class="section-title">All Shows</h2>
         </div>
-    </footer>
-</body>
-</html>
+
+        <div class="grid grid--4">
+            {% for brand in brands %}
+                {% show_card show=brand %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+    {% endcomment %}
+</div>
+{% endblock %}

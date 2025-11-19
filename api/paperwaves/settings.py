@@ -63,7 +63,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
-    "django_celery_beat",
+    # "django_celery_beat",  # Commented out for local dev
     # "debug_toolbar",
 ]
 
