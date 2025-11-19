@@ -66,6 +66,9 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
   - Then configure nginx SSL
 
 ### Planned
+- [ ] Trim down books data (900 is overkill for development) and pause scraping
+- [ ] Move static directory to project level (out of stations app)
+- [ ] Fix confusing naming - remove /api nesting since there's no separate frontend
 - [ ] Investigate why only 1.8% of episodes detected as book-related
 - [ ] Add book cover images (API integration or web scraping)
 - [ ] Implement AI/web search to find Amazon/book purchase links
