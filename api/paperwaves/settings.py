@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from celery.schedules import crontab
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -34,6 +35,10 @@ CSRF_TRUSTED_ORIGINS = [
     "http://159.65.18.16:8080",
     "http://159.65.18.16:1337",
     "http://159.65.18.16",
+    "http://radioreads.fun",
+    "http://www.radioreads.fun",
+    "https://radioreads.fun",
+    "https://www.radioreads.fun",
 ]
 
 # Use X-Forwarded-Host for CSRF checks
@@ -58,6 +63,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "django_celery_beat",
     # "debug_toolbar",
 ]
 
@@ -157,6 +163,20 @@ INTERNAL_IPS = [
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379")
+CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
+CELERY_TIMEZONE = "Europe/London"
+
+# Celery Beat Schedule
+CELERY_BEAT_SCHEDULE = {
+    "scrape-all-brands-daily": {
+        "task": "stations.tasks.scrape_all_brands",
+        "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM London time
+    },
+    "extract-books-every-30-minutes": {
+        "task": "stations.tasks.extract_books_from_new_episodes",
+        "schedule": crontab(minute="*/30"),  # Every 30 minutes
+    },
+}
 
 # AI / BOOK EXTRACTION
 # Set to 'ai' to use Claude AI, 'keyword' for legacy keyword matching, 'both' for both

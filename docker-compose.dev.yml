@@ -5,7 +5,10 @@ services:
     build: ./nginx
     volumes:
       - static_volume:/home/app/web/staticfiles
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     ports:
+      - 80:80
+      - 443:443
       - 8080:80
     depends_on:
       - web
@@ -43,6 +46,19 @@ services:
       context: ./api
       dockerfile: Dockerfile.prod
     command: celery -A paperwaves worker --loglevel=info
+    volumes:
+      - ./api:/home/app/web
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod
+    command: celery -A paperwaves beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     volumes:
       - ./api:/home/app/web
     env_file:
