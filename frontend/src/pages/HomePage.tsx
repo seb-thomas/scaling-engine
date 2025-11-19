@@ -83,13 +83,6 @@ export function HomePage() {
   const totalPages = Math.ceil(books.count / booksPerPage)
   const currentBooks = books.results
 
-  if (!books) {
-    return <div className="container mx-auto px-4 py-12">Loading...</div>
-  }
-
-  const totalPages = Math.ceil(books.count / booksPerPage)
-  const currentBooks = books.results
-
   return (
     <div className="container mx-auto px-4 py-12">
       <section className="mb-16">

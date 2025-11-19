@@ -106,12 +106,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </header>
 
       <main>{children}</main>
-
-      <footer className="border-t border-gray-200 dark:border-gray-800 mt-24">
-        <div className="container mx-auto px-4 py-8 text-center text-gray-600 dark:text-gray-400">
-          <p>Radio Reads © {new Date().getFullYear()}</p>
-        </div>
-      </footer>
     </div>
   )
 }
