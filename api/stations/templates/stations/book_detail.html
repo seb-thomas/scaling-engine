@@ -22,18 +22,20 @@
             --btn-text: white;
         }
 
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #222;
-            --bg-cta: #252525;
-            --text-primary: #e5e5e5;
-            --text-secondary: #a0a0a0;
-            --text-tertiary: #757575;
-            --text-link: #a0a0a0;
-            --border-color: #333;
-            --btn-bg: #e5e5e5;
-            --btn-bg-hover: #ccc;
-            --btn-text: #121212;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1a1a1a;
+                --bg-secondary: #222;
+                --bg-cta: #252525;
+                --text-primary: #e5e5e5;
+                --text-secondary: #a0a0a0;
+                --text-tertiary: #757575;
+                --text-link: #a0a0a0;
+                --border-color: #333;
+                --btn-bg: #e5e5e5;
+                --btn-bg-hover: #ccc;
+                --btn-text: #121212;
+            }
         }
 
         * {
@@ -266,11 +268,5 @@
             <p>Radio Reads &copy; 2025</p>
         </div>
     </footer>
-
-    <script>
-        // Check for saved theme preference
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-    </script>
 </body>
 </html>

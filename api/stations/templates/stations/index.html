@@ -17,13 +17,15 @@
             --border-color: #e5e5e5;
         }
 
-        [data-theme="dark"] {
-            --bg-primary: #1a1a1a;
-            --bg-secondary: #222;
-            --text-primary: #e5e5e5;
-            --text-secondary: #a0a0a0;
-            --text-tertiary: #757575;
-            --border-color: #333;
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #1a1a1a;
+                --bg-secondary: #222;
+                --text-primary: #e5e5e5;
+                --text-secondary: #a0a0a0;
+                --text-tertiary: #757575;
+                --border-color: #333;
+            }
         }
 
         * {
@@ -45,32 +47,6 @@
             border-bottom: 1px solid var(--border-color);
             padding: 1.5rem 0;
             background: var(--bg-secondary);
-            position: relative;
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .theme-toggle {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-primary);
-            padding: 0.5rem 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .theme-toggle:hover {
-            background: var(--bg-primary);
         }
 
         .container {
@@ -214,16 +190,8 @@
 <body>
     <header>
         <div class="container">
-            <div class="header-content">
-                <div>
-                    <h1>Radio Reads</h1>
-                    <p class="subtitle">Books discovered from BBC Radio shows</p>
-                </div>
-                <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
-                    <span id="theme-icon">🌙</span>
-                    <span id="theme-text">Dark</span>
-                </button>
-            </div>
+            <h1>Radio Reads</h1>
+            <p class="subtitle">Books discovered from BBC Radio shows</p>
         </div>
     </header>
 
@@ -263,34 +231,5 @@
             <p>Radio Reads &copy; 2025</p>
         </div>
     </footer>
-
-    <script>
-        // Check for saved theme preference or default to light mode
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        updateThemeButton(currentTheme);
-
-        function toggleTheme() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeButton(newTheme);
-        }
-
-        function updateThemeButton(theme) {
-            const icon = document.getElementById('theme-icon');
-            const text = document.getElementById('theme-text');
-
-            if (theme === 'dark') {
-                icon.textContent = '☀️';
-                text.textContent = 'Light';
-            } else {
-                icon.textContent = '🌙';
-                text.textContent = 'Dark';
-            }
-        }
-    </script>
 </body>
 </html>
