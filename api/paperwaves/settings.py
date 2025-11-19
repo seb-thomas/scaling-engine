@@ -151,6 +151,9 @@ USE_TZ = True
 # STATIC_URL = "/static/"
 STATIC_URL = "/staticfiles/"
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, "static"),
+]
 
 # Debug toolbar
 INTERNAL_IPS = [
@@ -167,17 +170,25 @@ CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TIMEZONE = "Europe/London"
 
 # Celery Beat Schedule
-CELERY_BEAT_SCHEDULE = {
-    "scrape-all-brands-daily": {
-        "task": "stations.tasks.scrape_all_brands",
-        "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM London time
-    },
-    "extract-books-every-30-minutes": {
-        "task": "stations.tasks.extract_books_from_new_episodes",
-        "schedule": crontab(minute="*/30"),  # Every 30 minutes
-    },
-}
+# Set PAUSE_SCRAPING=True in environment to disable scheduled scraping
+PAUSE_SCRAPING = os.environ.get("PAUSE_SCRAPING", "False").lower() == "true"
+
+CELERY_BEAT_SCHEDULE = {}
+if not PAUSE_SCRAPING:
+    CELERY_BEAT_SCHEDULE = {
+        "scrape-all-brands-daily": {
+            "task": "stations.tasks.scrape_all_brands",
+            "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM London time
+        },
+        "extract-books-every-30-minutes": {
+            "task": "stations.tasks.extract_books_from_new_episodes",
+            "schedule": crontab(minute="*/30"),  # Every 30 minutes
+        },
+    }
 
 # AI / BOOK EXTRACTION
 # Set to 'ai' to use Claude AI, 'keyword' for legacy keyword matching, 'both' for both
 BOOK_EXTRACTION_MODE = os.environ.get("BOOK_EXTRACTION_MODE", "keyword")
+
+# Bookshop.org Affiliate
+BOOKSHOP_AFFILIATE_ID = os.environ.get("BOOKSHOP_AFFILIATE_ID", "16640")

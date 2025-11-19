@@ -1,123 +1,133 @@
-{% extends "base.html" %}
-{% load static %}
+{% extends "base.html" %} {% load components %} {% block title %}{{ book.title
+}} - Radio Reads{% endblock %} {% block content %}
+<div class="container mx-auto px-4 py-12">
+  {% breadcrumbs items=breadcrumb_items %}
 
-{% block title %}{{ book.title }} - Radio Reads{% endblock %}
+  <div class="max-w-3xl">
+    <a
+      href="{% url 'stations:show_detail' book.episode.brand.id %}"
+      class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-8"
+    >
+      <svg
+        class="w-4 h-4"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-width="2"
+          d="M15 19l-7-7 7-7"
+        />
+      </svg>
+      Back to all books
+    </a>
 
-{% block content %}
-<div class="container" style="max-width: 720px;">
-    {# Back link #}
-    <div style="padding-top: 3rem;">
-        <a href="{% url 'stations:index' %}" class="back-link">Back to all books</a>
-    </div>
-
-    {# Article #}
     <article>
-        <div class="article-header" style="padding: 2rem 0; border-bottom: 1px solid var(--border-color);">
-            <div class="book-card__category">{{ book.episode.brand.name }}</div>
-            <h1 class="book-card__title book-card__title--featured" style="font-size: 2.5rem;">
-                {{ book.title }}
-            </h1>
-            {% if book.author %}
-            <div class="book-card__author" style="font-size: 1.125rem;">By {{ book.author }}</div>
-            {% endif %}
+      <div class="flex gap-8 mb-8">
+        {% if book.cover_image %}
+        <div class="flex-shrink-0 w-48">
+          <img
+            src="{{ book.cover_image }}"
+            alt="{{ book.title }} cover"
+            class="w-full h-auto shadow-xl"
+          />
         </div>
+        {% endif %}
+        <div class="flex-1">
+          <div
+            class="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4"
+          >
+            {{ book.episode.brand.name }}
+          </div>
 
-        <div class="article-content" style="padding: 2.5rem 0;">
-            {# Featured On #}
-            <div class="info-section" style="margin-bottom: 2rem;">
-                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
-                    Featured On
-                </div>
-                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
-                    {{ book.episode.brand.name }}, {{ book.episode.brand.station.name }}
-                </div>
-            </div>
+          <h1 class="text-5xl mb-6" style="font-family: 'EB Garamond', serif">
+            {{ book.title }}
+          </h1>
 
-            {# Episode #}
-            <div class="info-section" style="margin-bottom: 2rem;">
-                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
-                    Episode
-                </div>
-                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
-                    <span style="font-style: italic;">{{ book.episode.title }}</span>
-                    {% if book.episode.url %}
-                    <br><a href="{{ book.episode.url }}" target="_blank" rel="noopener" style="color: var(--text-secondary); text-decoration: underline;">Listen on BBC</a>
-                    {% endif %}
-                </div>
-            </div>
-
-            {# Aired Date #}
-            {% if book.episode.aired_at %}
-            <div class="info-section" style="margin-bottom: 2rem;">
-                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
-                    Aired
-                </div>
-                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
-                    {{ book.episode.aired_at|date:"F j, Y" }}
-                </div>
-            </div>
-            {% endif %}
-
-            {# Book Description (if available) #}
-            {% if book.description %}
-            <div class="info-section" style="margin-bottom: 2rem;">
-                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
-                    About the Book
-                </div>
-                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
-                    {{ book.description }}
-                </div>
-            </div>
-            {% endif %}
-
-            {# Episode Description #}
-            {% if book.episode.description %}
-            <div class="info-section" style="margin-bottom: 2rem;">
-                <div class="info-label" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); font-weight: 600; margin-bottom: 0.5rem;">
-                    About the Episode
-                </div>
-                <div class="info-value" style="font-size: 1rem; color: var(--text-primary); line-height: 1.7;">
-                    {{ book.episode.description }}
-                </div>
-            </div>
-            {% endif %}
-
-            {# CTA Section #}
-            <div style="background: var(--bg-tertiary); padding: 2rem; margin-top: 3rem; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); border-radius: 4px;">
-                <p style="font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                    Interested in reading this book?
-                </p>
-                <a href="https://www.google.com/search?q={{ book.title|urlencode }}{% if book.author %}+{{ book.author|urlencode }}{% endif %}+book"
-                   class="btn"
-                   target="_blank"
-                   rel="noopener"
-                   style="display: inline-block; background: var(--accent-color); color: var(--bg-primary); padding: 0.75rem 1.5rem; border-radius: 4px; text-decoration: none; transition: opacity 0.2s; font-size: 0.875rem; font-weight: 500; letter-spacing: 0.3px;">
-                    Find this book
-                </a>
-            </div>
+          {% if book.author %}
+          <div class="text-xl text-gray-600 dark:text-gray-400 mb-8">
+            by {{ book.author }}
+          </div>
+          {% endif %}
         </div>
+      </div>
+
+      <div class="border-y border-gray-200 dark:border-gray-800 py-6 mb-8">
+        <h2
+          class="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3"
+        >
+          Featured On
+        </h2>
+        <div class="mb-2">
+          <a
+            href="{% url 'stations:show_detail' book.episode.brand.id %}"
+            class="hover:opacity-70 transition-opacity"
+          >
+            {{ book.episode.brand.name }}, {{ book.episode.brand.station.name }}
+          </a>
+        </div>
+      </div>
+
+      <div class="mb-8">
+        <h2
+          class="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3"
+        >
+          Episode
+        </h2>
+        <p class="italic mb-2">{{ book.episode.title }}</p>
+        {% if book.episode.aired_at %}
+        <div class="text-sm text-gray-500 dark:text-gray-500 mb-3">
+          {{ book.episode.aired_at|date:"F j, Y" }}
+        </div>
+        {% endif %} {% if book.episode.url %}
+        <a
+          href="{{ book.episode.url }}"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors underline"
+        >
+          Listen to episode
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+            />
+          </svg>
+        </a>
+        {% endif %}
+      </div>
+
+      {% if book.description %}
+      <div class="mb-8">
+        <p class="text-xl leading-relaxed text-gray-700 dark:text-gray-300">
+          {{ book.description }}
+        </p>
+      </div>
+      {% endif %}
+
+      <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded">
+        <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">
+          Interested in reading this book?
+        </p>
+        <a
+          href="https://www.google.com/search?q={{ book.title|urlencode }}{% if book.author %}+{{ book.author|urlencode }}{% endif %}+book"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="inline-block px-6 py-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded text-sm font-medium hover:opacity-85 transition-opacity"
+        >
+          Find this book
+        </a>
+      </div>
     </article>
+  </div>
 </div>
-
-<style>
-    .back-link {
-        display: inline-block;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: color 0.2s;
-    }
-
-    .back-link:hover {
-        color: var(--text-primary);
-    }
-
-    .back-link::before {
-        content: "← ";
-    }
-
-    .btn:hover {
-        opacity: 0.85;
-    }
-</style>
 {% endblock %}

@@ -81,6 +81,9 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         brand_id = self.request.query_params.get('brand', None)
         if brand_id:
             queryset = queryset.filter(episode__brand__id=brand_id)
+        station_id = self.request.query_params.get('station_id', None)
+        if station_id:
+            queryset = queryset.filter(episode__brand__station__station_id=station_id)
         return queryset
 
 

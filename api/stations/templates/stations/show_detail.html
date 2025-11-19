@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load components %}
+
+{% block title %}{{ show.name }} - Radio Reads{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12">
+    {% breadcrumbs items=breadcrumb_items %}
+
+    <div class="mb-12">
+        <div class="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
+            {{ show.station.name }}
+        </div>
+        <h1 class="text-4xl mb-4" style="font-family: 'EB Garamond', serif;">{{ show.name }}</h1>
+        {% if show.description %}
+        <p class="text-xl text-gray-600 dark:text-gray-400 mb-2">
+            {{ show.description }}
+        </p>
+        {% endif %}
+        <p class="text-sm text-gray-500 dark:text-gray-500">
+            {{ show.book_count|default:0|floatformat:0 }} book{{ show.book_count|pluralize }} discovered
+        </p>
+    </div>
+
+    <div>
+        <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
+            <h2 class="text-sm tracking-wider uppercase mb-4">Books</h2>
+        </div>
+
+        <div class="max-w-4xl">
+            {% for book in books %}
+                {% book_card book=book featured=False %}
+            {% empty %}
+            <p class="text-gray-600 dark:text-gray-400">No books found for this show.</p>
+            {% endfor %}
+        </div>
+
+        {# Pagination #}
+        {% if page_obj.has_other_pages %}
+            {% pagination current_page=page_obj.number total_pages=page_obj.paginator.num_pages url_name='stations:show_detail' show_id=show.id %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

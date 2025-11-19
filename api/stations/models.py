@@ -47,9 +47,15 @@ class Book(models.Model):
     author = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
     cover_image = models.URLField(blank=True, default="")
+    purchase_link = models.URLField(blank=True, default="")
 
     def __str__(self):
         return self.title
+    
+    def get_bookshop_affiliate_url(self):
+        """Generate Bookshop.org affiliate search URL for this book"""
+        from .utils import generate_bookshop_affiliate_url
+        return generate_bookshop_affiliate_url(self.title, self.author)
 
 
 class Phrase(models.Model):

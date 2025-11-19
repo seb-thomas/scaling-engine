@@ -123,6 +123,38 @@ from stations.tasks import extract_books_from_new_episodes
 extract_books_from_new_episodes()
 ```
 
+### Bookshop.org Affiliate Integration
+- **Affiliate ID**: 16640
+- **Shop Name**: Radio Reads
+- **Shop URL**: https://uk.bookshop.org/shop/radioreads
+- **Status**: Pending verification (will work once verified)
+
+#### Configuration
+- Affiliate ID is configured via `BOOKSHOP_AFFILIATE_ID` environment variable
+- Defaults to "16640" if not set
+- Add to `.env.prod`: `BOOKSHOP_AFFILIATE_ID=16640`
+
+#### Regenerating Purchase Links
+Once affiliate account is verified, regenerate purchase links for existing books:
+```bash
+docker-compose -f docker-compose.dev.yml exec web python manage.py populate_purchase_links
+```
+
+Or with options:
+```bash
+# Regenerate all links (overwrite existing)
+python manage.py populate_purchase_links --overwrite
+
+# Limit to first 100 books
+python manage.py populate_purchase_links --limit 100
+```
+
+#### How It Works
+- New books automatically get Bookshop.org affiliate links when extracted via AI
+- Links use format: `https://uk.bookshop.org/search?q={query}&aid=16640`
+- Frontend displays "Buy on Bookshop.org" button with required affiliate disclosure
+- Disclosure text: "As an affiliate of Bookshop.org, we earn from qualifying purchases. This helps support independent bookstores."
+
 ## Known Issues
 1. **Low book detection rate**: Only 1.8% of episodes flagged as book-related
    - May need to tune AI prompt or check what titles look like
@@ -149,6 +181,7 @@ CELERY_BROKER_URL=redis://redis:6379/0
 CELERY_RESULT_BACKEND=redis://redis:6379
 BOOK_EXTRACTION_MODE=ai
 ANTHROPIC_API_KEY=sk-ant-api03-...
+BOOKSHOP_AFFILIATE_ID=16640
 ```
 
 ## File Structure

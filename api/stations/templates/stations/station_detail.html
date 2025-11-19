@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% load components %}
+
+{% block title %}{{ station.name }} - Radio Reads{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12">
+    {% breadcrumbs items=breadcrumb_items %}
+
+    <div class="mb-12">
+        <h1 class="text-4xl mb-4" style="font-family: 'EB Garamond', serif;">{{ station.name }}</h1>
+        {% if station.url %}
+        <p class="text-xl text-gray-600 dark:text-gray-400 mb-2">
+            <a href="{{ station.url }}" target="_blank" rel="noopener" class="hover:opacity-70 transition-opacity">
+                Visit {{ station.name }}
+            </a>
+        </p>
+        {% endif %}
+        <p class="text-sm text-gray-500 dark:text-gray-500">
+            {{ brands|length }} show{{ brands|length|pluralize }}
+        </p>
+    </div>
+
+    <div>
+        <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
+            <h2 class="text-sm tracking-wider uppercase mb-4">Shows</h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {% for brand in brands %}
+                {% show_card show=brand %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+

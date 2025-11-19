@@ -1,44 +1,65 @@
 {% comment %}
 Pagination Component
-Props: current_page, total_pages, page_range, has_previous, has_next, previous_page, next_page, url_name
+Props: current_page, total_pages, pages (list with -1 for ellipsis), has_previous, has_next, previous_page, next_page, url_name, show_id (optional)
 {% endcomment %}
 
 {% if total_pages > 1 %}
-<nav class="pagination" aria-label="Pagination">
-    <div class="pagination__controls">
-        {% if has_previous %}
-        <a href="{% url url_name %}?page={{ previous_page }}" class="pagination__button pagination__button--prev">
-            ← Previous
-        </a>
+<div class="flex items-center justify-center gap-2 mt-12">
+    {# Previous button #}
+    {% if has_previous %}
+        {% if show_id %}
+        <a href="{% url url_name show_id %}?page={{ previous_page }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
         {% else %}
-        <span class="pagination__button pagination__button--prev pagination__button--disabled">
-            ← Previous
-        </span>
+        <a href="{% url url_name %}?page={{ previous_page }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
         {% endif %}
-
-        <div class="pagination__pages">
-            {% for page_num in page_range %}
-                {% if page_num == current_page %}
-                <span class="pagination__page pagination__page--current">{{ page_num }}</span>
-                {% else %}
-                <a href="{% url url_name %}?page={{ page_num }}" class="pagination__page">{{ page_num }}</a>
-                {% endif %}
-            {% endfor %}
-        </div>
-
-        {% if has_next %}
-        <a href="{% url url_name %}?page={{ next_page }}" class="pagination__button pagination__button--next">
-            Next →
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
         </a>
-        {% else %}
-        <span class="pagination__button pagination__button--next pagination__button--disabled">
-            Next →
+    {% else %}
+        <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 dark:border-gray-700 rounded opacity-40 cursor-not-allowed">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
         </span>
-        {% endif %}
-    </div>
+    {% endif %}
 
-    <div class="pagination__info">
-        Page {{ current_page }} of {{ total_pages }}
-    </div>
-</nav>
+    {# Page numbers #}
+    {% for page in pages %}
+        {% if page == -1 %}
+            <span class="px-2 text-gray-400">...</span>
+        {% elif page == current_page %}
+            <span class="inline-flex items-center justify-center min-w-10 h-10 px-3 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded font-semibold">
+                {{ page }}
+            </span>
+        {% else %}
+            {% if show_id %}
+            <a href="{% url url_name show_id %}?page={{ page }}" class="inline-flex items-center justify-center min-w-10 h-10 px-3 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            {% else %}
+            <a href="{% url url_name %}?page={{ page }}" class="inline-flex items-center justify-center min-w-10 h-10 px-3 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+            {% endif %}
+                {{ page }}
+            </a>
+        {% endif %}
+    {% endfor %}
+
+    {# Next button #}
+    {% if has_next %}
+        {% if show_id %}
+        <a href="{% url url_name show_id %}?page={{ next_page }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        {% else %}
+        <a href="{% url url_name %}?page={{ next_page }}" class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+        {% endif %}
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </a>
+    {% else %}
+        <span class="inline-flex items-center justify-center w-10 h-10 border border-gray-300 dark:border-gray-700 rounded opacity-40 cursor-not-allowed">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
+        </span>
+    {% endif %}
+</div>
 {% endif %}

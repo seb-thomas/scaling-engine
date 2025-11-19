@@ -1,0 +1,24 @@
+{% comment %}
+Breadcrumbs Component
+Props: items (list of dicts with 'label' and optional 'href')
+{% endcomment %}
+
+<nav class="flex items-center gap-2 text-sm mb-8">
+    {% for item in items %}
+        <div class="flex items-center gap-2">
+            {% if not forloop.first %}
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+            {% endif %}
+            {% if item.href %}
+                <a href="{{ item.href }}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+                    {{ item.label }}
+                </a>
+            {% else %}
+                <span class="text-gray-900 dark:text-gray-100">{{ item.label }}</span>
+            {% endif %}
+        </div>
+    {% endfor %}
+</nav>
+

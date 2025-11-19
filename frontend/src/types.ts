@@ -4,6 +4,7 @@ export type Book = {
   author?: string;
   description?: string;
   cover_image?: string;
+  purchase_link?: string;
   episode: {
     id: number;
     title: string;

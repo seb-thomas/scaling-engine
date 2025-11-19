@@ -171,16 +171,51 @@ def extract_books_from_episode(episode_id: int) -> Dict:
 
             # Save extracted books to database
             from .models import Book
+            from .utils import fetch_book_cover
             logger.info(f"Saving {len(result.get('books', []))} books to database for episode {episode_id}")
             for book_data in result.get('books', []):
                 book_title = book_data.get('title', '').strip()
+                book_author = book_data.get('author', '').strip()
                 logger.info(f"Processing book: {book_title}")
                 if book_title:
                     # Create or get book (avoid duplicates)
                     book, created = Book.objects.get_or_create(
                         episode=episode,
-                        title=book_title
+                        title=book_title,
+                        defaults={
+                            'author': book_author,
+                            'description': book_data.get('description', '').strip(),
+                        }
                     )
+                    
+                    # Update author and description if book already existed
+                    if not created:
+                        updated = False
+                        if book_author and not book.author:
+                            book.author = book_author
+                            updated = True
+                        if book_data.get('description') and not book.description:
+                            book.description = book_data.get('description', '').strip()
+                            updated = True
+                        if updated:
+                            book.save()
+                    
+                    # Fetch cover image if not already set
+                    if created and not book.cover_image:
+                        cover_url = fetch_book_cover(book.title, book.author)
+                        if cover_url:
+                            book.cover_image = cover_url
+                            book.save(update_fields=['cover_image'])
+                            logger.info(f"Fetched cover image for {book_title}")
+                    
+                    # Generate purchase link if not already set
+                    if created and not book.purchase_link:
+                        from .utils import generate_bookshop_affiliate_url
+                        purchase_url = generate_bookshop_affiliate_url(book.title, book.author)
+                        book.purchase_link = purchase_url
+                        book.save(update_fields=['purchase_link'])
+                        logger.info(f"Generated purchase link for {book_title}")
+                    
                     if created:
                         logger.info(f"Created book: {book_title} for episode {episode_id}")
                     else:

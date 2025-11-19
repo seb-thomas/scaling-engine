@@ -14,11 +14,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    {# Tailwind CSS #}
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'serif': ['EB Garamond', 'serif'],
+                        'sans': ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
     {# Alpine.js for interactivity #}
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
-    {# Main styles #}
-    <link rel="stylesheet" href="{% static 'stations/style.css' %}">
 
     {% block extra_head %}{% endblock %}
 </head>
@@ -29,7 +42,7 @@
             <div class="flex items-center justify-between h-16">
                 {# Left: Search button #}
                 <div class="flex items-center gap-4">
-                    <button class="header-icon-btn" aria-label="Search" x-data @click="$dispatch('open-search')">
+                    <button class="inline-flex items-center justify-center p-2 bg-transparent border-none text-gray-900 dark:text-gray-100 cursor-pointer transition-opacity rounded hover:opacity-70" aria-label="Search" x-data @click="$dispatch('open-search')">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
@@ -45,13 +58,13 @@
                             <path d="M2 16 Q 4 14, 6 16 T 10 16 T 14 16 T 18 16 T 22 16 T 26 16 T 30 16" stroke="currentColor" stroke-width="1.5" fill="none"/>
                             <path d="M2 22 Q 4 20, 6 22 T 10 22 T 14 22 T 18 22 T 22 22 T 26 22 T 30 22" stroke="currentColor" stroke-width="1.5" fill="none"/>
                         </svg>
-                        <span class="text-2xl italic font-serif tracking-tight">Radio Reads</span>
+                        <span class="text-2xl italic" style="font-family: 'EB Garamond', serif; letter-spacing: -0.02em;">Radio Reads</span>
                     </div>
                 </a>
 
                 {# Right: Dark mode toggle #}
                 <div class="flex items-center gap-2">
-                    <button @click="darkMode = !darkMode" class="header-icon-btn" aria-label="Toggle dark mode">
+                    <button @click="darkMode = !darkMode" class="inline-flex items-center justify-center p-2 bg-transparent border-none text-gray-900 dark:text-gray-100 cursor-pointer transition-opacity rounded hover:opacity-70" aria-label="Toggle dark mode">
                         <svg x-show="!darkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
                         </svg>
@@ -64,17 +77,24 @@
 
             {# Navigation #}
             <nav class="hidden md:flex items-center gap-6 py-4 border-t border-gray-200 dark:border-gray-800">
-                <a href="{% url 'stations:index' %}" class="nav-link {% block nav_home %}{% endblock %}">
+                <a href="{% url 'stations:index' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-sm {% block nav_home %}{% endblock %}">
                     Latest Books
                 </a>
-                {% comment %}
-                <a href="#" class="nav-link {% block nav_bbc %}{% endblock %}">
-                    BBC
-                </a>
-                <a href="#" class="nav-link {% block nav_npr %}{% endblock %}">
-                    NPR
-                </a>
-                {% endcomment %}
+                {% if stations %}
+                    {% for station in stations %}
+                    <a href="{% url 'stations:station_detail' station.station_id %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-sm {% block nav_station %}{% endblock %}">
+                        {{ station.name }}
+                    </a>
+                    {% endfor %}
+                {% else %}
+                    {# Fallback if stations not in context #}
+                    <a href="{% url 'stations:station_detail' 'bbc' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-sm">
+                        BBC
+                    </a>
+                    <a href="{% url 'stations:station_detail' 'npr' %}" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors text-sm">
+                        NPR
+                    </a>
+                {% endif %}
             </nav>
         </div>
     </header>

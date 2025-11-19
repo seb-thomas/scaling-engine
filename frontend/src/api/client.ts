@@ -1,14 +1,35 @@
 const API_BASE = (import.meta.env?.VITE_API_URL as string | undefined) || '/api';
 
-export async function fetchBooks(page: number = 1, pageSize: number = 10) {
-  const response = await fetch(`${API_BASE}/books/?page=${page}&page_size=${pageSize}`);
-  if (!response.ok) throw new Error('Failed to fetch books');
-  const data = await response.json();
+export async function fetchBooks(
+  page: number = 1,
+  pageSize: number = 10,
+  search?: string,
+  stationId?: string,
+  showId?: number
+) {
+  const params = new URLSearchParams({
+    page: page.toString(),
+    page_size: pageSize.toString(),
+  })
+  
+  if (search) {
+    params.append('search', search)
+  }
+  if (showId) {
+    params.append('brand', showId.toString())
+  }
+  if (stationId) {
+    params.append('station_id', stationId)
+  }
+  
+  const response = await fetch(`${API_BASE}/books/?${params.toString()}`)
+  if (!response.ok) throw new Error('Failed to fetch books')
+  const data = await response.json()
   // Handle both paginated and non-paginated responses
   if (data.results) {
-    return data;
+    return data
   }
-  return { count: data.length, results: data, next: null, previous: null };
+  return { count: data.length, results: data, next: null, previous: null }
 }
 
 export async function fetchBook(id: number) {

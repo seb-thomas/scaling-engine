@@ -4,6 +4,7 @@ import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { ImageWithFallback } from '@/components/ImageWithFallback'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Button } from '@/components/ui/button'
+import { AffiliateDisclosure } from '@/components/AffiliateDisclosure'
 import { fetchBook } from '@/api/client'
 import type { Book } from '@/types'
 
@@ -122,20 +123,25 @@ export function BookDetailPage() {
             </div>
           )}
 
-          <div className="bg-gray-100 dark:bg-gray-900 p-6 rounded">
-            <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-              Interested in reading this book?
-            </p>
-            <Button variant="outline" asChild>
-              <a
-                href={`https://www.google.com/search?q=${encodeURIComponent(book.title + ' ' + (book.author || ''))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Find this book
-              </a>
-            </Button>
-          </div>
+          {book.purchase_link && (
+            <div className="bg-gray-100 dark:bg-gray-900 p-6 rounded">
+              <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
+                Interested in reading this book?
+              </p>
+              <Button variant="outline" asChild>
+                <a
+                  href={book.purchase_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2"
+                >
+                  Buy on Bookshop.org
+                  <ExternalLink className="w-4 h-4" />
+                </a>
+              </Button>
+              <AffiliateDisclosure />
+            </div>
+          )}
         </article>
       </div>
     </div>
