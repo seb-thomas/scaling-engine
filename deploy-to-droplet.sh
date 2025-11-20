@@ -86,12 +86,19 @@ if [ -d .git ]; then
     git pull
 fi
 
+# Determine which docker-compose file to use
+COMPOSE_FILE="docker-compose.react.yml"
+if [ ! -f "$COMPOSE_FILE" ]; then
+    echo "⚠️  docker-compose.react.yml not found, using docker-compose.prod.yml"
+    COMPOSE_FILE="docker-compose.prod.yml"
+fi
+
 # Build and start containers
-echo "🏗️  Building Docker images..."
-docker-compose -f docker-compose.prod.yml build
+echo "🏗️  Building Docker images using $COMPOSE_FILE..."
+docker-compose -f $COMPOSE_FILE build
 
 echo "🚀 Starting services..."
-docker-compose -f docker-compose.prod.yml up -d
+docker-compose -f $COMPOSE_FILE up -d
 
 # Wait for database to be ready
 echo "⏳ Waiting for database to be ready..."
@@ -99,14 +106,14 @@ sleep 5
 
 # Run migrations
 echo "🔄 Running database migrations..."
-docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+docker-compose -f $COMPOSE_FILE exec -T web python manage.py migrate
 
 # Create superuser if needed (interactive)
 echo ""
 echo "📝 Do you want to create a Django superuser? (y/n)"
 read -r response
 if [[ "$response" =~ ^([yY][eE][sS]|[yY])$ ]]; then
-    docker-compose -f docker-compose.prod.yml exec web python manage.py createsuperuser
+    docker-compose -f $COMPOSE_FILE exec web python manage.py createsuperuser
 fi
 
 echo ""
@@ -115,8 +122,8 @@ echo ""
 echo "📍 Your app should be running on:"
 echo "   http://$(curl -s ifconfig.me):1337"
 echo ""
-echo "🔍 Check logs with: docker-compose -f docker-compose.prod.yml logs -f"
-echo "🛑 Stop with: docker-compose -f docker-compose.prod.yml down"
+echo "🔍 Check logs with: docker-compose -f $COMPOSE_FILE logs -f"
+echo "🛑 Stop with: docker-compose -f $COMPOSE_FILE down"
 echo ""
 echo "⚠️  IMPORTANT: Update DJANGO_ALLOWED_HOSTS in .env.prod with your domain"
 echo "⚠️  IMPORTANT: Set up HTTPS (see DEPLOYMENT.md for instructions)"

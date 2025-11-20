@@ -15,8 +15,8 @@ const PORT = process.env.PORT || 3000
 const API_URL = process.env.API_URL || 'http://localhost:8000'
 
 // Serve static files
-app.use('/assets', express.static(join(__dirname, 'dist/assets')))
-app.use(express.static(join(__dirname, 'dist')))
+app.use('/assets', express.static(join(__dirname, '..', 'dist', 'assets')))
+app.use(express.static(join(__dirname, '..', 'dist')))
 
 // API proxy
 app.use('/api', async (req, res) => {
@@ -34,7 +34,7 @@ app.use('/api', async (req, res) => {
 // SSR handler
 app.get('*', async (req, res) => {
   try {
-    const htmlPath = join(__dirname, 'index.html')
+    const htmlPath = join(__dirname, '..', 'index.html')
     const html = readFileSync(htmlPath, 'utf-8')
     
     const appHtml = renderToString(
