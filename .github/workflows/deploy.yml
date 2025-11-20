@@ -50,10 +50,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      - name: Wait for database
+        run: |
+          until pg_isready -h localhost -p 5432 -U postgres; do
+            echo "Waiting for database..."
+            sleep 2
+          done
+
       - name: Run backend tests
         working-directory: ./api
         env:
-          SECRET_KEY: test-secret-key
+          SECRET_KEY: test-secret-key-for-ci-only-min-50-chars-long
           DEBUG: 1
           DJANGO_ALLOWED_HOSTS: localhost
           SQL_ENGINE: django.db.backends.postgresql
@@ -64,9 +71,11 @@ jobs:
           SQL_PORT: 5432
           CELERY_BROKER_URL: redis://localhost:6379/0
           CELERY_RESULT_BACKEND: redis://localhost:6379
+          DJANGO_SETTINGS_MODULE: paperwaves.settings
         run: |
+          python manage.py check
           python manage.py migrate
-          pytest
+          pytest -v --tb=short
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
