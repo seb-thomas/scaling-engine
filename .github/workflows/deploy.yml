@@ -156,16 +156,27 @@ jobs:
             if [ -f docker-compose.react.yml ]; then
               docker-compose -f docker-compose.react.yml build
               docker-compose -f docker-compose.react.yml up -d
-              sleep 5
-              docker-compose -f docker-compose.react.yml exec -T web python manage.py migrate
+              sleep 10
+              # Wait for database to be ready
+              echo "Waiting for database..."
+              docker-compose -f docker-compose.react.yml exec -T web python manage.py check --database default || sleep 5
+              docker-compose -f docker-compose.react.yml exec -T web python manage.py migrate --noinput
               docker-compose -f docker-compose.react.yml exec -T web python manage.py collectstatic --noinput
+              # Verify deployment
+              docker-compose -f docker-compose.react.yml ps
             else
               docker-compose -f docker-compose.prod.yml build
               docker-compose -f docker-compose.prod.yml up -d
-              sleep 5
-              docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+              sleep 10
+              # Wait for database to be ready
+              echo "Waiting for database..."
+              docker-compose -f docker-compose.prod.yml exec -T web python manage.py check --database default || sleep 5
+              docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput
               docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+              # Verify deployment
+              docker-compose -f docker-compose.prod.yml ps
             fi
             
             echo "✅ Deployment complete!"
 
+# Trigger deployment
