@@ -107,6 +107,8 @@ jobs:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DEBUG_IP_ADDRESS: ${{ secrets.DEBUG_IP_ADDRESS }}
+          DEBUG_MODE: ${{ secrets.DEBUG_MODE }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
@@ -114,32 +116,43 @@ jobs:
           script_stop: true
           debug: true
           script: |
-            set -e  # Exit on any error
-            set -x  # Print commands as they execute
+            set -e
+            set -x
             
-            # Determine docker-compose command (support both old and new syntax)
+            # Determine docker-compose command
             if command -v docker-compose &> /dev/null; then
               DOCKER_COMPOSE="docker-compose"
             elif docker compose version &> /dev/null; then
               DOCKER_COMPOSE="docker compose"
             else
-              echo "❌ Error: docker-compose not found!"
+              echo "Error: docker-compose not found!"
               exit 1
             fi
-            echo "Using: $DOCKER_COMPOSE"
             
             # Navigate to project directory
-            cd ~/scaling-engine || cd /root/scaling-engine || { echo "❌ Error: Could not find project directory"; exit 1; }
-            pwd
-            ls -la
+            cd ~/scaling-engine || cd /root/scaling-engine || { echo "Error: Could not find project directory"; exit 1; }
             
-            echo "Pulling latest code..."
-            git pull origin master || { echo "❌ Error: git pull failed"; exit 1; }
+            # Pull latest code
+            git pull origin master
             
-            # Generate .env.prod from secrets and template
+            # Determine DEBUG mode: enable if DEBUG_IP_ADDRESS or DEBUG_MODE is set
+            # DEBUG_IP_ADDRESS enables debug toolbar with IP restriction (preferred)
+            # DEBUG_MODE is a simple on/off switch for staging/early development
+            if [ -n "${DEBUG_IP_ADDRESS}" ]; then
+              DEBUG_VALUE="1"
+              echo "Debug mode enabled for IP: ${DEBUG_IP_ADDRESS}"
+            elif [ -n "${DEBUG_MODE}" ] && [ "${DEBUG_MODE}" = "1" ]; then
+              DEBUG_VALUE="1"
+              echo "Debug mode enabled via DEBUG_MODE secret"
+            else
+              DEBUG_VALUE="0"
+              echo "Debug mode disabled (production mode)"
+            fi
+            
+            # Generate .env.prod
             {
               echo "# Django Settings"
-              echo "DEBUG=1"
+              echo "DEBUG=${DEBUG_VALUE}"
               echo "SECRET_KEY=${SECRET_KEY}"
               echo "DJANGO_ALLOWED_HOSTS=159.65.18.16,209.38.161.55,web,localhost,radioreads.fun,www.radioreads.fun"
               echo ""
@@ -156,13 +169,17 @@ jobs:
               echo "CELERY_RESULT_BACKEND=redis://redis:6379"
               echo ""
               echo "# AI / Book Extraction"
-              echo "# Options: 'keyword' (legacy), 'ai' (Claude), 'both' (run both methods)"
               echo "BOOK_EXTRACTION_MODE=ai"
             } > .env.prod
             
             # Add ANTHROPIC_API_KEY if provided
             if [ -n "${ANTHROPIC_API_KEY}" ]; then
               echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" >> .env.prod
+            fi
+            
+            # Add DEBUG_IP_ADDRESS if provided (for Django Debug Toolbar)
+            if [ -n "${DEBUG_IP_ADDRESS}" ]; then
+              echo "DEBUG_IP_ADDRESS=${DEBUG_IP_ADDRESS}" >> .env.prod
             fi
             
             # Generate .env.prod.db
@@ -173,149 +190,44 @@ jobs:
               echo "POSTGRES_DB=paperwaves_prod"
             } > .env.prod.db
             
-            # Verify .env files were created
-            if [ ! -f .env.prod ] || [ ! -f .env.prod.db ]; then
-              echo "❌ Error: .env files were not created!"
-              ls -la .env* || echo "No .env files found"
-              exit 1
-            fi
+            # Use docker-compose.react.yml for deployment
+            COMPOSE_FILE="docker-compose.react.yml"
             
-            # Validate required environment variables
-            if [ -z "${SECRET_KEY}" ]; then
-              echo "❌ Error: SECRET_KEY is not set!"
-              exit 1
-            fi
-            if [ -z "${SQL_PASSWORD}" ]; then
-              echo "❌ Error: SQL_PASSWORD is not set!"
-              exit 1
-            fi
+            # Stop existing containers
+            echo "Stopping existing containers..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE down || true
             
-            echo "✅ .env files created and validated"
+            # Build containers
+            echo "Building containers..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE build
             
-            # Health check functions
-            wait_for_service() {
-              local compose_file=$1
-              local service=$2
-              local max_attempts=30
-              local attempt=1
-              while [ $attempt -le $max_attempts ]; do
-                if $DOCKER_COMPOSE -f "$compose_file" ps | grep -q "$service.*Up"; then
-                  echo "✅ $service is up"
-                  return 0
-                fi
-                echo "Waiting for $service... ($attempt/$max_attempts)"
-                sleep 2
-                attempt=$((attempt + 1))
-              done
-              echo "❌ $service failed to start"
-              return 1
-            }
+            # Start containers
+            echo "Starting containers..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE up -d
             
-            verify_frontend() {
-              local max_attempts=10
-              local attempt=1
-              while [ $attempt -le $max_attempts ]; do
-                response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || echo "000")
-                if [ "$response" = "200" ]; then
-                  # Check for React content (not Django template)
-                  content=$(curl -s http://localhost:3000/ | grep -o '<div id="root">' || echo "")
-                  if [ -n "$content" ]; then
-                    echo "✅ Frontend is serving React"
-                    return 0
-                  fi
-                fi
-                echo "Waiting for frontend to be ready... ($attempt/$max_attempts)"
-                sleep 3
-                attempt=$((attempt + 1))
-              done
-              echo "❌ Frontend verification failed"
-              return 1
-            }
+            # Wait for database to be ready (max 30 seconds)
+            echo "Waiting for database to be ready..."
+            for i in {1..15}; do
+              if $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py check --database default 2>/dev/null; then
+                echo "Database is ready"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "Database not ready after 30 seconds"
+                exit 1
+              fi
+              sleep 2
+            done
             
-            verify_api() {
-              local max_attempts=10
-              local attempt=1
-              while [ $attempt -le $max_attempts ]; do
-                response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/stations/ || echo "000")
-                if [ "$response" = "200" ]; then
-                  echo "✅ API is responding"
-                  return 0
-                fi
-                echo "Waiting for API to be ready... ($attempt/$max_attempts)"
-                sleep 3
-                attempt=$((attempt + 1))
-              done
-              echo "❌ API verification failed"
-              return 1
-            }
+            # Run migrations
+            echo "Running migrations..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py migrate --noinput
             
-            # Build and deploy
-            # Use docker-compose.react.yml if it exists (includes frontend), otherwise use docker-compose.prod.yml
-            if [ -f docker-compose.react.yml ]; then
-              # Clean restart to prevent container state issues
-              echo "Stopping existing containers..."
-              $DOCKER_COMPOSE -f docker-compose.react.yml down || echo "No containers to stop"
-              
-              echo "Building containers..."
-              $DOCKER_COMPOSE -f docker-compose.react.yml build || { echo "❌ Build failed"; exit 1; }
-              
-              echo "Starting containers..."
-              $DOCKER_COMPOSE -f docker-compose.react.yml up -d --force-recreate || { echo "❌ Start failed"; exit 1; }
-              
-              echo "Waiting for services to start..."
-              sleep 10
-              # Wait for services to be ready
-              echo "Waiting for services to be healthy..."
-              wait_for_service docker-compose.react.yml frontend || { echo "❌ Frontend service failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs frontend; exit 1; }
-              wait_for_service docker-compose.react.yml web || { echo "❌ Web service failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs web; exit 1; }
-              wait_for_service docker-compose.react.yml nginx || { echo "❌ Nginx service failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs nginx; exit 1; }
-              
-              # Wait for database to be ready
-              echo "Waiting for database..."
-              $DOCKER_COMPOSE -f docker-compose.react.yml exec -T web python manage.py check --database default || { echo "⚠️ Database check failed, waiting 5s..."; sleep 5; }
-              $DOCKER_COMPOSE -f docker-compose.react.yml exec -T web python manage.py migrate --noinput || { echo "❌ Migration failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs web; exit 1; }
-              $DOCKER_COMPOSE -f docker-compose.react.yml exec -T web python manage.py collectstatic --noinput || { echo "❌ Collectstatic failed"; exit 1; }
-              
-              # Verify services are working
-              echo "Verifying frontend is serving React..."
-              verify_frontend || { echo "❌ Frontend verification failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs frontend; exit 1; }
-              
-              echo "Verifying API is responding..."
-              verify_api || { echo "❌ API verification failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs web; exit 1; }
-              
-              # Verify deployment
-              $DOCKER_COMPOSE -f docker-compose.react.yml ps
-            else
-              # Clean restart to prevent container state issues
-              echo "Stopping existing containers..."
-              $DOCKER_COMPOSE -f docker-compose.prod.yml down || echo "No containers to stop"
-              
-              echo "Building containers..."
-              $DOCKER_COMPOSE -f docker-compose.prod.yml build || { echo "❌ Build failed"; exit 1; }
-              
-              echo "Starting containers..."
-              $DOCKER_COMPOSE -f docker-compose.prod.yml up -d --force-recreate || { echo "❌ Start failed"; exit 1; }
-              
-              echo "Waiting for services to start..."
-              sleep 10
-              
-              # Wait for services to be ready
-              echo "Waiting for services to be healthy..."
-              wait_for_service docker-compose.prod.yml web || { echo "❌ Web service failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs web; exit 1; }
-              wait_for_service docker-compose.prod.yml nginx || { echo "❌ Nginx service failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs nginx; exit 1; }
-              
-              # Wait for database to be ready
-              echo "Waiting for database..."
-              $DOCKER_COMPOSE -f docker-compose.prod.yml exec -T web python manage.py check --database default || { echo "⚠️ Database check failed, waiting 5s..."; sleep 5; }
-              $DOCKER_COMPOSE -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput || { echo "❌ Migration failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs web; exit 1; }
-              $DOCKER_COMPOSE -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput || { echo "❌ Collectstatic failed"; exit 1; }
-              
-              # Verify API is responding
-              echo "Verifying API is responding..."
-              verify_api || { echo "❌ API verification failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs web; exit 1; }
-              
-              # Verify deployment
-              $DOCKER_COMPOSE -f docker-compose.prod.yml ps
-            fi
+            # Collect static files
+            echo "Collecting static files..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py collectstatic --noinput
             
-            echo "✅ Deployment complete!"
+            # Show container status
+            $DOCKER_COMPOSE -f $COMPOSE_FILE ps
+            
+            echo "Deployment complete!"

@@ -20,10 +20,9 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile.prod
-    command: gunicorn paperwaves.wsgi:application --bind 0.0.0.0:8000 --reload
+    command: gunicorn paperwaves.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - static_volume:/home/app/web/staticfiles
-      - ./api:/home/app/web
     expose:
       - 8000
     env_file:
@@ -64,8 +63,6 @@ services:
       context: ./api
       dockerfile: Dockerfile.prod
     command: celery -A paperwaves worker --loglevel=info
-    volumes:
-      - ./api:/home/app/web
     env_file:
       - ./.env.prod
     depends_on:
@@ -77,8 +74,6 @@ services:
       context: ./api
       dockerfile: Dockerfile.prod
     command: celery -A paperwaves beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
-    volumes:
-      - ./api:/home/app/web
     env_file:
       - ./.env.prod
     depends_on:

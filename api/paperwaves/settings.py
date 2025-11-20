@@ -66,11 +66,13 @@ INSTALLED_APPS = [
     "corsheaders",
     "rest_framework",
     # "django_celery_beat",  # Commented out for local dev
-    # "debug_toolbar",
 ]
 
+# Conditionally add debug_toolbar if DEBUG is enabled
+if DEBUG:
+    INSTALLED_APPS.append("debug_toolbar")
+
 MIDDLEWARE = [
-    # "debug_toolbar.middleware.DebugToolbarMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -80,6 +82,10 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+
+# Conditionally add debug toolbar middleware if DEBUG is enabled
+if DEBUG:
+    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
 
 ROOT_URLCONF = "paperwaves.urls"
 
@@ -163,12 +169,14 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
-# Debug toolbar
-INTERNAL_IPS = [
-    # ...
-    "127.0.0.1",
-    # ...
-]
+# Debug toolbar - IP addresses that can see the debug toolbar
+# Configure via DEBUG_IP_ADDRESS environment variable (comma-separated)
+INTERNAL_IPS = ["127.0.0.1"]
+debug_ip_addresses = os.environ.get("DEBUG_IP_ADDRESS", "")
+if debug_ip_addresses:
+    INTERNAL_IPS.extend(
+        [ip.strip() for ip in debug_ip_addresses.split(",") if ip.strip()]
+    )
 
 # CELERY STUFF
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
@@ -202,6 +210,29 @@ BOOK_EXTRACTION_MODE = os.environ.get("BOOK_EXTRACTION_MODE", "keyword")
 BOOKSHOP_AFFILIATE_ID = os.environ.get("BOOKSHOP_AFFILIATE_ID", "16640")
 
 # Logging configuration
+# Enhanced logging for production debugging - captures all errors with stack traces
+# Supports both console (Docker logs) and optional file-based logging
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+
+# Determine handlers based on environment
+handlers_config = {
+    "console": {
+        "class": "logging.StreamHandler",
+        "formatter": "detailed" if DEBUG else "verbose",
+    },
+}
+
+# Add file handler for production debugging (always enabled)
+# Logs are written to both console (Docker captures) and file
+handlers_config["file"] = {
+    "class": "logging.handlers.RotatingFileHandler",
+    "filename": os.path.join(LOG_DIR, "django.log"),
+    "maxBytes": 1024 * 1024 * 10,  # 10MB
+    "backupCount": 5,
+    "formatter": "detailed" if DEBUG else "verbose",
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -210,34 +241,45 @@ LOGGING = {
             "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
             "style": "{",
         },
+        "detailed": {
+            "format": "{levelname} {asctime} {module} {funcName} {lineno} {process:d} {thread:d}\n{message}",
+            "style": "{",
+        },
         "simple": {
             "format": "{levelname} {message}",
             "style": "{",
         },
     },
-    "handlers": {
-        "console": {
-            "class": "logging.StreamHandler",
-            "formatter": "verbose",
-        },
-    },
+    "handlers": handlers_config,
     "root": {
-        "handlers": ["console"],
+        "handlers": list(handlers_config.keys()),
         "level": "INFO",
     },
     "loggers": {
         "django": {
-            "handlers": ["console"],
+            "handlers": list(handlers_config.keys()),
             "level": "INFO" if not DEBUG else "DEBUG",
             "propagate": False,
         },
         "django.request": {
-            "handlers": ["console"],
-            "level": "ERROR" if not DEBUG else "DEBUG",
+            "handlers": list(handlers_config.keys()),
+            "level": (
+                "WARNING" if not DEBUG else "DEBUG"
+            ),  # Changed from ERROR to WARNING to capture more
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": list(handlers_config.keys()),
+            "level": "INFO" if not DEBUG else "DEBUG",
             "propagate": False,
         },
         "stations": {
-            "handlers": ["console"],
+            "handlers": list(handlers_config.keys()),
+            "level": "DEBUG" if DEBUG else "INFO",
+            "propagate": False,
+        },
+        "scraper": {
+            "handlers": list(handlers_config.keys()),
             "level": "DEBUG" if DEBUG else "INFO",
             "propagate": False,
         },
