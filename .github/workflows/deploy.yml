@@ -135,6 +135,16 @@ jobs:
             # Pull latest code
             git pull origin master
 
+            # Verify required secrets are set
+            if [ -z "${SECRET_KEY:-}" ]; then
+              echo "Error: SECRET_KEY secret is not set!"
+              exit 1
+            fi
+            if [ -z "${SQL_PASSWORD:-}" ]; then
+              echo "Error: SQL_PASSWORD secret is not set!"
+              exit 1
+            fi
+
             # Determine DEBUG mode: enable if DEBUG_IP_ADDRESS or DEBUG_MODE is set
             # DEBUG_IP_ADDRESS enables debug mode with IP restriction
             # DEBUG_MODE is a simple on/off switch for staging/early development
