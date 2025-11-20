@@ -103,6 +103,12 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         timeout-minutes: 15
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DEBUG_IP_ADDRESS: ${{ secrets.DEBUG_IP_ADDRESS }}
+          DEBUG_MODE: ${{ secrets.DEBUG_MODE }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
@@ -110,7 +116,6 @@ jobs:
           script_stop: true
           debug: true
           envs: SECRET_KEY,SQL_PASSWORD,ANTHROPIC_API_KEY,DEBUG_IP_ADDRESS,DEBUG_MODE
-          envs_key: SECRET_KEY=${{ secrets.SECRET_KEY }},SQL_PASSWORD=${{ secrets.SQL_PASSWORD }},ANTHROPIC_API_KEY=${{ secrets.ANTHROPIC_API_KEY }},DEBUG_IP_ADDRESS=${{ secrets.DEBUG_IP_ADDRESS }},DEBUG_MODE=${{ secrets.DEBUG_MODE }}
           script: |
             set -e
             set -x
