@@ -2,8 +2,9 @@ FROM oven/bun:latest AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and lockfile
 COPY package*.json ./
+COPY bun.lock* ./
 RUN bun install
 
 # Copy source files
