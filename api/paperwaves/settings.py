@@ -68,9 +68,14 @@ INSTALLED_APPS = [
     # "django_celery_beat",  # Commented out for local dev
 ]
 
-# Conditionally add debug_toolbar if DEBUG is enabled
+# Conditionally add debug_toolbar if DEBUG is enabled and package is available
 if DEBUG:
-    INSTALLED_APPS.append("debug_toolbar")
+    try:
+        import debug_toolbar
+        INSTALLED_APPS.append("debug_toolbar")
+    except ImportError:
+        # debug_toolbar not installed, skip
+        pass
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -83,9 +88,14 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Conditionally add debug toolbar middleware if DEBUG is enabled
+# Conditionally add debug toolbar middleware if DEBUG is enabled and package is available
 if DEBUG:
-    MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    try:
+        import debug_toolbar
+        MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    except ImportError:
+        # debug_toolbar not installed, skip
+        pass
 
 ROOT_URLCONF = "paperwaves.urls"
 
@@ -211,11 +221,7 @@ BOOKSHOP_AFFILIATE_ID = os.environ.get("BOOKSHOP_AFFILIATE_ID", "16640")
 
 # Logging configuration
 # Enhanced logging for production debugging - captures all errors with stack traces
-# Supports both console (Docker logs) and optional file-based logging
-LOG_DIR = os.path.join(BASE_DIR, "logs")
-os.makedirs(LOG_DIR, exist_ok=True)
-
-# Determine handlers based on environment
+# Supports both console (Docker logs) and file-based logging (if directory is writable)
 handlers_config = {
     "console": {
         "class": "logging.StreamHandler",
@@ -223,15 +229,27 @@ handlers_config = {
     },
 }
 
-# Add file handler for production debugging (always enabled)
-# Logs are written to both console (Docker captures) and file
-handlers_config["file"] = {
-    "class": "logging.handlers.RotatingFileHandler",
-    "filename": os.path.join(LOG_DIR, "django.log"),
-    "maxBytes": 1024 * 1024 * 10,  # 10MB
-    "backupCount": 5,
-    "formatter": "detailed" if DEBUG else "verbose",
-}
+# Add file handler for production debugging (if directory is writable)
+LOG_DIR = os.path.join(BASE_DIR, "logs")
+try:
+    os.makedirs(LOG_DIR, exist_ok=True)
+    # Test if we can write to the directory
+    test_file = os.path.join(LOG_DIR, ".test_write")
+    with open(test_file, "w") as f:
+        f.write("test")
+    os.remove(test_file)
+    # If we get here, directory is writable - add file handler
+    handlers_config["file"] = {
+        "class": "logging.handlers.RotatingFileHandler",
+        "filename": os.path.join(LOG_DIR, "django.log"),
+        "maxBytes": 1024 * 1024 * 10,  # 10MB
+        "backupCount": 5,
+        "formatter": "detailed" if DEBUG else "verbose",
+    }
+except (OSError, PermissionError):
+    # Directory not writable or can't create - skip file logging
+    # Console logging will still work
+    pass
 
 LOGGING = {
     "version": 1,
