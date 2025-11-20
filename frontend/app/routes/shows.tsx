@@ -1,8 +1,8 @@
 import { Link, useLoaderData } from 'react-router-dom'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { ShowCard } from '@/components/ShowCard'
-import { fetchShows, fetchStations } from '@/api/client'
-import type { Show, Station } from '@/types'
+import { Breadcrumbs } from '../../src/components/Breadcrumbs'
+import { ShowCard } from '../../src/components/ShowCard'
+import { fetchShows, fetchStations } from '../../src/api/client'
+import type { Show, Station } from '../../src/types'
 
 export async function loader() {
   const [showsData, stationsData] = await Promise.all([
@@ -23,7 +23,7 @@ export async function loader() {
 
 type LoaderData = Awaited<ReturnType<typeof loader>>
 
-export function AllShowsPage() {
+export default function AllShowsPage() {
   const data = useLoaderData() as LoaderData
   const { shows, stations } = data
 

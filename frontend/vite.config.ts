@@ -3,8 +3,8 @@ import react from '@vitejs/plugin-react'
 import { reactRouter } from '@react-router/dev/vite'
 import path from 'path'
 
-export default defineConfig({
-  plugins: [reactRouter(), react()],
+export default defineConfig(({ mode }) => ({
+  plugins: mode === 'test' ? [react()] : [reactRouter(), react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -15,13 +15,6 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8001',
         changeOrigin: true,
-      },
-    },
-  },
-  build: {
-    rollupOptions: {
-      input: {
-        main: './index.html',
       },
     },
   },
@@ -37,4 +30,4 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     css: true,
   },
-})
+}))

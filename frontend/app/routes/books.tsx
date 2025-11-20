@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useLoaderData, useSearchParams, useNavigate, type LoaderFunctionArgs } from 'react-router-dom'
 import { Search } from 'lucide-react'
-import { BookCard } from '@/components/BookCard'
-import { Pagination } from '@/components/Pagination'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { fetchBooks } from '@/api/client'
-import type { Book } from '@/types'
+import { BookCard } from '../../src/components/BookCard'
+import { Pagination } from '../../src/components/Pagination'
+import { Breadcrumbs } from '../../src/components/Breadcrumbs'
+import { fetchBooks } from '../../src/api/client'
+import type { Book } from '../../src/types'
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url)
@@ -19,7 +19,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 type LoaderData = Awaited<ReturnType<typeof loader>>
 
-export function AllBooksPage() {
+export default function AllBooksPage() {
   const data = useLoaderData() as LoaderData
   const { books, search: initialSearch } = data
   const [searchParams] = useSearchParams()

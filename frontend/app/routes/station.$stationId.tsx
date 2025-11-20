@@ -1,8 +1,8 @@
 import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { ShowCard } from '@/components/ShowCard'
-import { fetchStation, fetchStationShows } from '@/api/client'
-import type { Show } from '@/types'
+import { Breadcrumbs } from '../../src/components/Breadcrumbs'
+import { ShowCard } from '../../src/components/ShowCard'
+import { fetchStation, fetchStationShows } from '../../src/api/client'
+import type { Show } from '../../src/types'
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const { stationId } = params
@@ -29,7 +29,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 type LoaderData = Awaited<ReturnType<typeof loader>>
 
-export function StationPage() {
+export default function StationPage() {
   const data = useLoaderData() as LoaderData
   const { station, shows } = data
 

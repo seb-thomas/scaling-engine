@@ -1,10 +1,10 @@
 import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router-dom'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
-import { ImageWithFallback } from '@/components/ImageWithFallback'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { Button } from '@/components/ui/button'
-import { AffiliateDisclosure } from '@/components/AffiliateDisclosure'
-import { fetchBook } from '@/api/client'
+import { ImageWithFallback } from '../../src/components/ImageWithFallback'
+import { Breadcrumbs } from '../../src/components/Breadcrumbs'
+import { Button } from '../../src/components/ui/button'
+import { AffiliateDisclosure } from '../../src/components/AffiliateDisclosure'
+import { fetchBook } from '../../src/api/client'
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const { bookId } = params
@@ -22,7 +22,7 @@ export async function loader({ params }: LoaderFunctionArgs) {
 
 type LoaderData = Awaited<ReturnType<typeof loader>>
 
-export function BookDetailPage() {
+export default function BookDetailPage() {
   const data = useLoaderData() as LoaderData
   const { book } = data
 

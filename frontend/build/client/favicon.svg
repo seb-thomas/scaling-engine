@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path
+    d="M2 10 Q 4 8, 6 10 T 10 10 T 14 10 T 18 10 T 22 10 T 26 10 T 30 10"
+    stroke="#121212"
+    stroke-width="1.5"
+    fill="none"
+  />
+  <path
+    d="M2 16 Q 4 14, 6 16 T 10 16 T 14 16 T 18 16 T 22 16 T 26 16 T 30 16"
+    stroke="#121212"
+    stroke-width="1.5"
+    fill="none"
+  />
+  <path
+    d="M2 22 Q 4 20, 6 22 T 10 22 T 14 22 T 18 22 T 22 22 T 26 22 T 30 22"
+    stroke="#121212"
+    stroke-width="1.5"
+    fill="none"
+  />
+</svg>
+

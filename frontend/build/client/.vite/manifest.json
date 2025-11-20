@@ -1,0 +1,17 @@
+{
+  "app/entry.client.tsx": {
+    "file": "assets/entry.client-l0sNRNKZ.js",
+    "name": "entry.client",
+    "src": "app/entry.client.tsx",
+    "isEntry": true
+  },
+  "app/root.tsx?__react-router-build-client-route": {
+    "file": "assets/root-CeqdCDyp.js",
+    "name": "root",
+    "src": "app/root.tsx?__react-router-build-client-route",
+    "isEntry": true,
+    "css": [
+      "assets/root-CFJXL72c.css"
+    ]
+  }
+}

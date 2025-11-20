@@ -2,9 +2,8 @@ import express from 'express'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { createStaticHandler } from 'react-router-dom/server'
-import handleRequest from './src/entry.server'
-import { routes } from './src/routes'
+// TODO: Update SSR to work with React Router v7 file-based routing
+// For now, serving static files and falling back to client-side routing
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -48,55 +47,30 @@ app.use('/api', async (req, res) => {
   }
 })
 
-// Create static handler for React Router v7
-const handler = createStaticHandler(routes)
+// Serve HTML for all routes (client-side routing will handle it)
+// TODO: Implement SSR with React Router v7 file-based routing using @react-router/node
+app.get('*', (req, res) => {
+  // Skip SSR for static assets
+  if (req.path.startsWith('/assets/') || req.path.startsWith('/favicon')) {
+    return res.status(404).send('Not found')
+  }
 
-// SSR handler - must be last to catch all routes
-app.get('*', async (req, res) => {
   try {
-    // Skip SSR for static assets that should be served directly
-    if (req.path.startsWith('/assets/') || req.path.startsWith('/favicon')) {
-      return res.status(404).send('Not found')
-    }
-
-    const request = new Request(`http://${req.get('host')}${req.url}`)
-    const context = await handler.query(request)
-
-    if (context instanceof Response) {
-      throw context
-    }
-
-    const html = await handleRequest(
-      request,
-      context.statusCode || 200,
-      new Headers(),
-      context
-    )
-
+    const htmlPath = join(__dirname, '..', 'index.html')
+    const html = readFileSync(htmlPath, 'utf-8')
     res.setHeader('Content-Type', 'text/html')
-    res.status(context.statusCode || 200)
-    res.send(await html.text())
+    res.send(html)
   } catch (error) {
-    console.error('SSR Error for', req.url, ':', error)
-    const errorMessage = error instanceof Error ? error.message : String(error)
-    
-    // Try to serve the HTML anyway so client-side routing can take over
-    try {
-      const htmlPath = join(__dirname, '..', 'index.html')
-      const html = readFileSync(htmlPath, 'utf-8')
-      res.setHeader('Content-Type', 'text/html')
-      res.send(html)
-    } catch (fallbackError) {
-      res.status(500).send(`
-        <html>
-          <head><title>Server Error</title></head>
-          <body>
-            <h1>Server Error</h1>
-            <p>${errorMessage}</p>
-          </body>
-        </html>
-      `)
-    }
+    console.error('Error serving HTML:', error)
+    res.status(500).send(`
+      <html>
+        <head><title>Server Error</title></head>
+        <body>
+          <h1>Server Error</h1>
+          <p>Failed to load page</p>
+        </body>
+      </html>
+    `)
   }
 })
 

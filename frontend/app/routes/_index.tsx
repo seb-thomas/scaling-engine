@@ -1,8 +1,8 @@
 import { Link, useLoaderData } from 'react-router-dom'
-import { BookCard } from '@/components/BookCard'
-import { ShowCard } from '@/components/ShowCard'
-import { fetchBooks, fetchShows } from '@/api/client'
-import type { Book, Show } from '@/types'
+import { BookCard } from '../../src/components/BookCard'
+import { ShowCard } from '../../src/components/ShowCard'
+import { fetchBooks, fetchShows } from '../../src/api/client'
+import type { Book, Show } from '../../src/types'
 
 export async function loader() {
   const [books, showsData] = await Promise.all([
@@ -22,7 +22,7 @@ export async function loader() {
 
 type LoaderData = Awaited<ReturnType<typeof loader>>
 
-export function HomePage() {
+export default function HomePage() {
   const data = useLoaderData() as LoaderData
   const { books, shows } = data
 

@@ -1,9 +1,9 @@
 import { useLoaderData, useSearchParams, useNavigate, type LoaderFunctionArgs } from 'react-router-dom'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { BookCard } from '@/components/BookCard'
-import { Pagination } from '@/components/Pagination'
-import { fetchShow, fetchShowBooks } from '@/api/client'
-import type { Book } from '@/types'
+import { Breadcrumbs } from '../../src/components/Breadcrumbs'
+import { BookCard } from '../../src/components/BookCard'
+import { Pagination } from '../../src/components/Pagination'
+import { fetchShow, fetchShowBooks } from '../../src/api/client'
+import type { Book } from '../../src/types'
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const showId = Number(params.showId)
@@ -25,7 +25,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
 
 type LoaderData = Awaited<ReturnType<typeof loader>>
 
-export function ShowPage() {
+export default function ShowPage() {
   const data = useLoaderData() as LoaderData
   const { show, books } = data
   const [searchParams] = useSearchParams()
