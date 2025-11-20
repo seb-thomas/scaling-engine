@@ -37,7 +37,11 @@
       "Bash(docker restart:*)",
       "Bash(docker cp:*)",
       "Bash(docker stop:*)",
-      "Bash(docker rm:*)"
+      "Bash(docker rm:*)",
+      "WebFetch(domain:radioreads.fun)",
+      "Bash(git push:*)",
+      "Bash(docker system prune:*)",
+      "Bash(git rm:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,100 +2,99 @@
 
 This guide explains how to deploy the Paperwaves BBC Radio scraping engine to production with React SSR frontend.
 
-## 🚀 Easiest Deployment Method: DigitalOcean Droplet
+## 🚀 Quick Deployment: DigitalOcean + GitHub Actions
 
-**Want everything running in 5 minutes with zero configuration?** Use the automated deployment script.
+**Automatic deployments with zero manual steps.**
 
-### Why DigitalOcean Droplet?
+### Why This Setup?
 
-✅ Deploy with React SSR frontend automatically
-✅ No separate database setup - everything runs together
-✅ One command deployment
+✅ Push to master = automatic deployment
+✅ Tests run before every deploy
+✅ Full stack: React SSR frontend + Django API
 ✅ All services included (web, frontend, db, redis, celery, nginx)
-✅ Simple and cheap ($6-12/month)
+✅ Simple and cheap ($6-12/month for droplet)
 
-### Quick Start
+### One-Time Server Setup
 
 1. **Create a DigitalOcean Droplet**
    - Go to [DigitalOcean](https://www.digitalocean.com/) → Create Droplet
    - Choose: Ubuntu 22.04 LTS, $12/month plan
+   - Add your SSH key
    - Copy the IP address
 
-2. **SSH into your Droplet**
+2. **SSH into your Droplet and install Docker**
    ```bash
    ssh root@your-droplet-ip
-   ```
 
-3. **Clone and Deploy**
-   ```bash
+   # Install Docker & Docker Compose
+   curl -fsSL https://get.docker.com -o get-docker.sh
+   sh get-docker.sh
+   apt-get install -y docker-compose
+
+   # Clone the repo
    git clone https://github.com/seb-thomas/scaling-engine.git
    cd scaling-engine
-   chmod +x deploy-to-droplet.sh
-   ./deploy-to-droplet.sh
    ```
 
-   The script automatically:
-   - Installs Docker & Docker Compose
-   - Generates secure random passwords
-   - Detects and uses docker-compose.react.yml (includes React frontend)
-   - Builds and starts all services (Django API, React SSR frontend, nginx, etc.)
-   - Runs database migrations
-   - Prompts you to create a superuser
+3. **Configure GitHub Secrets**
 
-4. **Access Your App**
-   - Visit: `http://your-droplet-ip:1337` (React frontend)
-   - API: `http://your-droplet-ip:1337/api/`
-   - Admin: `http://your-droplet-ip:1337/admin/`
+   In your GitHub repository, go to Settings → Secrets → Actions and add:
+   - `DO_HOST` - Your droplet IP address
+   - `DO_USER` - `root` (or your SSH user)
+   - `DO_SSH_KEY` - Your private SSH key
+   - `SECRET_KEY` - Generate with `openssl rand -hex 50`
+   - `SQL_PASSWORD` - Generate with `openssl rand -hex 20`
+   - `ANTHROPIC_API_KEY` - Your Claude API key (optional)
 
-5. **Set Up Your Domain (Optional)**
-   - Edit `.env.prod` and update `DJANGO_ALLOWED_HOSTS`
-   - Point your domain's A record to the droplet IP
-   - Restart: `docker-compose -f docker-compose.react.yml restart`
-
-6. **Enable HTTPS (Recommended)**
+4. **Deploy**
    ```bash
-   # Install Caddy for automatic HTTPS
-   apt install -y caddy
-
-   # Create Caddyfile
-   echo "yourdomain.com {
-       reverse_proxy localhost:1337
-   }" > /etc/caddy/Caddyfile
-
-   # Restart Caddy
-   systemctl restart caddy
+   # From your local machine, just push to master
+   git push origin master
    ```
 
-That's it! Everything runs from your docker-compose.yml with zero external services.
+   GitHub Actions will automatically:
+   - Run tests
+   - SSH into your droplet
+   - Build and deploy with `docker-compose.react.yml`
+   - Run migrations
+   - Start all services
+
+5. **Access Your App**
+   - Visit: `https://your-domain.com` (React frontend)
+   - API: `https://your-domain.com/api/`
+   - Admin: `https://your-domain.com/admin/`
+
+### Future Deployments
+
+Just push to master. That's it. GitHub Actions handles everything.
 
 ---
 
-## 📋 Deployment Methods Summary
+## 📋 Deployment Method
 
-**For AI tools and developers:** This project uses **GitHub Actions for all deployments**.
+**For AI tools and developers:** This project uses **GitHub Actions for ALL deployments**.
 
-### Primary Deployment Method (Production)
+### How to Deploy
 
-**GitHub Actions CI/CD** (`.github/workflows/deploy.yml`) — **USE THIS FOR ALL DEPLOYMENTS**
+**GitHub Actions CI/CD** (`.github/workflows/deploy.yml`)
 - ✅ Automatically deploys on push to master
 - ✅ Runs tests before deployment
-- ✅ Smart detection: uses `docker-compose.react.yml` if available
+- ✅ Uses `docker-compose.react.yml` (React SSR + Django API)
 - ✅ Creates audit trail of all deployments
 - ✅ Uses secrets from GitHub (no .env files to manage)
 
-**How to deploy:** Just push to master. That's it.
+**To deploy:** Just push to master. That's it.
 
-### One-Time Setup Script
-
-**`./deploy-to-droplet.sh`** — **ONLY for initial server setup**
-- Use this ONCE when first setting up the server
-- After initial setup, all deployments go through GitHub Actions
-- Keeping both methods risks configuration drift
+```bash
+git add .
+git commit -m "Your changes"
+git push origin master
+# GitHub Actions automatically tests and deploys
+```
 
 **Key Files:**
-- `docker-compose.react.yml` - Full stack with React SSR frontend (current production)
-- `.github/workflows/deploy.yml` - CI/CD pipeline (primary deployment method)
-- `deploy-to-droplet.sh` - Initial server setup only
+- `docker-compose.react.yml` - Full stack with React SSR frontend (production)
+- `.github/workflows/deploy.yml` - CI/CD pipeline (only deployment method)
 
 ---
 
