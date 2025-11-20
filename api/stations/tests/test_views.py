@@ -26,7 +26,8 @@ class TestStationViewSet:
 
     def test_retrieve_station(self, api_client, station):
         """Test retrieving a single station."""
-        response = api_client.get(f'/api/stations/{station.pk}/')
+        # StationViewSet uses lookup_field='station_id', so use station_id not pk
+        response = api_client.get(f'/api/stations/{station.station_id}/')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['id'] == station.pk
         assert response.data['name'] == 'Test Radio'
@@ -55,7 +56,8 @@ class TestStationViewSet:
             'station_id': station.station_id,
             'url': station.url
         }
-        response = api_client.put(f'/api/stations/{station.pk}/', data, format='json')
+        # StationViewSet uses lookup_field='station_id', so use station_id not pk
+        response = api_client.put(f'/api/stations/{station.station_id}/', data, format='json')
         assert response.status_code == status.HTTP_200_OK
         assert response.data['id'] == station.pk
         assert response.data['name'] == 'Updated Station'
@@ -63,9 +65,10 @@ class TestStationViewSet:
 
     def test_delete_station(self, api_client, station):
         """Test deleting a station."""
-        response = api_client.delete(f'/api/stations/{station.pk}/')
+        # StationViewSet uses lookup_field='station_id', so use station_id not pk
+        response = api_client.delete(f'/api/stations/{station.station_id}/')
         assert response.status_code == status.HTTP_204_NO_CONTENT
 
         # Verify it's deleted
-        response = api_client.get(f'/api/stations/{station.pk}/')
+        response = api_client.get(f'/api/stations/{station.station_id}/')
         assert response.status_code == status.HTTP_404_NOT_FOUND
