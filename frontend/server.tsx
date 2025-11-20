@@ -1,7 +1,7 @@
 import React from 'react'
 import { createStaticHandler } from 'react-router'
 import { renderToString } from 'react-dom/server'
-import { readFileSync, existsSync } from 'fs'
+import { readFileSync, existsSync, readdirSync } from 'fs'
 import { join } from 'path'
 import Root from './app/root'
 import HomePage, { loader as homePageLoader } from './app/routes/_index'
@@ -17,15 +17,26 @@ const API_URL = process.env.API_URL || 'http://localhost:8000'
 
 // Get directory paths - Bun uses import.meta.dir
 const __dirname = import.meta.dir || process.cwd()
-const buildDir = join(__dirname, 'build', 'client')
-const distDir = join(__dirname, 'dist')
+// In Docker: __dirname is /app/dist-ssr, so we need to go up to /app
+const appRoot = __dirname.includes('dist-ssr') ? join(__dirname, '..') : __dirname
+const buildDir = join(appRoot, 'build', 'client')
+const distDir = join(appRoot, 'dist')
 const staticDir = existsSync(buildDir) ? buildDir : distDir
 
 console.log('🚀 Starting Bun server...')
 console.log('📁 __dirname:', __dirname)
+console.log('📁 App root:', appRoot)
 console.log('📁 Process cwd:', process.cwd())
 console.log('📦 Static directory:', staticDir)
 console.log('📦 Directory exists:', existsSync(staticDir))
+if (existsSync(staticDir)) {
+  try {
+    const files = readdirSync(staticDir)
+    console.log('📦 Static dir contents:', files.slice(0, 10))
+  } catch (error) {
+    console.warn('⚠️ Could not read static dir:', error)
+  }
+}
 
 // Define routes for SSR (matching entry.client.tsx)
 const routes = [
@@ -114,20 +125,48 @@ async function serveStaticFile(filePath: string): Promise<Response | null> {
 // Helper to transform HTML (replace entry.client.tsx with built asset)
 function transformHTML(html: string): string {
   try {
-    const manifestPath = join(staticDir, '.vite', 'manifest.json')
-    if (existsSync(manifestPath)) {
-      const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
-      const entryClient = manifest['app/entry.client.tsx']
-      if (entryClient && entryClient.file) {
-        html = html.replace(
-          'src="/app/entry.client.tsx"',
-          `src="/${entryClient.file}"`
-        )
-        console.log('✅ Transformed HTML: replaced entry.client.tsx with', entryClient.file)
+    // Try multiple possible manifest locations
+    const possibleManifestPaths = [
+      join(staticDir, '.vite', 'manifest.json'),
+      join(appRoot, 'build', 'client', '.vite', 'manifest.json'),
+      join(__dirname, '..', 'build', 'client', '.vite', 'manifest.json'),
+      join(__dirname, 'build', 'client', '.vite', 'manifest.json'),
+      join(process.cwd(), 'build', 'client', '.vite', 'manifest.json'),
+    ]
+    
+    let manifest = null
+    let manifestPath = null
+    
+    for (const path of possibleManifestPaths) {
+      if (existsSync(path)) {
+        manifestPath = path
+        manifest = JSON.parse(readFileSync(path, 'utf-8'))
+        console.log(`✅ Found manifest at: ${path}`)
+        break
       }
+    }
+    
+    if (!manifest) {
+      console.warn('⚠️ Manifest not found. Tried paths:')
+      possibleManifestPaths.forEach(p => console.warn(`   - ${p} (exists: ${existsSync(p)})`))
+      return html
+    }
+    
+    const entryClient = manifest['app/entry.client.tsx']
+    if (entryClient && entryClient.file) {
+      const oldScript = 'src="/app/entry.client.tsx"'
+      const newScript = `src="/${entryClient.file}"`
+      html = html.replace(oldScript, newScript)
+      console.log(`✅ Transformed HTML: replaced "${oldScript}" with "${newScript}"`)
+    } else {
+      console.warn('⚠️ Entry client not found in manifest. Available keys:', Object.keys(manifest))
     }
   } catch (error) {
     console.warn('⚠️ Error transforming HTML:', error)
+    if (error instanceof Error) {
+      console.warn('   Error message:', error.message)
+      console.warn('   Stack:', error.stack)
+    }
   }
   return html
 }
@@ -210,13 +249,11 @@ Bun.serve({
       const router = createStaticRouter(handler.dataRoutes, context)
       
       // Load index.html template
-      // In Docker: __dirname is /app/dist-ssr, so we need to go up to /app
       const possiblePaths = [
+        join(appRoot, 'index.html'),  // /app/index.html (Docker) or local
         join(staticDir, 'index.html'),
-        join(__dirname, '..', 'index.html'),  // /app/index.html (Docker)
-        join(__dirname, 'index.html'),  // /app/dist-ssr/index.html (fallback)
-        join(__dirname, '..', 'build', 'client', 'index.html'),
-        join(__dirname, '..', 'dist', 'index.html'),
+        join(__dirname, '..', 'index.html'),  // Fallback: /app/index.html (Docker)
+        join(__dirname, 'index.html'),  // Fallback: /app/dist-ssr/index.html
         join(process.cwd(), 'index.html'),  // Current working directory
       ]
       
