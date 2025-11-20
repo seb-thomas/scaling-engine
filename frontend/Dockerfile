@@ -11,7 +11,14 @@ COPY . .
 
 # Build the app
 RUN npm run build
-RUN npm run ssr:build:server
+# Build SSR server (with verification)
+RUN npm run ssr:build:server && \
+    if [ ! -d "dist-ssr" ] || [ ! -f "dist-ssr/server.js" ]; then \
+      echo "ERROR: dist-ssr/server.js not found after build!"; \
+      ls -la dist-ssr/ || echo "dist-ssr directory does not exist"; \
+      exit 1; \
+    fi && \
+    echo "✅ SSR build successful - dist-ssr/server.js exists"
 
 # Production stage
 FROM node:20-alpine

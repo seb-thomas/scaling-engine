@@ -3,8 +3,14 @@ import react from '@vitejs/plugin-react'
 import { reactRouter } from '@react-router/dev/vite'
 import path from 'path'
 
-export default defineConfig(({ mode }) => ({
-  plugins: mode === 'test' ? [react()] : [reactRouter(), react()],
+export default defineConfig(({ mode, command }) => {
+  // Exclude React Router plugin for SSR builds and tests
+  // React Router plugin is only needed for client-side file-based routing
+  const isSSRBuild = command === 'build' && process.env.VITE_SSR === 'true'
+  const isTest = mode === 'test'
+  
+  return {
+    plugins: (isSSRBuild || isTest) ? [react()] : [reactRouter(), react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -30,4 +36,5 @@ export default defineConfig(({ mode }) => ({
     setupFiles: './src/test/setup.ts',
     css: true,
   },
-}))
+  }
+})
