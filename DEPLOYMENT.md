@@ -6,6 +6,14 @@ This guide explains how to deploy the Paperwaves BBC Radio scraping engine to pr
 
 **Automatic deployments with zero manual steps.**
 
+**⚠️ IMPORTANT FOR AI ASSISTANTS:** This project uses GitHub Actions for ALL deployments. When changes are pushed to `master`, the workflow automatically:
+- Runs tests
+- Pulls latest code on the server  
+- Rebuilds all Docker containers (including nginx)
+- Restarts services with `--force-recreate`
+
+**Never suggest manual rebuilds or restarts** - the CI/CD pipeline handles everything automatically. Just push to master.
+
 ### Why This Setup?
 
 ✅ Push to master = automatic deployment
