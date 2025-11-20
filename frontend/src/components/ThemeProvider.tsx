@@ -11,15 +11,21 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   // Get initial theme from system preference (set synchronously in HTML)
   const [theme] = useState<Theme>(() => {
+    // During SSR, default to light (the inline script will set dark class if needed)
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+      return 'light'
+    }
     // Check if dark class is already set by the inline script
-    if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
+    if (document.documentElement.classList.contains('dark')) {
       return 'dark'
     }
     return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
   })
 
-  // Listen for system theme changes
+  // Listen for system theme changes (client-side only)
   useEffect(() => {
+    if (typeof window === 'undefined') return
+    
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     
     const handleChange = (e: MediaQueryListEvent) => {
