@@ -51,8 +51,7 @@ const router = createBrowserRouter([
 
 const rootElement = document.getElementById('root')!
 
-// If root already has multiple children (duplication detected), clear and render fresh
-// This prevents React from appending during failed hydration
+// Check for duplication before hydration
 const hasDuplication = rootElement.children.length > 1
 
 const app = (
@@ -61,18 +60,37 @@ const app = (
   </StrictMode>
 )
 
-startTransition(() => {
-  if (hasDuplication) {
-    // Duplication detected - clear and render fresh (don't try to hydrate)
-    console.warn('⚠️ Detected duplicate content in root, clearing and rendering fresh')
+// Function to fix duplication by clearing and re-rendering
+const fixDuplication = () => {
+  if (rootElement.children.length > 1) {
+    console.warn('⚠️ Duplication detected! Clearing and re-rendering')
     rootElement.innerHTML = ''
     createRoot(rootElement).render(app)
+    return true
+  }
+  return false
+}
+
+startTransition(() => {
+  if (hasDuplication) {
+    // Duplication already exists - clear and render fresh
+    fixDuplication()
   } else {
     // Normal case - try to hydrate server-rendered content
     const hasServerContent = rootElement.children.length > 0
     if (hasServerContent) {
       try {
         hydrateRoot(rootElement, app)
+        // CRITICAL: Check for duplication AFTER hydration completes
+        // React may append instead of replace during failed hydration
+        requestAnimationFrame(() => {
+          if (!fixDuplication()) {
+            // Also check after a short delay in case hydration is async
+            setTimeout(() => {
+              fixDuplication()
+            }, 100)
+          }
+        })
       } catch (error) {
         // If hydration fails, clear and render fresh
         console.error('Hydration failed, rendering fresh:', error)
