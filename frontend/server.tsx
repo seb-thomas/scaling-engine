@@ -23,11 +23,29 @@ app.use('/api', async (req, res) => {
   try {
     const url = `${API_URL}/api${req.path}${req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : ''}`
     const response = await fetch(url)
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`API proxy error: ${response.status} ${response.statusText}`, errorText)
+      res.status(response.status).json({ 
+        error: 'API request failed',
+        status: response.status,
+        statusText: response.statusText,
+        details: errorText
+      })
+      return
+    }
+    
     const data = await response.json()
     res.json(data)
   } catch (error) {
     console.error('API proxy error:', error)
-    res.status(500).json({ error: 'API request failed' })
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    res.status(500).json({ 
+      error: 'API request failed',
+      details: errorMessage,
+      stack: error instanceof Error ? error.stack : undefined
+    })
   }
 })
 
@@ -51,7 +69,18 @@ app.get('*', async (req, res) => {
     res.send(finalHtml)
   } catch (error) {
     console.error('SSR Error:', error)
-    res.status(500).send('Server Error')
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+    res.status(500).send(`
+      <html>
+        <head><title>Server Error</title></head>
+        <body>
+          <h1>Server Error</h1>
+          <p>${errorMessage}</p>
+          ${errorStack ? `<pre>${errorStack}</pre>` : ''}
+        </body>
+      </html>
+    `)
   }
 })
 

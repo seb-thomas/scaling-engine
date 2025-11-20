@@ -117,7 +117,7 @@ jobs:
             # Generate .env.prod from secrets and template
             {
               echo "# Django Settings"
-              echo "DEBUG=0"
+              echo "DEBUG=1"
               echo "SECRET_KEY=${SECRET_KEY}"
               echo "DJANGO_ALLOWED_HOSTS=159.65.18.16,209.38.161.55,web,localhost,radioreads.fun,www.radioreads.fun"
               echo ""
@@ -160,28 +160,128 @@ jobs:
             
             echo "✅ .env files created"
             
+            # Health check functions
+            wait_for_service() {
+              local compose_file=$1
+              local service=$2
+              local max_attempts=30
+              local attempt=1
+              while [ $attempt -le $max_attempts ]; do
+                if docker-compose -f "$compose_file" ps | grep -q "$service.*Up"; then
+                  echo "✅ $service is up"
+                  return 0
+                fi
+                echo "Waiting for $service... ($attempt/$max_attempts)"
+                sleep 2
+                attempt=$((attempt + 1))
+              done
+              echo "❌ $service failed to start"
+              return 1
+            }
+            
+            verify_frontend() {
+              local max_attempts=10
+              local attempt=1
+              while [ $attempt -le $max_attempts ]; do
+                response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:3000/ || echo "000")
+                if [ "$response" = "200" ]; then
+                  # Check for React content (not Django template)
+                  content=$(curl -s http://localhost:3000/ | grep -o '<div id="root">' || echo "")
+                  if [ -n "$content" ]; then
+                    echo "✅ Frontend is serving React"
+                    return 0
+                  fi
+                fi
+                echo "Waiting for frontend to be ready... ($attempt/$max_attempts)"
+                sleep 3
+                attempt=$((attempt + 1))
+              done
+              echo "❌ Frontend verification failed"
+              return 1
+            }
+            
+            verify_api() {
+              local max_attempts=10
+              local attempt=1
+              while [ $attempt -le $max_attempts ]; do
+                response=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8000/api/stations/ || echo "000")
+                if [ "$response" = "200" ]; then
+                  echo "✅ API is responding"
+                  return 0
+                fi
+                echo "Waiting for API to be ready... ($attempt/$max_attempts)"
+                sleep 3
+                attempt=$((attempt + 1))
+              done
+              echo "❌ API verification failed"
+              return 1
+            }
+            
             # Build and deploy
             # Use docker-compose.react.yml if it exists (includes frontend), otherwise use docker-compose.prod.yml
             if [ -f docker-compose.react.yml ]; then
+              # Clean restart to prevent container state issues
+              echo "Stopping existing containers..."
+              docker-compose -f docker-compose.react.yml down
+              
+              echo "Building containers..."
               docker-compose -f docker-compose.react.yml build
-              docker-compose -f docker-compose.react.yml up -d
+              
+              echo "Starting containers..."
+              docker-compose -f docker-compose.react.yml up -d --force-recreate
+              
+              echo "Waiting for services to start..."
               sleep 10
+              # Wait for services to be ready
+              echo "Waiting for services to be healthy..."
+              wait_for_service docker-compose.react.yml frontend || exit 1
+              wait_for_service docker-compose.react.yml web || exit 1
+              wait_for_service docker-compose.react.yml nginx || exit 1
+              
               # Wait for database to be ready
               echo "Waiting for database..."
               docker-compose -f docker-compose.react.yml exec -T web python manage.py check --database default || sleep 5
               docker-compose -f docker-compose.react.yml exec -T web python manage.py migrate --noinput
               docker-compose -f docker-compose.react.yml exec -T web python manage.py collectstatic --noinput
+              
+              # Verify services are working
+              echo "Verifying frontend is serving React..."
+              verify_frontend || exit 1
+              
+              echo "Verifying API is responding..."
+              verify_api || exit 1
+              
               # Verify deployment
               docker-compose -f docker-compose.react.yml ps
             else
+              # Clean restart to prevent container state issues
+              echo "Stopping existing containers..."
+              docker-compose -f docker-compose.prod.yml down
+              
+              echo "Building containers..."
               docker-compose -f docker-compose.prod.yml build
-              docker-compose -f docker-compose.prod.yml up -d
+              
+              echo "Starting containers..."
+              docker-compose -f docker-compose.prod.yml up -d --force-recreate
+              
+              echo "Waiting for services to start..."
               sleep 10
+              
+              # Wait for services to be ready
+              echo "Waiting for services to be healthy..."
+              wait_for_service docker-compose.prod.yml web || exit 1
+              wait_for_service docker-compose.prod.yml nginx || exit 1
+              
               # Wait for database to be ready
               echo "Waiting for database..."
               docker-compose -f docker-compose.prod.yml exec -T web python manage.py check --database default || sleep 5
               docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput
               docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+              
+              # Verify API is responding
+              echo "Verifying API is responding..."
+              verify_api || exit 1
+              
               # Verify deployment
               docker-compose -f docker-compose.prod.yml ps
             fi
