@@ -6,21 +6,23 @@ React + TypeScript frontend with SSR using Vite and React Router.
 
 - **React 18** with TypeScript
 - **Vite** for build tooling
-- **React Router** for routing
+- **React Router v7** for routing with file-based routing
 - **Tailwind CSS** for styling
-- **Express** for SSR server
+- **Bun** for SSR server (replaces Express/Node.js)
 - **Lucide React** for icons
 
 ## Development
 
 ### Prerequisites
 
-- Node.js 20+
+- **Bun** latest version ([install Bun](https://bun.sh))
 - Django API running on `http://localhost:8000`
 
 ### Setup
 
 ```bash
+bun install
+# or
 npm install
 ```
 
@@ -35,10 +37,12 @@ This runs Vite dev server on `http://localhost:5173`
 ### Run SSR Development Server
 
 ```bash
+bun run ssr:dev
+# or
 npm run ssr:dev
 ```
 
-This runs the Express SSR server on `http://localhost:3000`
+This runs the Bun SSR server on `http://localhost:3000`
 
 ## Building
 
@@ -46,16 +50,20 @@ This runs the Express SSR server on `http://localhost:3000`
 
 ```bash
 npm run build
+bun run ssr:build
+# or
 npm run ssr:build
 ```
 
 This creates:
-- `dist/` - Client-side bundle
-- `dist-ssr/` - SSR server bundle
+- `build/client/` - Client-side bundle (React Router v7)
+- `dist-ssr/` - SSR server bundle (Bun)
 
 ### Run Production SSR Server
 
 ```bash
+bun run ssr:start
+# or
 npm run ssr:start
 ```
 
@@ -95,17 +103,26 @@ docker-compose -f docker-compose.react.yml up
 
 This will:
 - Build the React app
-- Run the SSR server on port 3000
+- Run the Bun SSR server on port 3000
 - Proxy API requests to Django backend
 - Serve static assets
 
 ## Features
 
-- ✅ Server-Side Rendering (SSR)
+- ✅ Server-Side Rendering (SSR) with Bun
+- ✅ React Router v7 file-based routing
 - ✅ Client-side routing with React Router
 - ✅ Dark mode support
 - ✅ Responsive design
 - ✅ TypeScript for type safety
 - ✅ Tailwind CSS for styling
 - ✅ Matches Figma design exactly
+
+## Migration Notes
+
+This project migrated from Express/Node.js to Bun for:
+- **Faster runtime performance**
+- **Native TypeScript support** (no ts-node needed)
+- **Built-in HTTP server** (no Express needed)
+- **Simplified architecture**
 
