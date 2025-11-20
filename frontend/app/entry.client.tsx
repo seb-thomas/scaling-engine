@@ -51,8 +51,17 @@ const router = createBrowserRouter([
 
 const rootElement = document.getElementById('root')!
 
-// Check for duplication before hydration
-const hasDuplication = rootElement.children.length > 1
+// AGGRESSIVE: Check for duplication immediately and continuously
+// This must run BEFORE React tries to hydrate to prevent appending
+const checkDuplication = () => {
+  return rootElement.children.length > 1
+}
+
+// Check immediately before any React code runs
+if (checkDuplication()) {
+  console.warn('⚠️ Duplication detected BEFORE React load! Clearing immediately')
+  rootElement.innerHTML = ''
+}
 
 const app = (
   <StrictMode>
@@ -71,36 +80,50 @@ const fixDuplication = () => {
   return false
 }
 
+// Set up continuous monitoring for duplication
+const monitorDuplication = () => {
+  // Check immediately
+  if (fixDuplication()) return
+  
+  // Check after next frame
+  requestAnimationFrame(() => {
+    if (fixDuplication()) return
+    
+    // Check after a short delay
+    setTimeout(() => {
+      if (fixDuplication()) return
+      
+      // Final check after React has had time to hydrate
+      setTimeout(() => {
+        fixDuplication()
+      }, 500)
+    }, 100)
+  })
+}
+
 startTransition(() => {
-  if (hasDuplication) {
-    // Duplication already exists - clear and render fresh
+  // Check one more time before starting
+  if (checkDuplication()) {
     fixDuplication()
-  } else {
-    // Normal case - try to hydrate server-rendered content
-    const hasServerContent = rootElement.children.length > 0
-    if (hasServerContent) {
-      try {
-        hydrateRoot(rootElement, app)
-        // CRITICAL: Check for duplication AFTER hydration completes
-        // React may append instead of replace during failed hydration
-        requestAnimationFrame(() => {
-          if (!fixDuplication()) {
-            // Also check after a short delay in case hydration is async
-            setTimeout(() => {
-              fixDuplication()
-            }, 100)
-          }
-        })
-      } catch (error) {
-        // If hydration fails, clear and render fresh
-        console.error('Hydration failed, rendering fresh:', error)
-        rootElement.innerHTML = ''
-        createRoot(rootElement).render(app)
-      }
-    } else {
-      // No server content, render fresh (SPA mode)
+    return
+  }
+  
+  // Normal case - try to hydrate server-rendered content
+  const hasServerContent = rootElement.children.length > 0
+  if (hasServerContent) {
+    try {
+      hydrateRoot(rootElement, app)
+      // Start monitoring immediately after hydration attempt
+      monitorDuplication()
+    } catch (error) {
+      // If hydration fails, clear and render fresh
+      console.error('Hydration failed, rendering fresh:', error)
+      rootElement.innerHTML = ''
       createRoot(rootElement).render(app)
     }
+  } else {
+    // No server content, render fresh (SPA mode)
+    createRoot(rootElement).render(app)
   }
 })
 
