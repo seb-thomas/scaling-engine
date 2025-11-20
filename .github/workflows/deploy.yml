@@ -193,6 +193,18 @@ jobs:
               echo "POSTGRES_DB=paperwaves_prod"
             } > .env.prod.db
 
+            # Verify .env files exist and have content
+            echo "Verifying .env files..."
+            if [ ! -f .env.prod ] || [ ! -s .env.prod ]; then
+              echo "Error: .env.prod is missing or empty"
+              exit 1
+            fi
+            if [ ! -f .env.prod.db ] || [ ! -s .env.prod.db ]; then
+              echo "Error: .env.prod.db is missing or empty"
+              exit 1
+            fi
+            echo "✅ .env files verified"
+
             # Use docker-compose.react.yml for deployment
             COMPOSE_FILE="docker-compose.react.yml"
 
@@ -211,7 +223,7 @@ jobs:
             # Wait for containers to be up
             echo "Waiting for containers to start..."
             sleep 10
-            
+
             # Wait for database to be ready (max 60 seconds)
             echo "Waiting for database to be ready..."
             for i in {1..30}; do
