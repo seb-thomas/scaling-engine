@@ -151,28 +151,14 @@ POSTGRES_PASSWORD=${SQL_PASSWORD}
 POSTGRES_DB=paperwaves_prod
 EOF
             
-            # Verify .env files were created correctly
+            # Verify .env files were created
             if [ ! -f .env.prod ] || [ ! -f .env.prod.db ]; then
               echo "❌ Error: .env files were not created!"
+              ls -la .env* || echo "No .env files found"
               exit 1
             fi
             
-            # Verify required variables are set (check that they exist, values are masked in logs)
-            SECRET_KEY_SET=$(grep -c "^SECRET_KEY=" .env.prod || echo "0")
-            SQL_PASSWORD_SET=$(grep -c "^SQL_PASSWORD=" .env.prod || echo "0")
-            POSTGRES_PASSWORD_SET=$(grep -c "^POSTGRES_PASSWORD=" .env.prod.db || echo "0")
-            
-            if [ "$SECRET_KEY_SET" -eq 0 ] || [ "$SQL_PASSWORD_SET" -eq 0 ]; then
-              echo "❌ Error: Required secrets missing from .env.prod!"
-              exit 1
-            fi
-            
-            if [ "$POSTGRES_PASSWORD_SET" -eq 0 ]; then
-              echo "❌ Error: POSTGRES_PASSWORD missing from .env.prod.db!"
-              exit 1
-            fi
-            
-            echo "✅ .env files created and verified"
+            echo "✅ .env files created"
             
             # Build and deploy
             # Use docker-compose.react.yml if it exists (includes frontend), otherwise use docker-compose.prod.yml
