@@ -1,5 +1,7 @@
 name: CI
 
+# Continuous Integration workflow - runs tests on push and PRs
+
 on:
   pull_request:
     branches:
