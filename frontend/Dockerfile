@@ -26,9 +26,10 @@ FROM oven/bun:latest
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files and lockfile
 COPY package*.json ./
-RUN bun install --production
+COPY bun.lock* ./
+RUN bun install --frozen-lockfile --production
 
 # Copy built files - React Router v7 builds to build/client/
 COPY --from=builder /app/build ./build
