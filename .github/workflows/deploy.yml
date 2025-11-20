@@ -177,7 +177,7 @@ jobs:
               echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" >> .env.prod
             fi
             
-            # Add DEBUG_IP_ADDRESS if provided (for Django Debug Toolbar)
+            # Add DEBUG_IP_ADDRESS if provided (for IP-based debug access)
             if [ -n "${DEBUG_IP_ADDRESS}" ]; then
               echo "DEBUG_IP_ADDRESS=${DEBUG_IP_ADDRESS}" >> .env.prod
             fi
