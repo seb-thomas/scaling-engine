@@ -142,10 +142,13 @@ jobs:
             if [ -n "${DEBUG_IP_ADDRESS:-}" ]; then
               DEBUG_VALUE="1"
               echo "Debug mode enabled for IP: ${DEBUG_IP_ADDRESS}"
-            elif [ "${DEBUG_MODE:-0}" = "1" ]; then
+            fi
+            # Check DEBUG_MODE separately (using || true to avoid set -e issues)
+            if [ "${DEBUG_MODE:-}" = "1" ]; then
               DEBUG_VALUE="1"
               echo "Debug mode enabled via DEBUG_MODE secret"
-            else
+            fi
+            if [ "${DEBUG_VALUE}" = "0" ]; then
               echo "Debug mode disabled (production mode)"
             fi
 
