@@ -158,12 +158,12 @@ EOF
             fi
             
             # Verify required variables are set and non-empty (without showing values)
-            if ! grep -q "^SECRET_KEY=.*[^=]$" .env.prod || ! grep -q "^SQL_PASSWORD=.*[^=]$" .env.prod; then
+            if ! grep -qE "^SECRET_KEY=.+$" .env.prod || ! grep -qE "^SQL_PASSWORD=.+$" .env.prod; then
               echo "❌ Error: Required secrets missing or empty in .env.prod!"
               exit 1
             fi
             
-            if ! grep -q "^POSTGRES_PASSWORD=.*[^=]$" .env.prod.db; then
+            if ! grep -qE "^POSTGRES_PASSWORD=.+$" .env.prod.db; then
               echo "❌ Error: POSTGRES_PASSWORD missing or empty in .env.prod.db!"
               exit 1
             fi
