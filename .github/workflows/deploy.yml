@@ -157,14 +157,14 @@ EOF
               exit 1
             fi
             
-            # Verify required variables are set (without showing values)
-            if ! grep -q "SECRET_KEY=" .env.prod || ! grep -q "SQL_PASSWORD=" .env.prod; then
-              echo "❌ Error: Required secrets missing from .env.prod!"
+            # Verify required variables are set and non-empty (without showing values)
+            if ! grep -q "^SECRET_KEY=.*[^=]$" .env.prod || ! grep -q "^SQL_PASSWORD=.*[^=]$" .env.prod; then
+              echo "❌ Error: Required secrets missing or empty in .env.prod!"
               exit 1
             fi
             
-            if ! grep -q "POSTGRES_PASSWORD=" .env.prod.db; then
-              echo "❌ Error: POSTGRES_PASSWORD missing from .env.prod.db!"
+            if ! grep -q "^POSTGRES_PASSWORD=.*[^=]$" .env.prod.db; then
+              echo "❌ Error: POSTGRES_PASSWORD missing or empty in .env.prod.db!"
               exit 1
             fi
             
@@ -197,5 +197,3 @@ EOF
             fi
             
             echo "✅ Deployment complete!"
-
-# Trigger deployment
