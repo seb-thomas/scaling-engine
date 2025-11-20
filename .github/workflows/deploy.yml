@@ -115,28 +115,31 @@ jobs:
             git pull origin master
             
             # Generate .env.prod from secrets and template
-            cat > .env.prod << EOF
-# Django Settings
-DEBUG=0
-SECRET_KEY=${SECRET_KEY}
-DJANGO_ALLOWED_HOSTS=159.65.18.16,209.38.161.55,web,localhost,radioreads.fun,www.radioreads.fun
-
-# Database Settings
-SQL_ENGINE=django.db.backends.postgresql
-SQL_DATABASE=paperwaves_prod
-SQL_USER=paperwaves_user
-SQL_PASSWORD=${SQL_PASSWORD}
-SQL_HOST=db
-SQL_PORT=5432
-
-# Celery Settings
-CELERY_BROKER_URL=redis://redis:6379/0
-CELERY_RESULT_BACKEND=redis://redis:6379
-
-# AI / Book Extraction
-# Options: 'keyword' (legacy), 'ai' (Claude), 'both' (run both methods)
-BOOK_EXTRACTION_MODE=ai
-EOF
+            cat > .env.prod << 'ENVEOF'
+            # Django Settings
+            DEBUG=0
+            SECRET_KEY=${SECRET_KEY}
+            DJANGO_ALLOWED_HOSTS=159.65.18.16,209.38.161.55,web,localhost,radioreads.fun,www.radioreads.fun
+            
+            # Database Settings
+            SQL_ENGINE=django.db.backends.postgresql
+            SQL_DATABASE=paperwaves_prod
+            SQL_USER=paperwaves_user
+            SQL_PASSWORD=${SQL_PASSWORD}
+            SQL_HOST=db
+            SQL_PORT=5432
+            
+            # Celery Settings
+            CELERY_BROKER_URL=redis://redis:6379/0
+            CELERY_RESULT_BACKEND=redis://redis:6379
+            
+            # AI / Book Extraction
+            # Options: 'keyword' (legacy), 'ai' (Claude), 'both' (run both methods)
+            BOOK_EXTRACTION_MODE=ai
+            ENVEOF
+            # Substitute variables (quoted heredoc prevents substitution, so we do it manually)
+            sed -i "s|\${SECRET_KEY}|${SECRET_KEY}|g" .env.prod
+            sed -i "s|\${SQL_PASSWORD}|${SQL_PASSWORD}|g" .env.prod
             
             # Add ANTHROPIC_API_KEY if provided
             if [ -n "${ANTHROPIC_API_KEY}" ]; then
@@ -144,12 +147,14 @@ EOF
             fi
             
             # Generate .env.prod.db
-            cat > .env.prod.db << EOF
-# PostgreSQL Database Configuration
-POSTGRES_USER=paperwaves_user
-POSTGRES_PASSWORD=${SQL_PASSWORD}
-POSTGRES_DB=paperwaves_prod
-EOF
+            cat > .env.prod.db << 'DBEOF'
+            # PostgreSQL Database Configuration
+            POSTGRES_USER=paperwaves_user
+            POSTGRES_PASSWORD=${SQL_PASSWORD}
+            POSTGRES_DB=paperwaves_prod
+            DBEOF
+            # Substitute variables
+            sed -i "s|\${SQL_PASSWORD}|${SQL_PASSWORD}|g" .env.prod.db
             
             # Verify .env files were created
             if [ ! -f .env.prod ] || [ ! -f .env.prod.db ]; then
