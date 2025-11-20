@@ -225,7 +225,7 @@ jobs:
             # Use docker-compose.react.yml for deployment
             COMPOSE_FILE="docker-compose.react.yml"
 
-            # Stop existing containers
+            # Stop existing containers (remove volumes to ensure clean state)
             echo "Stopping existing containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE down || true
 
@@ -234,8 +234,9 @@ jobs:
             $DOCKER_COMPOSE -f $COMPOSE_FILE build
 
             # Start containers (force recreate to pick up new env files)
+            # Note: env_file is read when containers start, so files must exist before this
             echo "Starting containers..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE up -d --force-recreate
+            $DOCKER_COMPOSE -f $COMPOSE_FILE up -d --force-recreate --remove-orphans
 
             # Wait for containers to be up
             echo "Waiting for containers to start..."
