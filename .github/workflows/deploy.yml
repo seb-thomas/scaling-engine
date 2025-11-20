@@ -103,22 +103,22 @@ jobs:
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
         timeout-minutes: 15
-        env:
-          SECRET_KEY: ${{ secrets.SECRET_KEY }}
-          SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DEBUG_IP_ADDRESS: ${{ secrets.DEBUG_IP_ADDRESS }}
-          DEBUG_MODE: ${{ secrets.DEBUG_MODE }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
           script_stop: true
           debug: true
-          envs: SECRET_KEY,SQL_PASSWORD,ANTHROPIC_API_KEY,DEBUG_IP_ADDRESS,DEBUG_MODE
           script: |
             set -e
             set -x
+
+            # Export secrets as environment variables (passed via script interpolation)
+            export SECRET_KEY="${{ secrets.SECRET_KEY }}"
+            export SQL_PASSWORD="${{ secrets.SQL_PASSWORD }}"
+            export ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}"
+            export DEBUG_IP_ADDRESS="${{ secrets.DEBUG_IP_ADDRESS }}"
+            export DEBUG_MODE="${{ secrets.DEBUG_MODE }}"
 
             # Determine docker-compose command
             if command -v docker-compose &> /dev/null; then
