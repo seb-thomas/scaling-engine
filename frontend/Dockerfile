@@ -30,7 +30,7 @@ WORKDIR /app
 # Copy package files and lockfile
 COPY package*.json ./
 COPY bun.lock* ./
-RUN bun install --frozen-lockfile --production
+RUN bun install --production
 
 # Copy built files - React Router v7 builds to build/client/
 COPY --from=builder /app/build ./build
