@@ -117,6 +117,30 @@ app.get('*', (req, res) => {
       `)
     }
 
+    // Transform HTML: replace /app/entry.client.tsx with the actual built asset
+    // Read the manifest to get the correct path
+    const manifestPath = join(staticDir, '.vite', 'manifest.json')
+    if (existsSync(manifestPath)) {
+      try {
+        const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+        const entryClient = manifest['app/entry.client.tsx']
+        if (entryClient && entryClient.file) {
+          // Replace the script src with the built asset path
+          html = html.replace(
+            'src="/app/entry.client.tsx"',
+            `src="/${entryClient.file}"`
+          )
+          console.log('✅ Transformed HTML: replaced entry.client.tsx with', entryClient.file)
+        } else {
+          console.warn('⚠️ entry.client.tsx not found in manifest')
+        }
+      } catch (error) {
+        console.error('❌ Error reading manifest:', error)
+      }
+    } else {
+      console.warn('⚠️ Manifest not found at:', manifestPath)
+    }
+
     res.setHeader('Content-Type', 'text/html')
     res.send(html)
   } catch (error) {
