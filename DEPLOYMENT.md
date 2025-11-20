@@ -72,26 +72,30 @@ That's it! Everything runs from your docker-compose.yml with zero external servi
 
 ## 📋 Deployment Methods Summary
 
-**For AI tools and developers:** This project supports multiple deployment methods:
+**For AI tools and developers:** This project uses **GitHub Actions for all deployments**.
 
-1. **Automated Script** (Recommended): `./deploy-to-droplet.sh`
-   - Auto-detects `docker-compose.react.yml` (React frontend + Django API)
-   - Fallback to `docker-compose.prod.yml` if React config not found
-   - Handles all setup automatically
+### Primary Deployment Method (Production)
 
-2. **GitHub Actions** (CI/CD): `.github/workflows/deploy.yml`
-   - Automatically deploys on push to master
-   - Smart detection: uses `docker-compose.react.yml` if available
-   - Runs tests before deployment
+**GitHub Actions CI/CD** (`.github/workflows/deploy.yml`) — **USE THIS FOR ALL DEPLOYMENTS**
+- ✅ Automatically deploys on push to master
+- ✅ Runs tests before deployment
+- ✅ Smart detection: uses `docker-compose.react.yml` if available
+- ✅ Creates audit trail of all deployments
+- ✅ Uses secrets from GitHub (no .env files to manage)
 
-3. **Manual Deployment**: Use `docker-compose -f docker-compose.react.yml` commands
-   - See sections below for specific commands
+**How to deploy:** Just push to master. That's it.
+
+### One-Time Setup Script
+
+**`./deploy-to-droplet.sh`** — **ONLY for initial server setup**
+- Use this ONCE when first setting up the server
+- After initial setup, all deployments go through GitHub Actions
+- Keeping both methods risks configuration drift
 
 **Key Files:**
 - `docker-compose.react.yml` - Full stack with React SSR frontend (current production)
-- `docker-compose.prod.yml` - Legacy Django-only deployment
-- `deploy-to-droplet.sh` - Automated deployment script
-- `.github/workflows/deploy.yml` - CI/CD pipeline
+- `.github/workflows/deploy.yml` - CI/CD pipeline (primary deployment method)
+- `deploy-to-droplet.sh` - Initial server setup only
 
 ---
 

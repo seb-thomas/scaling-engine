@@ -1,11 +1,16 @@
 #!/bin/bash
 
-# DigitalOcean Droplet Deployment Script
-# Run this script on your droplet after cloning the repo
+# DigitalOcean Droplet - INITIAL SETUP SCRIPT
+# ⚠️  WARNING: Use this ONLY for initial server setup!
+# ⚠️  After setup, all deployments should go through GitHub Actions (.github/workflows/deploy.yml)
+# ⚠️  Running this script after initial setup may cause configuration drift
 
 set -e
 
-echo "🚀 Starting deployment setup..."
+echo "🚀 Starting initial deployment setup..."
+echo "⚠️  This script is for INITIAL SETUP ONLY"
+echo "⚠️  Future deployments will happen automatically via GitHub Actions"
+echo ""
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then
