@@ -1,31 +1,31 @@
 {
   "_root-!~{003}~.js": {
-    "file": "assets/root-CFJXL72c.css",
+    "file": "assets/root-CoV4KBbs.css",
     "src": "_root-!~{003}~.js"
   },
-  "_root-BnxqDAxL.js": {
-    "file": "assets/root-BnxqDAxL.js",
+  "_root-Bc7Z9_JA.js": {
+    "file": "assets/root-Bc7Z9_JA.js",
     "name": "root",
     "css": [
-      "assets/root-CFJXL72c.css"
+      "assets/root-CoV4KBbs.css"
     ]
   },
   "app/entry.client.tsx": {
-    "file": "assets/entry.client-CzP5Ik-2.js",
+    "file": "assets/entry.client-CHi2_6Ws.js",
     "name": "entry.client",
     "src": "app/entry.client.tsx",
     "isEntry": true,
     "imports": [
-      "_root-BnxqDAxL.js"
+      "_root-Bc7Z9_JA.js"
     ]
   },
   "app/root.tsx?__react-router-build-client-route": {
-    "file": "assets/root-B8KTiLXs.js",
+    "file": "assets/root-BVR3iice.js",
     "name": "root",
     "src": "app/root.tsx?__react-router-build-client-route",
     "isEntry": true,
     "imports": [
-      "_root-BnxqDAxL.js"
+      "_root-Bc7Z9_JA.js"
     ]
   }
 }

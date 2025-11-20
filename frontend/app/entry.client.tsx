@@ -1,5 +1,5 @@
 import { StrictMode, startTransition } from 'react'
-import { hydrateRoot } from 'react-dom/client'
+import { hydrateRoot, createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Root from './root'
 import HomePage, { loader as homePageLoader } from './routes/_index'
@@ -49,12 +49,37 @@ const router = createBrowserRouter([
   },
 ])
 
+const rootElement = document.getElementById('root')!
+
+// If root already has multiple children (duplication), clear it first
+if (rootElement.children.length > 1) {
+  console.warn('⚠️ Detected duplicate content in root, clearing before hydration')
+  rootElement.innerHTML = ''
+}
+
+const app = (
+  <StrictMode>
+    <RouterProvider router={router} />
+  </StrictMode>
+)
+
+// Check if root has server-rendered content (from SSR)
+const hasServerContent = rootElement.children.length > 0
+
 startTransition(() => {
-  hydrateRoot(
-    document.getElementById('root')!,
-    <StrictMode>
-      <RouterProvider router={router} />
-    </StrictMode>
-  )
+  if (hasServerContent) {
+    // Hydrate existing server-rendered content
+    try {
+      hydrateRoot(rootElement, app)
+    } catch (error) {
+      // If hydration fails, clear and render fresh
+      console.error('Hydration failed, rendering fresh:', error)
+      rootElement.innerHTML = ''
+      createRoot(rootElement).render(app)
+    }
+  } else {
+    // No server content, render fresh (SPA mode)
+    createRoot(rootElement).render(app)
+  }
 })
 
