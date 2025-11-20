@@ -11,7 +11,7 @@ RUN bun install
 COPY . .
 
 # Build the app (client)
-RUN npm run build
+RUN bun run build
 
 # Build SSR server with Bun
 RUN bun build server.tsx --outdir dist-ssr --target bun --minify && \
