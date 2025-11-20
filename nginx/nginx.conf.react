@@ -46,6 +46,16 @@ server {
     ssl_prefer_server_ciphers on;
     ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
 
+    # Admin requests go to Django
+    location /admin/ {
+        proxy_pass http://paperwaves;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header X-Forwarded-Host $host:$server_port;
+        proxy_set_header Host $host;
+        proxy_redirect off;
+    }
+
     # API requests go to Django
     location /api/ {
         proxy_pass http://paperwaves;

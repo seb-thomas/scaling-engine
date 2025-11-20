@@ -30,4 +30,3 @@ urlpatterns = [
     path("", include("stations.urls")),
     path("api/", include(router.urls)),
 ]
-
