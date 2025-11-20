@@ -34,6 +34,7 @@ export type Show = {
     station_id: string;
   };
   book_count: number;
+  brand_color?: string;
 };
 
 export type Station = {

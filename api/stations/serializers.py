@@ -14,7 +14,7 @@ class BrandShowSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Brand
-        fields = ('id', 'name', 'description', 'url', 'station', 'book_count')
+        fields = ('id', 'name', 'description', 'url', 'station', 'book_count', 'brand_color')
     
     def get_book_count(self, obj):
         # Use annotated_book_count if available (from queryset annotation)

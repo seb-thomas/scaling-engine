@@ -26,7 +26,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <button
         onClick={() => onPageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        className="px-3 py-2 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-2 hover:opacity-70 disabled:opacity-30 cursor-default transition-opacity"
         aria-label="Previous page"
       >
         <ChevronLeft className="size-4" />
@@ -61,7 +61,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <button
         onClick={() => onPageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        className="px-3 py-2 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed transition-opacity"
+        className="px-3 py-2 hover:opacity-70 disabled:opacity-30 cursor-default transition-opacity"
         aria-label="Next page"
       >
         <ChevronRight className="size-4" />

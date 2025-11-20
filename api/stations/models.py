@@ -16,6 +16,7 @@ class Brand(models.Model):
     name = models.CharField(max_length=120)
     url = models.URLField()
     description = models.TextField(blank=True, default="")
+    brand_color = models.CharField(max_length=7, blank=True, default="")
     created = models.DateTimeField(auto_now_add=True)
 
     @property

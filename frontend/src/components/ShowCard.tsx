@@ -6,24 +6,22 @@ type ShowCardProps = {
   show: Show
 }
 
-const showColors: Record<string, { light: string; dark: string }> = {
-  'front-row': { light: '#8b4513', dark: '#a0522d' },
-  'bookclub': { light: '#704214', dark: '#8b6914' },
-  'saturday-review': { light: '#7f1d1d', dark: '#991b1b' },
-  'fresh-air': { light: '#1e3a5f', dark: '#2d5986' },
-  'all-things-considered': { light: '#134e4a', dark: '#0f766e' },
-  'here-now': { light: '#14532d', dark: '#166534' },
-}
-
-function getShowColor(showName: string, stationId: string): { light: string; dark: string } {
-  const key = showName.toLowerCase().replace(/\s+/g, '-')
-  return showColors[key] || (stationId === 'bbc' 
+function getShowColor(brandColor: string | undefined, stationId: string): { light: string; dark: string } {
+  if (brandColor) {
+    // Use the persisted brand color for light mode
+    // For dark mode, use a slightly lighter version (add ~20% brightness)
+    // Simple approach: if it's a hex color, we'll use it as-is for both
+    // In practice, you might want to adjust the dark color, but for now use the same
+    return { light: brandColor, dark: brandColor }
+  }
+  // Fallback to default colors based on station
+  return stationId === 'bbc' 
     ? { light: '#8b4513', dark: '#a0522d' }
-    : { light: '#1e3a5f', dark: '#2d5986' })
+    : { light: '#1e3a5f', dark: '#2d5986' }
 }
 
 export function ShowCard({ show }: ShowCardProps) {
-  const colors = getShowColor(show.name, show.station.station_id)
+  const colors = getShowColor(show.brand_color, show.station.station_id)
 
   const wavePattern = (color: string) => 
     `data:image/svg+xml,%3Csvg width='32' height='24' viewBox='0 0 32 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 6 Q 4 4, 6 6 T 10 6 T 14 6 T 18 6 T 22 6 T 26 6 T 30 6' stroke='${encodeURIComponent(color)}' stroke-width='1.5' fill='none'/%3E%3Cpath d='M2 12 Q 4 10, 6 12 T 10 12 T 14 12 T 18 12 T 22 12 T 26 12 T 30 12' stroke='${encodeURIComponent(color)}' stroke-width='1.5' fill='none'/%3E%3Cpath d='M2 18 Q 4 16, 6 18 T 10 18 T 14 18 T 18 18 T 22 18 T 26 18 T 30 18' stroke='${encodeURIComponent(color)}' stroke-width='1.5' fill='none'/%3E%3C/svg%3E`
