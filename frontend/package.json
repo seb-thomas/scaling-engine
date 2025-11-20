@@ -13,7 +13,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "ssr:dev": "NODE_ENV=development bun run server.tsx",
-    "ssr:build": "npm run build && npm run ssr:build:server",
+    "ssr:build": "bun run build && bun run ssr:build:server",
     "ssr:build:server": "bun build server.tsx --outdir dist-ssr --target bun --minify",
     "ssr:start": "NODE_ENV=production bun run dist-ssr/server.js"
   },
