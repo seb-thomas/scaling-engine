@@ -1,38 +1,27 @@
-import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLoaderData } from 'react-router-dom'
 import { BookCard } from '@/components/BookCard'
 import { ShowCard } from '@/components/ShowCard'
 import { fetchBooks, fetchShows } from '@/api/client'
 import type { Book, Show, PaginatedResponse } from '@/types'
 
-export function HomePage() {
-  const [books, setBooks] = useState<PaginatedResponse<Book> | null>(null)
-  const [shows, setShows] = useState<Show[]>([])
+export async function loader() {
+  const [books, showsData] = await Promise.all([
+    fetchBooks(1, 8),
+    fetchShows().catch(() => [])
+  ])
 
-  // Fetch shows
-  useEffect(() => {
-    fetchShows().then(data => {
-      if (Array.isArray(data)) {
-        setShows(data)
-      } else if (data.results) {
-        setShows(data.results)
-      } else {
-        setShows([])
-      }
-    }).catch(err => {
-      console.error('Error fetching shows:', err)
-      setShows([])
-    })
-  }, [])
+  const shows = Array.isArray(showsData) 
+    ? showsData 
+    : showsData.results || []
 
-  // Fetch latest 8 books
-  useEffect(() => {
-    fetchBooks(1, 8).then(setBooks).catch(console.error)
-  }, [])
-
-  if (!books) {
-    return <div className="container mx-auto px-4 py-12">Loading...</div>
+  return {
+    books,
+    shows
   }
+}
+
+export function HomePage() {
+  const { books, shows } = useLoaderData<typeof loader>()
 
   const latestBooks = books.results.slice(0, 8)
 

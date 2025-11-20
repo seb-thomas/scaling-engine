@@ -1,42 +1,28 @@
-import { Link } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { Link, useLoaderData } from 'react-router-dom'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ShowCard } from '@/components/ShowCard'
 import { fetchShows, fetchStations } from '@/api/client'
 import type { Show, Station } from '@/types'
 
+export async function loader() {
+  const [showsData, stationsData] = await Promise.all([
+    fetchShows().catch(() => []),
+    fetchStations().catch(() => [])
+  ])
+
+  const shows = Array.isArray(showsData) 
+    ? showsData 
+    : showsData.results || []
+
+  const stations = Array.isArray(stationsData)
+    ? stationsData
+    : stationsData.results || []
+
+  return { shows, stations }
+}
+
 export function AllShowsPage() {
-  const [shows, setShows] = useState<Show[]>([])
-  const [stations, setStations] = useState<Station[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    Promise.all([fetchShows(), fetchStations()])
-      .then(([showsData, stationsData]) => {
-        // Handle shows data
-        if (Array.isArray(showsData)) {
-          setShows(showsData)
-        } else if (showsData.results) {
-          setShows(showsData.results)
-        }
-
-        // Handle stations data
-        if (Array.isArray(stationsData)) {
-          setStations(stationsData)
-        } else if (stationsData.results) {
-          setStations(stationsData.results)
-        }
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error('Error fetching data:', err)
-        setLoading(false)
-      })
-  }, [])
-
-  if (loading) {
-    return <div className="container mx-auto px-4 py-12">Loading...</div>
-  }
+  const { shows, stations } = useLoaderData<typeof loader>()
 
   // Group shows by station
   const showsByStation = stations.map(station => ({

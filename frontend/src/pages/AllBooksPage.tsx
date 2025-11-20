@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useLoaderData, useSearchParams, useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 import { BookCard } from '@/components/BookCard'
 import { Pagination } from '@/components/Pagination'
@@ -6,33 +7,48 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { fetchBooks } from '@/api/client'
 import type { Book, PaginatedResponse } from '@/types'
 
-export function AllBooksPage() {
-  const [currentPage, setCurrentPage] = useState(1)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [books, setBooks] = useState<PaginatedResponse<Book> | null>(null)
+export async function loader({ request }: { request: Request }) {
+  const url = new URL(request.url)
+  const page = parseInt(url.searchParams.get('page') || '1', 10)
+  const search = url.searchParams.get('search') || undefined
   const booksPerPage = 10
+
+  const books = await fetchBooks(page, booksPerPage, search)
+  return { books, search: search || '' }
+}
+
+export function AllBooksPage() {
+  const { books, search: initialSearch } = useLoaderData<typeof loader>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const [searchQuery, setSearchQuery] = useState(initialSearch)
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch)
+  const booksPerPage = 10
+
+  const currentPage = parseInt(searchParams.get('page') || '1', 10)
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery)
-      setCurrentPage(1) // Reset to first page on search
+      // Update URL when search changes
+      const newParams = new URLSearchParams(searchParams)
+      if (searchQuery) {
+        newParams.set('search', searchQuery)
+        newParams.set('page', '1') // Reset to first page on search
+      } else {
+        newParams.delete('search')
+        newParams.set('page', '1')
+      }
+      navigate(`/books?${newParams.toString()}`, { replace: true })
     }, 300)
     return () => clearTimeout(timer)
-  }, [searchQuery])
+  }, [searchQuery, searchParams, navigate])
 
-  // Fetch books with search
-  useEffect(() => {
-    fetchBooks(
-      currentPage,
-      booksPerPage,
-      debouncedSearch || undefined
-    ).then(setBooks).catch(console.error)
-  }, [currentPage, debouncedSearch])
-
-  if (!books) {
-    return <div className="container mx-auto px-4 py-12">Loading...</div>
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('page', page.toString())
+    navigate(`/books?${newParams.toString()}`)
   }
 
   const totalPages = Math.ceil(books.count / booksPerPage)
@@ -85,7 +101,7 @@ export function AllBooksPage() {
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
+                onPageChange={handlePageChange}
               />
             )}
           </>

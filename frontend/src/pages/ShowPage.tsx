@@ -1,36 +1,40 @@
-import { useState, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLoaderData, useParams, useSearchParams, useNavigate } from 'react-router-dom'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { BookCard } from '@/components/BookCard'
 import { Pagination } from '@/components/Pagination'
 import { fetchShow, fetchShowBooks } from '@/api/client'
 import type { Show, Book, PaginatedResponse } from '@/types'
 
-export function ShowPage() {
-  const { showId } = useParams<{ showId: string }>()
-  const [show, setShow] = useState<Show | null>(null)
-  const [books, setBooks] = useState<PaginatedResponse<Book> | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
+export async function loader({ params, request }: { params: { showId: string }, request: Request }) {
+  const showId = Number(params.showId)
+  if (!showId) {
+    throw new Response('Show not found', { status: 404 })
+  }
+
+  const url = new URL(request.url)
+  const page = parseInt(url.searchParams.get('page') || '1', 10)
   const booksPerPage = 10
 
-  useEffect(() => {
-    if (!showId) return
-    
-    fetchShow(Number(showId)).then(setShow).catch(console.error)
-  }, [showId])
+  const [show, books] = await Promise.all([
+    fetchShow(showId),
+    fetchShowBooks(showId, page, booksPerPage)
+  ])
 
-  useEffect(() => {
-    if (!showId) return
-    
-    fetchShowBooks(Number(showId), currentPage, booksPerPage).then(setBooks).catch(console.error)
-  }, [showId, currentPage])
+  return { show, books }
+}
 
-  if (!show) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <p>Show not found</p>
-      </div>
-    )
+export function ShowPage() {
+  const { show, books } = useLoaderData<typeof loader>()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const booksPerPage = 10
+
+  const currentPage = parseInt(searchParams.get('page') || '1', 10)
+
+  const handlePageChange = (page: number) => {
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('page', page.toString())
+    navigate(`?${newParams.toString()}`)
   }
 
   const breadcrumbItems = [
@@ -39,7 +43,7 @@ export function ShowPage() {
     { label: show.name }
   ]
 
-  const totalPages = books ? Math.ceil(books.count / booksPerPage) : 0
+  const totalPages = Math.ceil(books.count / booksPerPage)
 
   return (
     <div className="container mx-auto px-4 py-12">
@@ -68,7 +72,7 @@ export function ShowPage() {
         </div>
 
         <div className="max-w-4xl">
-          {books?.results.map(book => (
+          {books.results.map(book => (
             <BookCard key={book.id} book={book} />
           ))}
         </div>
@@ -77,7 +81,7 @@ export function ShowPage() {
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            onPageChange={setCurrentPage}
+            onPageChange={handlePageChange}
           />
         )}
       </div>

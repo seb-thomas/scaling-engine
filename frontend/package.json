@@ -12,9 +12,9 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "ssr:dev": "NODE_ENV=development node --loader ts-node/esm server.tsx",
+    "ssr:dev": "NODE_ENV=development node --loader ts-node/esm --loader ts-node/esm server.tsx",
     "ssr:build": "npm run build && npm run ssr:build:server",
-    "ssr:build:server": "vite build --ssr server.tsx --outDir dist-ssr",
+    "ssr:build:server": "vite build --ssr server.tsx entry.server.tsx --outDir dist-ssr",
     "ssr:start": "NODE_ENV=production node dist-ssr/server.js"
   },
   "dependencies": {
@@ -23,7 +23,8 @@
     "lucide-react": "^0.554.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^6.26.0",
+    "react-router": "^7.0.0",
+    "react-router-dom": "^7.0.0",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
@@ -34,6 +35,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@react-router/dev": "^7.0.0",
     "@vitejs/plugin-react": "^4.3.1",
     "@vitest/ui": "^4.0.10",
     "autoprefixer": "^10.4.22",

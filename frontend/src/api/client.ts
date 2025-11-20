@@ -1,4 +1,19 @@
-const API_BASE = (import.meta.env?.VITE_API_URL as string | undefined) || '/api';
+// Determine API base URL based on environment
+// On server (SSR), use full URL from environment variable
+// On client, use relative path which will be proxied
+const getApiBase = () => {
+  // Check if we're in a Node.js environment (server-side)
+  if (typeof window === 'undefined') {
+    // Server-side: use full API URL
+    return process.env.API_URL 
+      ? `${process.env.API_URL}/api`
+      : 'http://localhost:8000/api'
+  }
+  // Client-side: use relative path
+  return (import.meta.env?.VITE_API_URL as string | undefined) || '/api'
+}
+
+const API_BASE = getApiBase()
 
 export async function fetchBooks(
   page: number = 1,

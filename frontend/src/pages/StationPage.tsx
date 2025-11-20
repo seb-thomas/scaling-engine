@@ -1,42 +1,34 @@
-import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useLoaderData } from 'react-router-dom'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { ShowCard } from '@/components/ShowCard'
 import { fetchStation, fetchStationShows } from '@/api/client'
 import type { Station, Show } from '@/types'
 
-export function StationPage() {
-  const { stationId } = useParams<{ stationId: string }>()
-  const [station, setStation] = useState<Station | null>(null)
-  const [shows, setShows] = useState<Show[]>([])
-
-  useEffect(() => {
-    if (!stationId) return
-    
-    fetchStation(stationId).then(data => {
-      if (Array.isArray(data)) {
-        setStation(data[0] || null)
-      } else {
-        setStation(data)
-      }
-    }).catch(console.error)
-
-    fetchStationShows(stationId).then(data => {
-      if (Array.isArray(data)) {
-        setShows(data)
-      } else if (data.results) {
-        setShows(data.results)
-      }
-    }).catch(console.error)
-  }, [stationId])
-
-  if (!station) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <p>Station not found</p>
-      </div>
-    )
+export async function loader({ params }: { params: { stationId: string } }) {
+  const { stationId } = params
+  if (!stationId) {
+    throw new Response('Station not found', { status: 404 })
   }
+
+  const [stationData, showsData] = await Promise.all([
+    fetchStation(stationId),
+    fetchStationShows(stationId).catch(() => [])
+  ])
+
+  const station = Array.isArray(stationData) ? stationData[0] : stationData
+  if (!station) {
+    throw new Response('Station not found', { status: 404 })
+  }
+
+  const shows = Array.isArray(showsData) 
+    ? showsData 
+    : showsData.results || []
+
+  return { station, shows }
+}
+
+export function StationPage() {
+  const { station, shows } = useLoaderData<typeof loader>()
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },

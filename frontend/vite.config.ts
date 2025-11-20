@@ -1,9 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { reactRouter } from '@react-router/dev/vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [reactRouter(), react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -25,7 +26,7 @@ export default defineConfig({
     },
   },
   ssr: {
-    noExternal: ['react', 'react-dom', 'react-router-dom'],
+    noExternal: ['react', 'react-dom', 'react-router', 'react-router-dom'],
     resolve: {
       conditions: ['node'],
     },

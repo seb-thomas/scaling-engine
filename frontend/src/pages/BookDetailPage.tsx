@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useLoaderData, Link } from 'react-router-dom'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
 import { ImageWithFallback } from '@/components/ImageWithFallback'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
@@ -8,23 +7,22 @@ import { AffiliateDisclosure } from '@/components/AffiliateDisclosure'
 import { fetchBook } from '@/api/client'
 import type { Book } from '@/types'
 
-export function BookDetailPage() {
-  const { bookId } = useParams<{ bookId: string }>()
-  const [book, setBook] = useState<Book | null>(null)
-
-  useEffect(() => {
-    if (!bookId) return
-    
-    fetchBook(Number(bookId)).then(setBook).catch(console.error)
-  }, [bookId])
-
-  if (!book) {
-    return (
-      <div className="container mx-auto px-4 py-12">
-        <p>Book not found</p>
-      </div>
-    )
+export async function loader({ params }: { params: { bookId: string } }) {
+  const { bookId } = params
+  if (!bookId) {
+    throw new Response('Book not found', { status: 404 })
   }
+
+  const book = await fetchBook(Number(bookId))
+  if (!book) {
+    throw new Response('Book not found', { status: 404 })
+  }
+
+  return { book }
+}
+
+export function BookDetailPage() {
+  const { book } = useLoaderData<typeof loader>()
 
   const breadcrumbItems = [
     { label: 'Home', href: '/' },

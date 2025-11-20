@@ -1,11 +1,10 @@
 import express from 'express'
-import { renderToString } from 'react-dom/server'
-import { StaticRouter } from 'react-router-dom/server'
 import { readFileSync } from 'fs'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import React from 'react'
-import App from './src/App'
+import { createStaticHandler } from 'react-router-dom/server'
+import handleRequest from './src/entry.server'
+import { routes } from './src/routes'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -49,6 +48,9 @@ app.use('/api', async (req, res) => {
   }
 })
 
+// Create static handler for React Router v7
+const handler = createStaticHandler(routes)
+
 // SSR handler - must be last to catch all routes
 app.get('*', async (req, res) => {
   try {
@@ -57,26 +59,26 @@ app.get('*', async (req, res) => {
       return res.status(404).send('Not found')
     }
 
-    const htmlPath = join(__dirname, '..', 'index.html')
-    const html = readFileSync(htmlPath, 'utf-8')
-    
-    const appHtml = renderToString(
-      React.createElement(StaticRouter, { location: req.url },
-        React.createElement(App)
-      )
+    const request = new Request(`http://${req.get('host')}${req.url}`)
+    const context = await handler.query(request)
+
+    if (context instanceof Response) {
+      throw context
+    }
+
+    const html = await handleRequest(
+      request,
+      context.statusCode || 200,
+      new Headers(),
+      context
     )
-    
-    const finalHtml = html.replace(
-      '<div id="root"></div>',
-      `<div id="root">${appHtml}</div>`
-    )
-    
+
     res.setHeader('Content-Type', 'text/html')
-    res.send(finalHtml)
+    res.status(context.statusCode || 200)
+    res.send(await html.text())
   } catch (error) {
     console.error('SSR Error for', req.url, ':', error)
     const errorMessage = error instanceof Error ? error.message : String(error)
-    const errorStack = error instanceof Error ? error.stack : undefined
     
     // Try to serve the HTML anyway so client-side routing can take over
     try {
@@ -91,7 +93,6 @@ app.get('*', async (req, res) => {
           <body>
             <h1>Server Error</h1>
             <p>${errorMessage}</p>
-            ${errorStack ? `<pre>${errorStack}</pre>` : ''}
           </body>
         </html>
       `)
