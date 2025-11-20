@@ -11,7 +11,7 @@ python manage.py runserver
 2. Start the React dev server:
 ```bash
 cd frontend
-npm run dev
+bun run dev
 ```
 
 Visit `http://localhost:5173` - This will use the Django API at `http://localhost:8000`
@@ -21,13 +21,12 @@ Visit `http://localhost:5173` - This will use the Django API at `http://localhos
 1. Build the frontend:
 ```bash
 cd frontend
-npm run build
-npm run ssr:build
+bun run ssr:build
 ```
 
 2. Start the SSR server:
 ```bash
-npm run ssr:start
+bun run ssr:start
 ```
 
 Visit `http://localhost:3000` - This runs the SSR server which proxies to Django API

@@ -22,14 +22,12 @@ React + TypeScript frontend with SSR using Vite and React Router.
 
 ```bash
 bun install
-# or
-npm install
 ```
 
 ### Run Development Server (Client-side only)
 
 ```bash
-npm run dev
+bun run dev
 ```
 
 This runs Vite dev server on `http://localhost:5173`
@@ -38,8 +36,6 @@ This runs Vite dev server on `http://localhost:5173`
 
 ```bash
 bun run ssr:dev
-# or
-npm run ssr:dev
 ```
 
 This runs the Bun SSR server on `http://localhost:3000`
@@ -49,10 +45,7 @@ This runs the Bun SSR server on `http://localhost:3000`
 ### Build for Production
 
 ```bash
-npm run build
 bun run ssr:build
-# or
-npm run ssr:build
 ```
 
 This creates:
@@ -63,8 +56,6 @@ This creates:
 
 ```bash
 bun run ssr:start
-# or
-npm run ssr:start
 ```
 
 ## Project Structure

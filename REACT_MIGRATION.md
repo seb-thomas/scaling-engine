@@ -66,8 +66,8 @@ The SSR server:
 
 ```bash
 cd frontend
-npm install
-npm run dev
+bun install
+bun run dev
 ```
 
 Visit `http://localhost:5173`
@@ -76,8 +76,8 @@ Visit `http://localhost:5173`
 
 ```bash
 cd frontend
-npm install
-npm run ssr:dev
+bun install
+bun run ssr:dev
 ```
 
 Visit `http://localhost:3000`
@@ -88,9 +88,8 @@ Make sure Django API is running on `http://localhost:8000`
 
 ```bash
 cd frontend
-npm run build
-npm run ssr:build
-npm run ssr:start
+bun run ssr:build
+bun run ssr:start
 ```
 
 ## Docker Deployment
@@ -130,7 +129,7 @@ This will:
 
 ## Next Steps
 
-1. Test locally with `npm run ssr:dev`
+1. Test locally with `bun run ssr:dev`
 2. Update Nginx config to use `nginx.conf.react`
 3. Deploy with `docker-compose.react.yml`
 4. Remove Django templates once confirmed working

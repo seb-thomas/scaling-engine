@@ -70,7 +70,7 @@ The deployment workflow:
 ### Tests fail in CI
 - Check test logs in GitHub Actions
 - Ensure all dependencies are in `requirements.txt` and `package.json`
-- Run tests locally first: `pytest` and `npm test`
+- Run tests locally first: `pytest` and `bun test`
 
 ### Deployment succeeds but site is down
 - Check Docker containers: `docker-compose -f docker-compose.prod.yml ps`
