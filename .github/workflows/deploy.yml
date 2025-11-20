@@ -56,6 +56,8 @@ jobs:
             echo "Waiting for database..."
             sleep 2
           done
+          # Ensure database exists
+          PGPASSWORD=postgres psql -h localhost -U postgres -tc "SELECT 1 FROM pg_database WHERE datname = 'test_db'" | grep -q 1 || PGPASSWORD=postgres psql -h localhost -U postgres -c "CREATE DATABASE test_db;"
 
       - name: Run backend tests
         working-directory: ./api
@@ -74,7 +76,7 @@ jobs:
           DJANGO_SETTINGS_MODULE: paperwaves.settings
         run: |
           python manage.py check
-          python manage.py migrate
+          python manage.py migrate --run-syncdb
           pytest -v --tb=short
 
       - name: Set up Node.js
