@@ -68,14 +68,6 @@ INSTALLED_APPS = [
     # "django_celery_beat",  # Commented out for local dev
 ]
 
-# Conditionally add debug_toolbar if DEBUG is enabled and package is available
-if DEBUG:
-    try:
-        import debug_toolbar
-        INSTALLED_APPS.append("debug_toolbar")
-    except ImportError:
-        # debug_toolbar not installed, skip
-        pass
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -88,14 +80,6 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Conditionally add debug toolbar middleware if DEBUG is enabled and package is available
-if DEBUG:
-    try:
-        import debug_toolbar
-        MIDDLEWARE.insert(0, "debug_toolbar.middleware.DebugToolbarMiddleware")
-    except ImportError:
-        # debug_toolbar not installed, skip
-        pass
 
 ROOT_URLCONF = "paperwaves.urls"
 
