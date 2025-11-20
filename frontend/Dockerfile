@@ -25,9 +25,8 @@ RUN npm ci --only=production
 # Copy built files - React Router v7 builds to build/client/
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/dist-ssr ./dist-ssr
-# Copy index.html from root or build/client
-COPY --from=builder /app/index.html ./index.html || true
-COPY --from=builder /app/build/client/index.html ./index.html || true
+# Copy index.html from root (React Router v7 uses the root index.html)
+COPY --from=builder /app/index.html ./index.html
 
 EXPOSE 3000
 
