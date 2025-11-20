@@ -102,6 +102,7 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
+        timeout-minutes: 15
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY }}
           SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
@@ -110,9 +111,30 @@ jobs:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
+          script_stop: true
+          debug: true
           script: |
-            cd ~/scaling-engine || cd /root/scaling-engine
-            git pull origin master
+            set -e  # Exit on any error
+            set -x  # Print commands as they execute
+            
+            # Determine docker-compose command (support both old and new syntax)
+            if command -v docker-compose &> /dev/null; then
+              DOCKER_COMPOSE="docker-compose"
+            elif docker compose version &> /dev/null; then
+              DOCKER_COMPOSE="docker compose"
+            else
+              echo "❌ Error: docker-compose not found!"
+              exit 1
+            fi
+            echo "Using: $DOCKER_COMPOSE"
+            
+            # Navigate to project directory
+            cd ~/scaling-engine || cd /root/scaling-engine || { echo "❌ Error: Could not find project directory"; exit 1; }
+            pwd
+            ls -la
+            
+            echo "Pulling latest code..."
+            git pull origin master || { echo "❌ Error: git pull failed"; exit 1; }
             
             # Generate .env.prod from secrets and template
             {
@@ -158,7 +180,17 @@ jobs:
               exit 1
             fi
             
-            echo "✅ .env files created"
+            # Validate required environment variables
+            if [ -z "${SECRET_KEY}" ]; then
+              echo "❌ Error: SECRET_KEY is not set!"
+              exit 1
+            fi
+            if [ -z "${SQL_PASSWORD}" ]; then
+              echo "❌ Error: SQL_PASSWORD is not set!"
+              exit 1
+            fi
+            
+            echo "✅ .env files created and validated"
             
             # Health check functions
             wait_for_service() {
@@ -167,7 +199,7 @@ jobs:
               local max_attempts=30
               local attempt=1
               while [ $attempt -le $max_attempts ]; do
-                if docker-compose -f "$compose_file" ps | grep -q "$service.*Up"; then
+                if $DOCKER_COMPOSE -f "$compose_file" ps | grep -q "$service.*Up"; then
                   echo "✅ $service is up"
                   return 0
                 fi
@@ -222,68 +254,68 @@ jobs:
             if [ -f docker-compose.react.yml ]; then
               # Clean restart to prevent container state issues
               echo "Stopping existing containers..."
-              docker-compose -f docker-compose.react.yml down
+              $DOCKER_COMPOSE -f docker-compose.react.yml down || echo "No containers to stop"
               
               echo "Building containers..."
-              docker-compose -f docker-compose.react.yml build
+              $DOCKER_COMPOSE -f docker-compose.react.yml build || { echo "❌ Build failed"; exit 1; }
               
               echo "Starting containers..."
-              docker-compose -f docker-compose.react.yml up -d --force-recreate
+              $DOCKER_COMPOSE -f docker-compose.react.yml up -d --force-recreate || { echo "❌ Start failed"; exit 1; }
               
               echo "Waiting for services to start..."
               sleep 10
               # Wait for services to be ready
               echo "Waiting for services to be healthy..."
-              wait_for_service docker-compose.react.yml frontend || exit 1
-              wait_for_service docker-compose.react.yml web || exit 1
-              wait_for_service docker-compose.react.yml nginx || exit 1
+              wait_for_service docker-compose.react.yml frontend || { echo "❌ Frontend service failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs frontend; exit 1; }
+              wait_for_service docker-compose.react.yml web || { echo "❌ Web service failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs web; exit 1; }
+              wait_for_service docker-compose.react.yml nginx || { echo "❌ Nginx service failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs nginx; exit 1; }
               
               # Wait for database to be ready
               echo "Waiting for database..."
-              docker-compose -f docker-compose.react.yml exec -T web python manage.py check --database default || sleep 5
-              docker-compose -f docker-compose.react.yml exec -T web python manage.py migrate --noinput
-              docker-compose -f docker-compose.react.yml exec -T web python manage.py collectstatic --noinput
+              $DOCKER_COMPOSE -f docker-compose.react.yml exec -T web python manage.py check --database default || { echo "⚠️ Database check failed, waiting 5s..."; sleep 5; }
+              $DOCKER_COMPOSE -f docker-compose.react.yml exec -T web python manage.py migrate --noinput || { echo "❌ Migration failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs web; exit 1; }
+              $DOCKER_COMPOSE -f docker-compose.react.yml exec -T web python manage.py collectstatic --noinput || { echo "❌ Collectstatic failed"; exit 1; }
               
               # Verify services are working
               echo "Verifying frontend is serving React..."
-              verify_frontend || exit 1
+              verify_frontend || { echo "❌ Frontend verification failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs frontend; exit 1; }
               
               echo "Verifying API is responding..."
-              verify_api || exit 1
+              verify_api || { echo "❌ API verification failed"; $DOCKER_COMPOSE -f docker-compose.react.yml logs web; exit 1; }
               
               # Verify deployment
-              docker-compose -f docker-compose.react.yml ps
+              $DOCKER_COMPOSE -f docker-compose.react.yml ps
             else
               # Clean restart to prevent container state issues
               echo "Stopping existing containers..."
-              docker-compose -f docker-compose.prod.yml down
+              $DOCKER_COMPOSE -f docker-compose.prod.yml down || echo "No containers to stop"
               
               echo "Building containers..."
-              docker-compose -f docker-compose.prod.yml build
+              $DOCKER_COMPOSE -f docker-compose.prod.yml build || { echo "❌ Build failed"; exit 1; }
               
               echo "Starting containers..."
-              docker-compose -f docker-compose.prod.yml up -d --force-recreate
+              $DOCKER_COMPOSE -f docker-compose.prod.yml up -d --force-recreate || { echo "❌ Start failed"; exit 1; }
               
               echo "Waiting for services to start..."
               sleep 10
               
               # Wait for services to be ready
               echo "Waiting for services to be healthy..."
-              wait_for_service docker-compose.prod.yml web || exit 1
-              wait_for_service docker-compose.prod.yml nginx || exit 1
+              wait_for_service docker-compose.prod.yml web || { echo "❌ Web service failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs web; exit 1; }
+              wait_for_service docker-compose.prod.yml nginx || { echo "❌ Nginx service failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs nginx; exit 1; }
               
               # Wait for database to be ready
               echo "Waiting for database..."
-              docker-compose -f docker-compose.prod.yml exec -T web python manage.py check --database default || sleep 5
-              docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput
-              docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+              $DOCKER_COMPOSE -f docker-compose.prod.yml exec -T web python manage.py check --database default || { echo "⚠️ Database check failed, waiting 5s..."; sleep 5; }
+              $DOCKER_COMPOSE -f docker-compose.prod.yml exec -T web python manage.py migrate --noinput || { echo "❌ Migration failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs web; exit 1; }
+              $DOCKER_COMPOSE -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput || { echo "❌ Collectstatic failed"; exit 1; }
               
               # Verify API is responding
               echo "Verifying API is responding..."
-              verify_api || exit 1
+              verify_api || { echo "❌ API verification failed"; $DOCKER_COMPOSE -f docker-compose.prod.yml logs web; exit 1; }
               
               # Verify deployment
-              docker-compose -f docker-compose.prod.yml ps
+              $DOCKER_COMPOSE -f docker-compose.prod.yml ps
             fi
             
             echo "✅ Deployment complete!"
