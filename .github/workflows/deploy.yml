@@ -208,15 +208,27 @@ jobs:
             echo "Starting containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE up -d
 
-            # Wait for database to be ready (max 30 seconds)
+            # Wait for containers to be up
+            echo "Waiting for containers to start..."
+            sleep 10
+            
+            # Wait for database to be ready (max 60 seconds)
             echo "Waiting for database to be ready..."
-            for i in {1..15}; do
-              if $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py check --database default 2>/dev/null; then
-                echo "Database is ready"
-                break
+            for i in {1..30}; do
+              # Check if web container is running first
+              if $DOCKER_COMPOSE -f $COMPOSE_FILE ps web | grep -q "Up"; then
+                # Then check database connection
+                if $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py check --database default 2>/dev/null; then
+                  echo "Database is ready"
+                  break
+                fi
               fi
-              if [ $i -eq 15 ]; then
-                echo "Database not ready after 30 seconds"
+              if [ $i -eq 30 ]; then
+                echo "Database not ready after 60 seconds"
+                echo "Container status:"
+                $DOCKER_COMPOSE -f $COMPOSE_FILE ps
+                echo "Web container logs:"
+                $DOCKER_COMPOSE -f $COMPOSE_FILE logs web | tail -20
                 exit 1
               fi
               sleep 2
