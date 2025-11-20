@@ -102,6 +102,10 @@ jobs:
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          SQL_PASSWORD: ${{ secrets.SQL_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
@@ -109,6 +113,43 @@ jobs:
           script: |
             cd ~/scaling-engine || cd /root/scaling-engine
             git pull origin master
+            
+            # Generate .env.prod from secrets and template
+            cat > .env.prod << EOF
+            # Django Settings
+            DEBUG=0
+            SECRET_KEY=${SECRET_KEY}
+            DJANGO_ALLOWED_HOSTS=159.65.18.16,209.38.161.55,web,localhost,radioreads.fun,www.radioreads.fun
+            
+            # Database Settings
+            SQL_ENGINE=django.db.backends.postgresql
+            SQL_DATABASE=paperwaves_prod
+            SQL_USER=paperwaves_user
+            SQL_PASSWORD=${SQL_PASSWORD}
+            SQL_HOST=db
+            SQL_PORT=5432
+            
+            # Celery Settings
+            CELERY_BROKER_URL=redis://redis:6379/0
+            CELERY_RESULT_BACKEND=redis://redis:6379
+            
+            # AI / Book Extraction
+            # Options: 'keyword' (legacy), 'ai' (Claude), 'both' (run both methods)
+            BOOK_EXTRACTION_MODE=ai
+            EOF
+            
+            # Add ANTHROPIC_API_KEY if provided
+            if [ -n "${ANTHROPIC_API_KEY}" ]; then
+              echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" >> .env.prod
+            fi
+            
+            # Generate .env.prod.db
+            cat > .env.prod.db << EOF
+            # PostgreSQL Database Configuration
+            POSTGRES_USER=paperwaves_user
+            POSTGRES_PASSWORD=${SQL_PASSWORD}
+            POSTGRES_DB=paperwaves_prod
+            EOF
             
             # Build and deploy
             # Use docker-compose.react.yml if it exists (includes frontend), otherwise use docker-compose.prod.yml
