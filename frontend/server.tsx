@@ -210,11 +210,14 @@ Bun.serve({
       const router = createStaticRouter(handler.dataRoutes, context)
       
       // Load index.html template
+      // In Docker: __dirname is /app/dist-ssr, so we need to go up to /app
       const possiblePaths = [
         join(staticDir, 'index.html'),
-        join(__dirname, 'index.html'),
-        join(__dirname, 'build', 'client', 'index.html'),
-        join(__dirname, 'dist', 'index.html'),
+        join(__dirname, '..', 'index.html'),  // /app/index.html (Docker)
+        join(__dirname, 'index.html'),  // /app/dist-ssr/index.html (fallback)
+        join(__dirname, '..', 'build', 'client', 'index.html'),
+        join(__dirname, '..', 'dist', 'index.html'),
+        join(process.cwd(), 'index.html'),  // Current working directory
       ]
       
       let htmlTemplate = null
@@ -226,8 +229,15 @@ Bun.serve({
       }
       
       if (!htmlTemplate) {
-        throw new Error('index.html not found')
+        console.error('❌ index.html not found. Tried paths:')
+        possiblePaths.forEach(p => console.error(`   - ${p} (exists: ${existsSync(p)})`))
+        console.error(`   __dirname: ${__dirname}`)
+        console.error(`   process.cwd(): ${process.cwd()}`)
+        console.error(`   staticDir: ${staticDir}`)
+        throw new Error(`index.html not found. Checked: ${possiblePaths.join(', ')}`)
       }
+      
+      console.log(`✅ Found index.html at: ${possiblePaths.find(p => existsSync(p) && readFileSync(p, 'utf-8') === htmlTemplate)}`)
       
       // Render React app to string
       const renderedHTML = renderToString(
