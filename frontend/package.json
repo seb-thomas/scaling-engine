@@ -14,7 +14,7 @@
     "test:coverage": "vitest run --coverage",
     "ssr:dev": "NODE_ENV=development node --loader ts-node/esm --loader ts-node/esm server.tsx",
     "ssr:build": "npm run build && npm run ssr:build:server",
-    "ssr:build:server": "vite build --ssr server.tsx --outDir dist-ssr && vite build --ssr src/entry.server.tsx --outDir dist-ssr",
+    "ssr:build:server": "vite build --ssr server.tsx --outDir dist-ssr",
     "ssr:start": "NODE_ENV=production node dist-ssr/server.js"
   },
   "dependencies": {
