@@ -1,12 +1,10 @@
-name: CI
+name: Deploy to Digital Ocean
 
 on:
-  pull_request:
+  push:
     branches:
       - master
-  push:
-    branches-ignore:
-      - master
+  workflow_dispatch:
 
 jobs:
   test:
@@ -83,6 +81,41 @@ jobs:
         working-directory: ./frontend
         run: npm run test:run
 
-      - name: Build frontend
-        working-directory: ./frontend
-        run: npm run build
+  deploy:
+    name: Deploy to Digital Ocean
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/master'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          script: |
+            cd ~/scaling-engine || cd /root/scaling-engine
+            git pull origin master
+            
+            # Build and deploy
+            # Use docker-compose.react.yml if it exists (includes frontend), otherwise use docker-compose.prod.yml
+            if [ -f docker-compose.react.yml ]; then
+              docker-compose -f docker-compose.react.yml build
+              docker-compose -f docker-compose.react.yml up -d
+              sleep 5
+              docker-compose -f docker-compose.react.yml exec -T web python manage.py migrate
+              docker-compose -f docker-compose.react.yml exec -T web python manage.py collectstatic --noinput
+            else
+              docker-compose -f docker-compose.prod.yml build
+              docker-compose -f docker-compose.prod.yml up -d
+              sleep 5
+              docker-compose -f docker-compose.prod.yml exec -T web python manage.py migrate
+              docker-compose -f docker-compose.prod.yml exec -T web python manage.py collectstatic --noinput
+            fi
+            
+            echo "✅ Deployment complete!"
+

@@ -1,8 +1,0 @@
-[build]
-builder = "nixpacks"
-buildCommand = "cd api && pip install -r requirements.txt"
-
-[deploy]
-startCommand = "cd api && python manage.py migrate && python manage.py collectstatic --noinput && gunicorn paperwaves.wsgi:application --bind 0.0.0.0:$PORT"
-restartPolicyType = "on_failure"
-restartPolicyMaxRetries = 10
