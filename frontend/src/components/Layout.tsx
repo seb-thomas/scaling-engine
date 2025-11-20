@@ -1,25 +1,11 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, Search, Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun } from 'lucide-react'
 import { useTheme } from './ThemeProvider'
 import { Button } from './ui/button'
-import { useState, useEffect } from 'react'
-import { fetchStations } from '@/api/client'
-import type { Station } from '@/types'
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme()
   const location = useLocation()
-  const [stations, setStations] = useState<Station[]>([])
-
-  useEffect(() => {
-    fetchStations().then(data => {
-      if (Array.isArray(data)) {
-        setStations(data)
-      } else if (data.results) {
-        setStations(data.results)
-      }
-    }).catch(console.error)
-  }, [])
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors">
@@ -29,9 +15,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-4">
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu className="w-5 h-5" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <Search className="w-5 h-5" />
               </Button>
             </div>
             
@@ -94,6 +77,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
               className={`hover:opacity-70 transition-opacity ${location.pathname === '/' ? 'opacity-100' : 'opacity-70'}`}
             >
               Latest Books
+            </Link>
+            <Link
+              to="/books"
+              className={`hover:opacity-70 transition-opacity ${location.pathname === '/books' ? 'opacity-100' : 'opacity-70'}`}
+            >
+              All Books
             </Link>
             <Link
               to="/shows"

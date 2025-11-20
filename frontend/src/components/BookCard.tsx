@@ -88,6 +88,9 @@ export function BookCard({ book, featured = false }: BookCardProps) {
           )}
           <div className="text-sm text-gray-500 dark:text-gray-500">
             {book.episode.brand.station.name} · {book.episode.title}
+            {book.episode.aired_at && (
+              <> · {new Date(book.episode.aired_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</>
+            )}
           </div>
         </div>
       </article>

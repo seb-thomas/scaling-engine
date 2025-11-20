@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './components/ThemeProvider'
 import { Layout } from './components/Layout'
 import { HomePage } from './pages/HomePage'
+import { AllBooksPage } from './pages/AllBooksPage'
 import { AllShowsPage } from './pages/AllShowsPage'
 import { StationPage } from './pages/StationPage'
 import { ShowPage } from './pages/ShowPage'
@@ -13,6 +14,7 @@ export default function App() {
       <Layout>
         <Routes>
           <Route path="/" element={<HomePage />} />
+          <Route path="/books" element={<AllBooksPage />} />
           <Route path="/shows" element={<AllShowsPage />} />
           <Route path="/station/:stationId" element={<StationPage />} />
           <Route path="/show/:showId" element={<ShowPage />} />

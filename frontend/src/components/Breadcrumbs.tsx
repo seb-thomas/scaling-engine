@@ -24,7 +24,7 @@ export function Breadcrumbs({ items }: BreadcrumbsProps) {
               {item.label}
             </Link>
           ) : (
-            <span className="text-gray-900 dark:text-gray-100">{item.label}</span>
+            <span className="text-gray-600 dark:text-gray-400">{item.label}</span>
           )}
         </div>
       ))}
