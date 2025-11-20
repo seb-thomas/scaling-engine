@@ -158,6 +158,35 @@ function transformHTML(html: string): string {
       const newScript = `src="/${entryClient.file}"`
       html = html.replace(oldScript, newScript)
       console.log(`✅ Transformed HTML: replaced "${oldScript}" with "${newScript}"`)
+      
+      // Collect all CSS files from the entry point and its imports
+      const cssFiles = new Set<string>()
+      
+      // Add CSS from entry client if it has any
+      if (entryClient.css && Array.isArray(entryClient.css)) {
+        entryClient.css.forEach((css: string) => cssFiles.add(css))
+      }
+      
+      // Add CSS from imported modules
+      if (entryClient.imports && Array.isArray(entryClient.imports)) {
+        entryClient.imports.forEach((importKey: string) => {
+          const importedModule = manifest[importKey]
+          if (importedModule && importedModule.css && Array.isArray(importedModule.css)) {
+            importedModule.css.forEach((css: string) => cssFiles.add(css))
+          }
+        })
+      }
+      
+      // Inject CSS link tags before the closing </head> tag
+      if (cssFiles.size > 0) {
+        const cssLinks = Array.from(cssFiles)
+          .map(css => `    <link rel="stylesheet" href="/${css}">`)
+          .join('\n')
+        
+        // Insert CSS links before </head>
+        html = html.replace('</head>', `${cssLinks}\n  </head>`)
+        console.log(`✅ Injected ${cssFiles.size} CSS file(s):`, Array.from(cssFiles))
+      }
     } else {
       console.warn('⚠️ Entry client not found in manifest. Available keys:', Object.keys(manifest))
     }
