@@ -149,18 +149,14 @@ jobs:
             # Determine DEBUG mode: enable if DEBUG_IP_ADDRESS or DEBUG_MODE is set
             # DEBUG_IP_ADDRESS enables debug mode with IP restriction
             # DEBUG_MODE is a simple on/off switch for staging/early development
-            DEBUG_VALUE="0"
+            # TEMPORARILY ENABLED FOR DEBUGGING 502 ERRORS
+            DEBUG_VALUE="1"
+            echo "Debug mode ENABLED for troubleshooting"
             if [ -n "${DEBUG_IP_ADDRESS:-}" ]; then
-              DEBUG_VALUE="1"
               echo "Debug mode enabled for IP: ${DEBUG_IP_ADDRESS}"
             fi
-            # Check DEBUG_MODE separately (using || true to avoid set -e issues)
             if [ "${DEBUG_MODE:-}" = "1" ]; then
-              DEBUG_VALUE="1"
               echo "Debug mode enabled via DEBUG_MODE secret"
-            fi
-            if [ "${DEBUG_VALUE}" = "0" ]; then
-              echo "Debug mode disabled (production mode)"
             fi
 
             # Generate .env.prod
