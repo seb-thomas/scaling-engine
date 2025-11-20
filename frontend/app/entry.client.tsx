@@ -51,11 +51,9 @@ const router = createBrowserRouter([
 
 const rootElement = document.getElementById('root')!
 
-// If root already has multiple children (duplication), clear it first
-if (rootElement.children.length > 1) {
-  console.warn('⚠️ Detected duplicate content in root, clearing before hydration')
-  rootElement.innerHTML = ''
-}
+// If root already has multiple children (duplication detected), clear and render fresh
+// This prevents React from appending during failed hydration
+const hasDuplication = rootElement.children.length > 1
 
 const app = (
   <StrictMode>
@@ -63,23 +61,28 @@ const app = (
   </StrictMode>
 )
 
-// Check if root has server-rendered content (from SSR)
-const hasServerContent = rootElement.children.length > 0
-
 startTransition(() => {
-  if (hasServerContent) {
-    // Hydrate existing server-rendered content
-    try {
-      hydrateRoot(rootElement, app)
-    } catch (error) {
-      // If hydration fails, clear and render fresh
-      console.error('Hydration failed, rendering fresh:', error)
-      rootElement.innerHTML = ''
+  if (hasDuplication) {
+    // Duplication detected - clear and render fresh (don't try to hydrate)
+    console.warn('⚠️ Detected duplicate content in root, clearing and rendering fresh')
+    rootElement.innerHTML = ''
+    createRoot(rootElement).render(app)
+  } else {
+    // Normal case - try to hydrate server-rendered content
+    const hasServerContent = rootElement.children.length > 0
+    if (hasServerContent) {
+      try {
+        hydrateRoot(rootElement, app)
+      } catch (error) {
+        // If hydration fails, clear and render fresh
+        console.error('Hydration failed, rendering fresh:', error)
+        rootElement.innerHTML = ''
+        createRoot(rootElement).render(app)
+      }
+    } else {
+      // No server content, render fresh (SPA mode)
       createRoot(rootElement).render(app)
     }
-  } else {
-    // No server content, render fresh (SPA mode)
-    createRoot(rootElement).render(app)
   }
 })
 
