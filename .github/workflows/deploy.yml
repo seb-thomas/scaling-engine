@@ -10,7 +10,7 @@ jobs:
   test:
     name: Run Tests
     runs-on: ubuntu-latest
-    
+
     services:
       postgres:
         image: postgres:16
@@ -24,7 +24,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-      
+
       redis:
         image: redis:7
         options: >-
@@ -42,7 +42,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.13'
+          python-version: "3.13"
 
       - name: Install Python dependencies
         working-directory: ./api
@@ -80,7 +80,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install frontend dependencies
         working-directory: ./frontend
@@ -95,7 +95,7 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master'
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -118,7 +118,7 @@ jobs:
           script: |
             set -e
             set -x
-            
+
             # Determine docker-compose command
             if command -v docker-compose &> /dev/null; then
               DOCKER_COMPOSE="docker-compose"
@@ -128,13 +128,13 @@ jobs:
               echo "Error: docker-compose not found!"
               exit 1
             fi
-            
+
             # Navigate to project directory
             cd ~/scaling-engine || cd /root/scaling-engine || { echo "Error: Could not find project directory"; exit 1; }
-            
+
             # Pull latest code
             git pull origin master
-            
+
             # Determine DEBUG mode: enable if DEBUG_IP_ADDRESS or DEBUG_MODE is set
             # DEBUG_IP_ADDRESS enables debug mode with IP restriction
             # DEBUG_MODE is a simple on/off switch for staging/early development
@@ -142,15 +142,13 @@ jobs:
             if [ -n "${DEBUG_IP_ADDRESS:-}" ]; then
               DEBUG_VALUE="1"
               echo "Debug mode enabled for IP: ${DEBUG_IP_ADDRESS}"
+            elif [ "${DEBUG_MODE:-0}" = "1" ]; then
+              DEBUG_VALUE="1"
+              echo "Debug mode enabled via DEBUG_MODE secret"
             else
-              if [ -n "${DEBUG_MODE:-}" ] && [ "${DEBUG_MODE}" = "1" ]; then
-                DEBUG_VALUE="1"
-                echo "Debug mode enabled via DEBUG_MODE secret"
-              else
-                echo "Debug mode disabled (production mode)"
-              fi
+              echo "Debug mode disabled (production mode)"
             fi
-            
+
             # Generate .env.prod
             {
               echo "# Django Settings"
@@ -173,17 +171,17 @@ jobs:
               echo "# AI / Book Extraction"
               echo "BOOK_EXTRACTION_MODE=ai"
             } > .env.prod
-            
+
             # Add ANTHROPIC_API_KEY if provided
             if [ -n "${ANTHROPIC_API_KEY}" ]; then
               echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" >> .env.prod
             fi
-            
+
             # Add DEBUG_IP_ADDRESS if provided (for IP-based debug access)
             if [ -n "${DEBUG_IP_ADDRESS}" ]; then
               echo "DEBUG_IP_ADDRESS=${DEBUG_IP_ADDRESS}" >> .env.prod
             fi
-            
+
             # Generate .env.prod.db
             {
               echo "# PostgreSQL Database Configuration"
@@ -191,22 +189,22 @@ jobs:
               echo "POSTGRES_PASSWORD=${SQL_PASSWORD}"
               echo "POSTGRES_DB=paperwaves_prod"
             } > .env.prod.db
-            
+
             # Use docker-compose.react.yml for deployment
             COMPOSE_FILE="docker-compose.react.yml"
-            
+
             # Stop existing containers
             echo "Stopping existing containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE down || true
-            
+
             # Build containers
             echo "Building containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE build
-            
+
             # Start containers
             echo "Starting containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE up -d
-            
+
             # Wait for database to be ready (max 30 seconds)
             echo "Waiting for database to be ready..."
             for i in {1..15}; do
@@ -220,16 +218,16 @@ jobs:
               fi
               sleep 2
             done
-            
+
             # Run migrations
             echo "Running migrations..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py migrate --noinput
-            
+
             # Collect static files
             echo "Collecting static files..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py collectstatic --noinput
-            
+
             # Show container status
             $DOCKER_COMPOSE -f $COMPOSE_FILE ps
-            
+
             echo "Deployment complete!"
