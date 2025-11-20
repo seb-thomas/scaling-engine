@@ -216,9 +216,9 @@ jobs:
             echo "Building containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE build
 
-            # Start containers
+            # Start containers (force recreate to pick up new env files)
             echo "Starting containers..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE up -d
+            $DOCKER_COMPOSE -f $COMPOSE_FILE up -d --force-recreate
 
             # Wait for containers to be up
             echo "Waiting for containers to start..."
