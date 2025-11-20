@@ -224,6 +224,10 @@ jobs:
             echo "Waiting for containers to start..."
             sleep 10
 
+            # Verify environment variables are loaded in web container
+            echo "Checking environment variables in web container..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web sh -c 'echo "SQL_PASSWORD is: ${SQL_PASSWORD:+SET}"' || echo "Warning: Could not check env vars"
+
             # Wait for database to be ready (max 60 seconds)
             echo "Waiting for database to be ready..."
             for i in {1..30}; do
@@ -233,6 +237,10 @@ jobs:
                 if $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py check --database default 2>/dev/null; then
                   echo "Database is ready"
                   break
+                else
+                  # Show the actual error
+                  echo "Database check failed, attempt $i/30"
+                  $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py check --database default 2>&1 | head -5 || true
                 fi
               fi
               if [ $i -eq 30 ]; then
@@ -241,6 +249,8 @@ jobs:
                 $DOCKER_COMPOSE -f $COMPOSE_FILE ps
                 echo "Web container logs:"
                 $DOCKER_COMPOSE -f $COMPOSE_FILE logs web | tail -20
+                echo "Checking .env.prod file:"
+                ls -la .env.prod* || echo "No .env files found"
                 exit 1
               fi
               sleep 2
