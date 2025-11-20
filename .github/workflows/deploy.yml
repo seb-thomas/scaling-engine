@@ -213,7 +213,14 @@ jobs:
               echo "Error: .env.prod.db is missing or empty"
               exit 1
             fi
-            echo "✅ .env files verified"
+            # Verify SQL_PASSWORD is in .env.prod (show masked)
+            if grep -q "SQL_PASSWORD=" .env.prod; then
+              PASSWORD_LENGTH=$(grep "SQL_PASSWORD=" .env.prod | cut -d= -f2 | wc -c)
+              echo "✅ .env files verified (SQL_PASSWORD length: $((PASSWORD_LENGTH-1)) chars)"
+            else
+              echo "Error: SQL_PASSWORD not found in .env.prod"
+              exit 1
+            fi
 
             # Use docker-compose.react.yml for deployment
             COMPOSE_FILE="docker-compose.react.yml"
