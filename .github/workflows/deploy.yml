@@ -226,10 +226,9 @@ jobs:
             # Use docker-compose.react.yml for deployment
             COMPOSE_FILE="docker-compose.react.yml"
 
-            # Stop existing containers and remove database volume to ensure password matches
-            # This is necessary because PostgreSQL doesn't allow changing passwords of existing databases
-            echo "Stopping existing containers and removing database volume..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE down -v || true
+            # Stop existing containers (keep volumes to preserve data)
+            echo "Stopping existing containers..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE down || true
 
             # Build containers
             echo "Building containers..."
