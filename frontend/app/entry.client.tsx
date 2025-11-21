@@ -102,28 +102,11 @@ const monitorDuplication = () => {
 }
 
 startTransition(() => {
-  // Check one more time before starting
-  if (checkDuplication()) {
-    fixDuplication()
-    return
-  }
-  
-  // Normal case - try to hydrate server-rendered content
-  const hasServerContent = rootElement.children.length > 0
-  if (hasServerContent) {
-    try {
-      hydrateRoot(rootElement, app)
-      // Start monitoring immediately after hydration attempt
-      monitorDuplication()
-    } catch (error) {
-      // If hydration fails, clear and render fresh
-      console.error('Hydration failed, rendering fresh:', error)
-      rootElement.innerHTML = ''
-      createRoot(rootElement).render(app)
-    }
-  } else {
-    // No server content, render fresh (SPA mode)
-    createRoot(rootElement).render(app)
-  }
+  // WORKAROUND for React Router SSR hydration bug (https://github.com/remix-run/react-router/issues/10918)
+  // Skip hydration entirely and always render fresh to prevent double-rendering
+  // The server-rendered HTML is still useful for SEO and initial load performance
+  console.log('Rendering fresh (hydration disabled to prevent double-render bug)')
+  rootElement.innerHTML = ''
+  createRoot(rootElement).render(app)
 })
 
