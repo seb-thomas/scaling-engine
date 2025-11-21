@@ -55,7 +55,7 @@ def ai_extract_books_task(self, episode_id):
 
 
 @shared_task(name="stations.tasks.scrape_all_brands")
-def scrape_all_brands():
+def scrape_all_brands(max_episodes_per_brand=50):
     """
     Scrape episodes from all active brands (radio shows).
 
@@ -69,32 +69,31 @@ def scrape_all_brands():
         logger.warning("No brands found in database. Please add brands first.")
         return {"status": "no_brands", "scraped": 0}
 
-    results = []
+    # Import Scrapy modules
+    from scrapy.crawler import CrawlerProcess
+    from scrapy.utils.project import get_project_settings
+    from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
+
+    # Create a single crawler process for all brands
+    # (CrawlerProcess can only be started once)
+    settings = get_project_settings()
+    settings['LOG_LEVEL'] = 'INFO'
+
+    process = CrawlerProcess(settings)
+
+    # Queue all brands to be crawled
     for brand in brands:
-        logger.info(f"Scraping brand: {brand.name} (ID: {brand.id})")
-        try:
-            # Run the spider for this brand
-            from scrapy.crawler import CrawlerProcess
-            from scrapy.utils.project import get_project_settings
-            from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
+        logger.info(f"Queueing brand for scraping: {brand.name} (ID: {brand.id})")
+        process.crawl(BbcEpisodeSpider, brand_id=brand.id, max_episodes=max_episodes_per_brand)
 
-            # Create a new crawler process for each brand
-            settings = get_project_settings()
-            settings['LOG_LEVEL'] = 'INFO'
-
-            process = CrawlerProcess(settings)
-            process.crawl(BbcEpisodeSpider, brand_id=brand.id)
-            process.start()
-
-            results.append({"brand_id": brand.id, "brand_name": brand.name, "status": "success"})
-            logger.info(f"Successfully scraped brand: {brand.name}")
-
-        except Exception as e:
-            logger.error(f"Error scraping brand {brand.name}: {e}")
-            results.append({"brand_id": brand.id, "brand_name": brand.name, "status": "error", "error": str(e)})
-
-    logger.info(f"Scraping complete. Results: {results}")
-    return {"status": "complete", "brands_scraped": len(results), "results": results}
+    # Start crawling all brands
+    try:
+        process.start()  # This blocks until all spiders finish
+        logger.info("All brands scraped successfully")
+        return {"status": "complete", "brands_queued": brands.count()}
+    except Exception as e:
+        logger.error(f"Error during scraping: {e}")
+        return {"status": "error", "error": str(e)}
 
 
 @shared_task(name="stations.tasks.extract_books_from_new_episodes")
