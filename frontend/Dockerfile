@@ -10,17 +10,20 @@ RUN bun install
 # Copy source files
 COPY . .
 
-# Build the app (client)
-RUN bun run build
+# Build Astro app (creates dist/ with server and client)
+RUN bunx astro build
 
-# Build SSR server with Bun
-RUN bun build server.tsx --outdir dist-ssr --target bun --minify && \
-    if [ ! -d "dist-ssr" ] || [ ! -f "dist-ssr/server.js" ]; then \
-      echo "ERROR: dist-ssr/server.js not found after build!"; \
-      ls -la dist-ssr/ || echo "dist-ssr directory does not exist"; \
+# Verify build output
+RUN if [ ! -d "dist" ]; then \
+      echo "ERROR: dist directory not found after build!"; \
       exit 1; \
     fi && \
-    echo "✅ SSR build successful - dist-ssr/server.js exists"
+    if [ ! -f "dist/server/entry.mjs" ]; then \
+      echo "ERROR: dist/server/entry.mjs not found after build!"; \
+      ls -la dist/ || echo "dist directory exists but entry.mjs missing"; \
+      exit 1; \
+    fi && \
+    echo "✅ Astro build successful - dist/server/entry.mjs exists"
 
 # Production stage
 FROM oven/bun:latest
@@ -32,13 +35,11 @@ COPY package*.json ./
 COPY bun.lock* ./
 RUN bun install --production
 
-# Copy built files - React Router v7 builds to build/client/
-COPY --from=builder /app/build ./build
-COPY --from=builder /app/dist-ssr ./dist-ssr
-# Copy index.html from root (React Router v7 uses the root index.html)
-COPY --from=builder /app/index.html ./index.html
+# Copy built files from Astro
+COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["bun", "run", "dist-ssr/server.js"]
+# Astro Bun adapter creates dist/server/entry.mjs
+CMD ["bun", "run", "dist/server/entry.mjs"]
 
