@@ -1,12 +1,18 @@
 // Production server entry point for Astro Bun adapter
-// The adapter reads PORT and HOST from environment variables
-// Set them before importing the entry point
+// Manually starts the server with PORT and HOST from environment variables
 
-process.env.PORT = process.env.PORT || '3000';
-process.env.HOST = process.env.HOST || '0.0.0.0';
+const PORT = parseInt(process.env.PORT || '3000');
+const HOST = process.env.HOST || '0.0.0.0';
 
-// Import entry point - it will auto-start with the environment variables
-import './dist/server/entry.mjs';
+// Import the Astro handler (don't auto-start)
+const { handle } = await import('./dist/server/entry.mjs');
 
-console.log(`🚀 Astro SSR server running on http://${process.env.HOST}:${process.env.PORT}`);
+// Create and start Bun server with proper configuration
+const server = Bun.serve({
+  port: PORT,
+  hostname: HOST,
+  fetch: handle,
+});
+
+console.log(`🚀 Astro SSR server running on http://${HOST}:${PORT}`);
 
