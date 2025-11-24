@@ -1,0 +1,33 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { ShowsPageContent } from '../components/ShowsPageContent';
+import { fetchShows, fetchStations } from '../api/client';
+import type { Show, Station } from '../types';
+
+// Fetch data
+let shows: Show[] = [];
+let stations: Station[] = [];
+
+try {
+  const [showsData, stationsData] = await Promise.all([
+    fetchShows().catch(() => []),
+    fetchStations().catch(() => [])
+  ]);
+
+  shows = Array.isArray(showsData) 
+    ? showsData 
+    : showsData.results || [];
+
+  stations = Array.isArray(stationsData)
+    ? stationsData
+    : stationsData.results || [];
+} catch (error) {
+  console.error('Error fetching shows/stations:', error);
+  // Use empty data as fallback
+}
+---
+
+<Layout pathname={Astro.url.pathname}>
+  <ShowsPageContent shows={shows} stations={stations} client:load />
+</Layout>
+

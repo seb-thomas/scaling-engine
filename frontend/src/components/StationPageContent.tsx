@@ -1,38 +1,13 @@
-import { useLoaderData, type LoaderFunctionArgs } from 'react-router-dom'
-import { Breadcrumbs } from '../../src/components/Breadcrumbs'
-import { ShowCard } from '../../src/components/ShowCard'
-import { fetchStation, fetchStationShows } from '../../src/api/client'
-import type { Show } from '../../src/types'
+import { Breadcrumbs } from './Breadcrumbs'
+import { ShowCard } from './ShowCard'
+import type { Show, Station } from '../types'
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const { stationId } = params
-  if (!stationId) {
-    throw new Response('Station not found', { status: 404 })
-  }
-
-  const [stationData, showsData] = await Promise.all([
-    fetchStation(stationId),
-    fetchStationShows(stationId).catch(() => [])
-  ])
-
-  const station = Array.isArray(stationData) ? stationData[0] : stationData
-  if (!station) {
-    throw new Response('Station not found', { status: 404 })
-  }
-
-  const shows = Array.isArray(showsData) 
-    ? showsData 
-    : showsData.results || []
-
-  return { station, shows }
+interface StationPageContentProps {
+  station: Station
+  shows: Show[]
 }
 
-type LoaderData = Awaited<ReturnType<typeof loader>>
-
-export default function StationPage() {
-  const data = useLoaderData() as LoaderData
-  const { station, shows } = data
-
+export function StationPageContent({ station, shows }: StationPageContentProps) {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: station.name }

@@ -1,0 +1,34 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { BookDetailPageContent } from '../../components/BookDetailPageContent';
+import { fetchBook } from '../../api/client';
+
+const { bookId } = Astro.params;
+
+if (!bookId) {
+  return Astro.redirect('/404');
+}
+
+const bookIdNum = Number(bookId);
+if (!bookIdNum) {
+  return Astro.redirect('/404');
+}
+
+// Fetch data
+let book;
+try {
+  book = await fetchBook(bookIdNum);
+} catch (error) {
+  console.error('Error fetching book:', error);
+  return Astro.redirect('/404');
+}
+
+if (!book) {
+  return Astro.redirect('/404');
+}
+---
+
+<Layout pathname={Astro.url.pathname}>
+  <BookDetailPageContent book={book} client:load />
+</Layout>
+

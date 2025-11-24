@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { ImageWithFallback } from './ImageWithFallback'
 import type { Book } from '@/types'
 
@@ -10,8 +9,8 @@ type BookCardProps = {
 export function BookCard({ book, featured = false }: BookCardProps) {
   if (featured) {
     return (
-      <Link
-        to={`/book/${book.id}`}
+      <a
+        href={`/book/${book.id}`}
         className="group block"
       >
         <article className="border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
@@ -55,13 +54,13 @@ export function BookCard({ book, featured = false }: BookCardProps) {
             )}
           </div>
         </article>
-      </Link>
+      </a>
     )
   }
 
   return (
-    <Link
-      to={`/book/${book.id}`}
+    <a
+      href={`/book/${book.id}`}
       className="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4"
     >
       <article className="flex gap-4">
@@ -94,7 +93,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
           </div>
         </div>
       </article>
-    </Link>
+    </a>
   )
 }
 

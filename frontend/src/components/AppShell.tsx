@@ -1,7 +1,12 @@
 import { Menu } from 'lucide-react'
 import { Button } from './ui/button'
 
-export function Layout({ children, pathname = '/' }: { children: React.ReactNode; pathname?: string }) {
+interface AppShellProps {
+  pathname: string
+  children: React.ReactNode
+}
+
+export function AppShell({ pathname, children }: AppShellProps) {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       <header className="border-b border-gray-200 dark:border-gray-800">

@@ -1,31 +1,15 @@
-import { useLoaderData, Link, type LoaderFunctionArgs } from 'react-router-dom'
 import { ArrowLeft, ExternalLink } from 'lucide-react'
-import { ImageWithFallback } from '@/components/ImageWithFallback'
-import { Breadcrumbs } from '@/components/Breadcrumbs'
-import { Button } from '@/components/ui/button'
-import { AffiliateDisclosure } from '@/components/AffiliateDisclosure'
-import { fetchBook } from '@/api/client'
+import { ImageWithFallback } from './ImageWithFallback'
+import { Breadcrumbs } from './Breadcrumbs'
+import { Button } from './ui/button'
+import { AffiliateDisclosure } from './AffiliateDisclosure'
+import type { Book } from '../types'
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const { bookId } = params
-  if (!bookId) {
-    throw new Response('Book not found', { status: 404 })
-  }
-
-  const book = await fetchBook(Number(bookId))
-  if (!book) {
-    throw new Response('Book not found', { status: 404 })
-  }
-
-  return { book }
+interface BookDetailPageContentProps {
+  book: Book
 }
 
-type LoaderData = Awaited<ReturnType<typeof loader>>
-
-export function BookDetailPage() {
-  const data = useLoaderData() as LoaderData
-  const { book } = data
-
+export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: book.episode.brand.station.name, href: `/station/${book.episode.brand.station.station_id}` },
@@ -38,13 +22,13 @@ export function BookDetailPage() {
       <Breadcrumbs items={breadcrumbItems} />
 
       <div className="max-w-3xl">
-        <Link
-          to={`/show/${book.episode.brand.id}`}
+        <a
+          href={`/show/${book.episode.brand.id}`}
           className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to all books
-        </Link>
+        </a>
 
         <article>
           <div className="flex gap-8 mb-8">
@@ -79,12 +63,12 @@ export function BookDetailPage() {
               Featured On
             </h2>
             <div className="mb-2">
-              <Link
-                to={`/show/${book.episode.brand.id}`}
+              <a
+                href={`/show/${book.episode.brand.id}`}
                 className="hover:opacity-70 transition-opacity"
               >
                 {book.episode.brand.name}, {book.episode.brand.station.name}
-              </Link>
+              </a>
             </div>
           </div>
 

@@ -1,62 +1,74 @@
 import { useState, useEffect } from "react";
-import {
-  useLoaderData,
-  useSearchParams,
-  useNavigate,
-  type LoaderFunctionArgs,
-} from "react-router-dom";
 import { Search } from "lucide-react";
-import { BookCard } from "../../src/components/BookCard";
-import { Pagination } from "../../src/components/Pagination";
-import { Breadcrumbs } from "../../src/components/Breadcrumbs";
-import { fetchBooks } from "../../src/api/client";
-import type { Book } from "../../src/types";
+import { BookCard } from "./BookCard";
+import { Pagination } from "./Pagination";
+import { Breadcrumbs } from "./Breadcrumbs";
+import type { Book } from "../types";
 
-export async function loader({ request }: LoaderFunctionArgs) {
-  const url = new URL(request.url);
-  const page = parseInt(url.searchParams.get("page") || "1", 10);
-  const search = url.searchParams.get("search") || undefined;
-  const booksPerPage = 10;
-
-  const books = await fetchBooks(page, booksPerPage, search);
-  return { books, search: search || "" };
+interface BooksPageContentProps {
+  initialBooks: { results: Book[]; count: number };
+  initialSearch?: string;
+  initialPage?: number;
 }
 
-type LoaderData = Awaited<ReturnType<typeof loader>>;
-
-export default function AllBooksPage() {
-  const data = useLoaderData() as LoaderData;
-  const { books, search: initialSearch } = data;
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
+export function BooksPageContent({ 
+  initialBooks, 
+  initialSearch = "", 
+  initialPage = 1 
+}: BooksPageContentProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
-  const [, setDebouncedSearch] = useState(initialSearch);
+  const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
+  const [books, setBooks] = useState(initialBooks);
+  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [isLoading, setIsLoading] = useState(false);
   const booksPerPage = 10;
-
-  const currentPage = parseInt(searchParams.get("page") || "1", 10);
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      // Update URL when search changes
-      const newParams = new URLSearchParams(searchParams);
-      if (searchQuery) {
-        newParams.set("search", searchQuery);
-        newParams.set("page", "1"); // Reset to first page on search
-      } else {
-        newParams.delete("search");
-        newParams.set("page", "1");
-      }
-      navigate(`/books?${newParams.toString()}`, { replace: true });
+      setCurrentPage(1); // Reset to first page on search
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery, searchParams, navigate]);
+  }, [searchQuery]);
+
+  // Fetch books when search or page changes
+  useEffect(() => {
+    const fetchBooks = async () => {
+      setIsLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          page_size: booksPerPage.toString(),
+        });
+        
+        if (debouncedSearch) {
+          params.append("search", debouncedSearch);
+        }
+        
+        const response = await fetch(`/api/books/?${params.toString()}`);
+        if (!response.ok) throw new Error('Failed to fetch books');
+        const data = await response.json();
+        const booksData = data.results 
+          ? data 
+          : { count: data.length, results: data, next: null, previous: null };
+        setBooks(booksData);
+        
+        // Update URL without page reload
+        const newUrl = `/books?${params.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+      } catch (error) {
+        console.error('Error fetching books:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBooks();
+  }, [debouncedSearch, currentPage]);
 
   const handlePageChange = (page: number) => {
-    const newParams = new URLSearchParams(searchParams);
-    newParams.set("page", page.toString());
-    navigate(`/books?${newParams.toString()}`);
+    setCurrentPage(page);
   };
 
   const totalPages = Math.ceil(books.count / booksPerPage);
@@ -92,7 +104,9 @@ export default function AllBooksPage() {
 
       {/* Books List */}
       <div className="max-w-4xl">
-        {currentBooks.length > 0 ? (
+        {isLoading ? (
+          <p className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</p>
+        ) : currentBooks.length > 0 ? (
           <>
             {currentBooks.map((book: Book) => (
               <BookCard key={book.id} book={book} featured={false} />
@@ -115,3 +129,4 @@ export default function AllBooksPage() {
     </div>
   );
 }
+

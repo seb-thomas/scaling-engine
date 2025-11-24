@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { HomePageContent } from '../components/HomePageContent';
+import { fetchBooks, fetchShows } from '../api/client';
+import type { Book, Show } from '../types';
+
+// Fetch data (equivalent to loader function)
+let books = { results: [], count: 0 };
+let shows: Show[] = [];
+
+try {
+  const [booksData, showsData] = await Promise.all([
+    fetchBooks(1, 8).catch(() => ({ results: [], count: 0 })),
+    fetchShows().catch(() => [])
+  ]);
+  
+  books = booksData;
+  shows = Array.isArray(showsData) 
+    ? showsData 
+    : showsData.results || [];
+} catch (error) {
+  console.error('Error fetching data:', error);
+  // Use empty data as fallback
+}
+---
+
+<Layout pathname={Astro.url.pathname}>
+  <HomePageContent books={books} shows={shows} client:load />
+</Layout>
+

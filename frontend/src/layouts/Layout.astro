@@ -1,0 +1,43 @@
+---
+import { ThemeProvider } from '../components/ThemeProvider';
+import { Header } from '../components/Header';
+import '../index.css';
+
+interface Props {
+  title?: string;
+  pathname?: string;
+}
+
+const { title = 'Radio Reads - Books from Radio Shows', pathname = Astro.url.pathname } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>{title}</title>
+    <script is:inline>
+      // Set dark mode synchronously before React loads to prevent flash
+      (function() {
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (prefersDark) {
+          document.documentElement.classList.add('dark');
+        }
+      })();
+    </script>
+  </head>
+  <body class="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+    <ThemeProvider client:load>
+      <Header pathname={pathname} client:load />
+    </ThemeProvider>
+    <main class="pb-16 mb-24">
+      <slot />
+    </main>
+  </body>
+</html>
+

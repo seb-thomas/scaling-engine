@@ -1,31 +1,13 @@
-import { Link, useLoaderData } from 'react-router-dom'
-import { BookCard } from '../../src/components/BookCard'
-import { ShowCard } from '../../src/components/ShowCard'
-import { fetchBooks, fetchShows } from '../../src/api/client'
-import type { Book, Show } from '../../src/types'
+import { BookCard } from './BookCard'
+import { ShowCard } from './ShowCard'
+import type { Book, Show } from '../types'
 
-export async function loader() {
-  const [books, showsData] = await Promise.all([
-    fetchBooks(1, 8),
-    fetchShows().catch(() => [])
-  ])
-
-  const shows = Array.isArray(showsData) 
-    ? showsData 
-    : showsData.results || []
-
-  return {
-    books,
-    shows
-  }
+interface HomePageContentProps {
+  books: { results: Book[]; count: number }
+  shows: Show[]
 }
 
-type LoaderData = Awaited<ReturnType<typeof loader>>
-
-export default function HomePage() {
-  const data = useLoaderData() as LoaderData
-  const { books, shows } = data
-
+export function HomePageContent({ books, shows }: HomePageContentProps) {
   const latestBooks = books.results.slice(0, 8)
 
   return (
@@ -45,12 +27,12 @@ export default function HomePage() {
           ))}
           
           <div className="mt-8 text-left">
-            <Link 
-              to="/books" 
+            <a 
+              href="/books" 
               className="text-sm hover:opacity-70 transition-opacity"
             >
               All books →
-            </Link>
+            </a>
           </div>
         </div>
       </section>

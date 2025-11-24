@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
 import type { Show } from '@/types'
 
@@ -28,7 +27,7 @@ export function ShowCard({ show }: ShowCardProps) {
 
   return (
     <article className="group block">
-      <Link to={`/show/${show.id}`} className="block">
+      <a href={`/show/${show.id}`} className="block">
         {/* Wave pattern masthead */}
         <div className="mb-4 overflow-hidden h-6">
           <div
@@ -69,7 +68,7 @@ export function ShowCard({ show }: ShowCardProps) {
             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
-      </Link>
+      </a>
     </article>
   )
 }

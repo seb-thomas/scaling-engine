@@ -2,15 +2,23 @@
 // On server (SSR), use full URL from environment variable
 // On client, use relative path which will be proxied
 const getApiBase = () => {
-  // Check if we're in a Node.js environment (server-side)
+  // Check if we're in a server environment (SSR)
   if (typeof window === 'undefined') {
-    // Server-side: use full API URL
-    return process.env.API_URL 
-      ? `${process.env.API_URL}/api`
-      : 'http://localhost:8000/api'
+    // Server-side: use full API URL from environment variable
+    // Astro uses import.meta.env for environment variables
+    // Try multiple sources for API URL
+    const apiUrl = import.meta.env.API_URL 
+      || import.meta.env.PUBLIC_API_URL 
+      || (typeof process !== 'undefined' && process.env?.API_URL)
+    if (apiUrl) {
+      // If API_URL already includes /api, use as-is, otherwise append it
+      return apiUrl.includes('/api') ? apiUrl : `${apiUrl}/api`
+    }
+    // Default fallback
+    return 'http://localhost:8000/api'
   }
-  // Client-side: use relative path
-  return (import.meta.env?.VITE_API_URL as string | undefined) || '/api'
+  // Client-side: use relative path (will be proxied by Vite/Astro)
+  return '/api'
 }
 
 const API_BASE = getApiBase()

@@ -1,0 +1,39 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { StationPageContent } from '../../components/StationPageContent';
+import { fetchStation, fetchStationShows } from '../../api/client';
+import type { Show, Station } from '../../types';
+
+const { stationId } = Astro.params;
+
+if (!stationId) {
+  return Astro.redirect('/404');
+}
+
+// Fetch data
+let station: Station | null = null;
+let shows: Show[] = [];
+
+try {
+  const [stationData, showsData] = await Promise.all([
+    fetchStation(stationId).catch(() => null),
+    fetchStationShows(stationId).catch(() => [])
+  ]);
+
+  station = Array.isArray(stationData) ? stationData[0] : stationData;
+  shows = Array.isArray(showsData) 
+    ? showsData 
+    : showsData.results || [];
+} catch (error) {
+  console.error('Error fetching station data:', error);
+}
+
+if (!station) {
+  return Astro.redirect('/404');
+}
+---
+
+<Layout pathname={Astro.url.pathname}>
+  <StationPageContent station={station} shows={shows} client:load />
+</Layout>
+

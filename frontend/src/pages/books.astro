@@ -1,0 +1,29 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { BooksPageContent } from '../components/BooksPageContent';
+import { fetchBooks } from '../api/client';
+
+// Get query params
+const page = parseInt(Astro.url.searchParams.get('page') || '1', 10);
+const search = Astro.url.searchParams.get('search') || undefined;
+const booksPerPage = 10;
+
+// Fetch initial data
+let books = { results: [], count: 0 };
+try {
+  books = await fetchBooks(page, booksPerPage, search);
+} catch (error) {
+  console.error('Error fetching books:', error);
+  // Use empty data as fallback
+}
+---
+
+<Layout pathname={Astro.url.pathname}>
+  <BooksPageContent 
+    initialBooks={books} 
+    initialSearch={search || ''} 
+    initialPage={page}
+    client:load 
+  />
+</Layout>
+
