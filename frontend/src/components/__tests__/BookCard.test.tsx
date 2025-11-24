@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
 import { BookCard } from '../BookCard'
 import type { Book } from '@/types'
 
@@ -31,29 +30,17 @@ const mockBook: Book = {
 
 describe('BookCard', () => {
   it('renders book title', () => {
-    render(
-      <BrowserRouter>
-        <BookCard book={mockBook} />
-      </BrowserRouter>
-    )
+    render(<BookCard book={mockBook} />)
     expect(screen.getByText('Test Book')).toBeInTheDocument()
   })
 
   it('renders book author when provided', () => {
-    render(
-      <BrowserRouter>
-        <BookCard book={mockBook} />
-      </BrowserRouter>
-    )
+    render(<BookCard book={mockBook} />)
     expect(screen.getByText(/by Test Author/)).toBeInTheDocument()
   })
 
   it('renders show name', () => {
-    render(
-      <BrowserRouter>
-        <BookCard book={mockBook} />
-      </BrowserRouter>
-    )
+    render(<BookCard book={mockBook} />)
     expect(screen.getByText('Test Show')).toBeInTheDocument()
   })
 
@@ -69,11 +56,7 @@ describe('BookCard', () => {
   })
 
   it('renders cover image when provided', () => {
-    render(
-      <BrowserRouter>
-        <BookCard book={mockBook} />
-      </BrowserRouter>
-    )
+    render(<BookCard book={mockBook} />)
     const image = screen.getByAltText(/Cover of Test Book/)
     expect(image).toBeInTheDocument()
     expect(image).toHaveAttribute('src', 'https://example.com/cover.jpg')

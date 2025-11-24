@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { BrowserRouter } from 'react-router-dom'
 import { Breadcrumbs } from '../Breadcrumbs'
 
 describe('Breadcrumbs', () => {
@@ -11,11 +10,7 @@ describe('Breadcrumbs', () => {
       { label: 'Current Page' },
     ]
 
-    render(
-      <BrowserRouter>
-        <Breadcrumbs items={items} />
-      </BrowserRouter>
-    )
+    render(<Breadcrumbs items={items} />)
 
     expect(screen.getByText('Home')).toBeInTheDocument()
     expect(screen.getByText('Shows')).toBeInTheDocument()
@@ -28,11 +23,7 @@ describe('Breadcrumbs', () => {
       { label: 'Current' },
     ]
 
-    render(
-      <BrowserRouter>
-        <Breadcrumbs items={items} />
-      </BrowserRouter>
-    )
+    render(<Breadcrumbs items={items} />)
 
     const homeLink = screen.getByText('Home')
     expect(homeLink.closest('a')).toHaveAttribute('href', '/')
@@ -44,11 +35,7 @@ describe('Breadcrumbs', () => {
       { label: 'Current' },
     ]
 
-    render(
-      <BrowserRouter>
-        <Breadcrumbs items={items} />
-      </BrowserRouter>
-    )
+    render(<Breadcrumbs items={items} />)
 
     const current = screen.getByText('Current')
     expect(current.tagName).toBe('SPAN')
