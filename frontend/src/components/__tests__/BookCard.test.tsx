@@ -45,11 +45,7 @@ describe('BookCard', () => {
   })
 
   it('renders featured layout when featured prop is true', () => {
-    render(
-      <BrowserRouter>
-        <BookCard book={mockBook} featured={true} />
-      </BrowserRouter>
-    )
+    render(<BookCard book={mockBook} featured={true} />)
     // Featured cards have larger title (text-3xl)
     const title = screen.getByText('Test Book')
     expect(title).toBeInTheDocument()
