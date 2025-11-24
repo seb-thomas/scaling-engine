@@ -38,8 +38,11 @@ RUN bun install --production
 # Copy built files from Astro
 COPY --from=builder /app/dist ./dist
 
+# Copy server wrapper
+COPY --from=builder /app/server.mjs ./server.mjs
+
 EXPOSE 3000
 
-# Astro Bun adapter creates dist/server/entry.mjs
-CMD ["bun", "run", "dist/server/entry.mjs"]
+# Use wrapper script to ensure correct PORT/HOST
+CMD ["bun", "run", "server.mjs"]
 
