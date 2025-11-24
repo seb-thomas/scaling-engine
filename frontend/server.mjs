@@ -1,16 +1,12 @@
 // Production server entry point for Astro Bun adapter
-// This ensures the server starts with correct PORT and HOST settings
+// The adapter reads PORT and HOST from environment variables
+// Set them before importing the entry point
 
-import { start } from './dist/server/entry.mjs';
+process.env.PORT = process.env.PORT || '3000';
+process.env.HOST = process.env.HOST || '0.0.0.0';
 
-const PORT = parseInt(process.env.PORT || '3000', 10);
-const HOST = process.env.HOST || '0.0.0.0';
+// Import entry point - it will auto-start with the environment variables
+import './dist/server/entry.mjs';
 
-// Start the server
-start({
-  port: PORT,
-  host: HOST,
-});
-
-console.log(`🚀 Astro SSR server running on http://${HOST}:${PORT}`);
+console.log(`🚀 Astro SSR server running on http://${process.env.HOST}:${process.env.PORT}`);
 
