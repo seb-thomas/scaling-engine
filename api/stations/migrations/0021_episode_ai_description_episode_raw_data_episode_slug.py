@@ -36,15 +36,18 @@ class Migration(migrations.Migration):
             name="raw_data",
             field=models.JSONField(blank=True, default=dict, null=True),
         ),
+        # Add slug field without unique constraint first
         migrations.AddField(
             model_name="episode",
             name="slug",
-            field=models.SlugField(blank=True, max_length=255, null=True, unique=False),
+            field=models.SlugField(blank=True, max_length=255, db_index=False),
         ),
+        # Populate slugs for existing episodes
         migrations.RunPython(populate_slugs, migrations.RunPython.noop),
+        # Now make it unique (this will create the index)
         migrations.AlterField(
             model_name="episode",
             name="slug",
-            field=models.SlugField(blank=True, max_length=255, unique=True, null=False),
+            field=models.SlugField(max_length=255, unique=True),
         ),
     ]
