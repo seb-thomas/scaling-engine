@@ -2,9 +2,10 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.core.management import call_command
 from django.db import DatabaseError
+from datetime import datetime
 from .utils import contains_keywords
-from .ai_utils import extract_books_from_episode
-from .models import Brand, Episode
+from .ai_utils import extract_books_from_episode, get_book_extractor
+from .models import Brand, Episode, RawEpisodeData
 
 logger = get_task_logger(__name__)
 
@@ -46,8 +47,10 @@ def ai_extract_books_task(self, episode_id):
     logger.info(f"AI extracting books for episode {episode_id}")
     try:
         result = extract_books_from_episode(episode_id)
-        logger.info(f"AI extraction complete for episode {episode_id}: "
-                   f"has_book={result['has_book']}, books={len(result.get('books', []))}")
+        logger.info(
+            f"AI extraction complete for episode {episode_id}: "
+            f"has_book={result['has_book']}, books={len(result.get('books', []))}"
+        )
         return result
     except Exception as e:
         logger.error(f"Error in AI extraction for episode {episode_id}: {e}")
@@ -77,14 +80,16 @@ def scrape_all_brands(max_episodes_per_brand=50):
     # Create a single crawler process for all brands
     # (CrawlerProcess can only be started once)
     settings = get_project_settings()
-    settings['LOG_LEVEL'] = 'INFO'
+    settings["LOG_LEVEL"] = "INFO"
 
     process = CrawlerProcess(settings)
 
     # Queue all brands to be crawled
     for brand in brands:
         logger.info(f"Queueing brand for scraping: {brand.name} (ID: {brand.id})")
-        process.crawl(BbcEpisodeSpider, brand_id=brand.id, max_episodes=max_episodes_per_brand)
+        process.crawl(
+            BbcEpisodeSpider, brand_id=brand.id, max_episodes=max_episodes_per_brand
+        )
 
     # Start crawling all brands
     try:
@@ -107,7 +112,9 @@ def extract_books_from_new_episodes():
     logger.info("Starting AI extraction for new episodes")
 
     # Find episodes that haven't been processed (no related books)
-    episodes = Episode.objects.filter(book__isnull=True)[:50]  # Process in batches of 50
+    episodes = Episode.objects.filter(book__isnull=True)[
+        :50
+    ]  # Process in batches of 50
 
     if not episodes.exists():
         logger.info("No new episodes to process")
@@ -131,3 +138,5 @@ def extract_books_from_new_episodes():
 
     logger.info(f"Triggered AI extraction for {processed} episodes")
     return {"status": "complete", "episodes_processed": processed}
+
+

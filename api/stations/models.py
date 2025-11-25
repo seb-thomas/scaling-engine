@@ -1,4 +1,6 @@
 from django.db import models
+from django.utils.text import slugify
+import json
 
 
 class Station(models.Model):
@@ -33,10 +35,26 @@ class Episode(models.Model):
         Brand, on_delete=models.CASCADE, default=None, blank=True, null=True
     )
     title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
     url = models.URLField(default="", unique=True)
-    description = models.TextField(blank=True, default="")
     aired_at = models.DateTimeField(blank=True, null=True)
     has_book = models.BooleanField(default=False, editable=False)
+
+    def save(self, *args, **kwargs):
+        # Auto-generate slug from title if not provided
+        if not self.slug and self.title:
+            base_slug = slugify(self.title) or f"episode-{self.id or 0}"
+            self.slug = base_slug
+            # Ensure uniqueness
+            counter = 1
+            while (
+                Episode.objects.filter(slug=self.slug)
+                .exclude(pk=self.pk if self.pk else None)
+                .exists()
+            ):
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title
@@ -52,11 +70,27 @@ class Book(models.Model):
 
     def __str__(self):
         return self.title
-    
+
     def get_bookshop_affiliate_url(self):
         """Generate Bookshop.org affiliate search URL for this book"""
         from .utils import generate_bookshop_affiliate_url
+
         return generate_bookshop_affiliate_url(self.title, self.author)
+
+
+class RawEpisodeData(models.Model):
+    """Store raw scraped data from BBC before AI processing"""
+
+    episode = models.OneToOneField(
+        Episode, on_delete=models.CASCADE, related_name="raw_data"
+    )
+    scraped_data = models.JSONField(default=dict)
+    processed = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    processed_at = models.DateTimeField(blank=True, null=True)
+
+    def __str__(self):
+        return f"Raw data for {self.episode.title}"
 
 
 class Phrase(models.Model):

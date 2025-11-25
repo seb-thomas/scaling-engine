@@ -10,13 +10,19 @@ from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
 
 
 class Command(BaseCommand):
-    help = 'Clear mock data and scrape 50 episodes from Front Row'
+    help = 'Clear mock data and scrape episodes from Front Row'
 
     def add_arguments(self, parser):
         parser.add_argument(
             '--skip-clear',
             action='store_true',
             help='Skip clearing mock data',
+        )
+        parser.add_argument(
+            '--max-episodes',
+            type=int,
+            default=50,
+            help='Maximum number of episodes to scrape (default: 50)',
         )
 
     def handle(self, *args, **options):
@@ -44,7 +50,6 @@ class Command(BaseCommand):
             station_id='bbc',
             defaults={
                 'name': 'BBC Radio 4',
-                'url': 'https://www.bbc.co.uk/sounds/brand/b006qnlr'
             }
         )
         self.stdout.write(f'✓ Station: {bbc.name}')
@@ -63,8 +68,9 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f'✓ Found existing brand: {front_row.name}')
 
-        # Step 4: Scrape 50 episodes
-        self.stdout.write(f'\nScraping 50 episodes from Front Row...')
+        # Step 4: Scrape episodes
+        max_episodes = options.get('max_episodes', 50)
+        self.stdout.write(f'\nScraping {max_episodes} episodes from Front Row...')
         self.stdout.write(f'Brand ID: {front_row.id}')
         self.stdout.write(f'Brand URL: {front_row.url}\n')
 
@@ -73,7 +79,7 @@ class Command(BaseCommand):
             settings['LOG_LEVEL'] = 'INFO'
             
             process = CrawlerProcess(settings)
-            process.crawl(BbcEpisodeSpider, brand_id=front_row.id, max_episodes=50)
+            process.crawl(BbcEpisodeSpider, brand_id=front_row.id, max_episodes=max_episodes)
             process.start()
             
             # Check results

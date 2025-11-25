@@ -17,13 +17,13 @@ def episode_post_save(sender, instance, **kwargs):
     - 'both': Run both methods
     """
     if not instance.has_book:
-        mode = getattr(settings, 'BOOK_EXTRACTION_MODE', 'keyword')
+        mode = getattr(settings, "BOOK_EXTRACTION_MODE", "keyword")
 
-        if mode == 'keyword':
+        if mode == "keyword":
             transaction.on_commit(lambda: contains_keywords_task.delay(instance.pk))
-        elif mode == 'ai':
+        elif mode == "ai":
             transaction.on_commit(lambda: ai_extract_books_task.delay(instance.pk))
-        elif mode == 'both':
+        elif mode == "both":
             # Run both tasks - AI is more accurate, keywords is fast fallback
             transaction.on_commit(lambda: ai_extract_books_task.delay(instance.pk))
             transaction.on_commit(lambda: contains_keywords_task.delay(instance.pk))
