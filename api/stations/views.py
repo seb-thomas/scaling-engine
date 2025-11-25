@@ -137,9 +137,9 @@ def station_detail(request, station_id):
     return render(request, "stations/station_detail.html", context)
 
 
-def show_detail(request, show_id):
+def show_detail(request, slug):
     """Show detail page showing all books for a show/brand"""
-    brand = get_object_or_404(Brand.objects.select_related("station"), pk=show_id)
+    brand = get_object_or_404(Brand.objects.select_related("station"), slug=slug)
 
     books = (
         Book.objects.filter(episode__brand=brand)
@@ -172,13 +172,13 @@ def show_detail(request, show_id):
     return render(request, "stations/show_detail.html", context)
 
 
-def book_detail(request, book_id):
+def book_detail(request, slug):
     """Individual book detail page"""
     book = get_object_or_404(
         Book.objects.select_related(
             "episode", "episode__brand", "episode__brand__station"
         ),
-        pk=book_id,
+        slug=slug,
     )
 
     # Get all stations for navigation
@@ -191,7 +191,7 @@ def book_detail(request, book_id):
             "label": book.episode.brand.station.name,
             "href": f"/station/{book.episode.brand.station.station_id}/",
         },
-        {"label": book.episode.brand.name, "href": f"/show/{book.episode.brand.id}/"},
+        {"label": book.episode.brand.name, "href": f"/show/{book.episode.brand.slug}/"},
         {"label": book.title},
     ]
 
@@ -222,7 +222,7 @@ def episode_detail(request, slug):
             "label": episode.brand.station.name,
             "href": f"/station/{episode.brand.station.station_id}/",
         },
-        {"label": episode.brand.name, "href": f"/show/{episode.brand.id}/"},
+        {"label": episode.brand.name, "href": f"/show/{episode.brand.slug}/"},
         {"label": episode.title},
     ]
 

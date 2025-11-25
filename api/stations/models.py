@@ -16,6 +16,7 @@ class Station(models.Model):
 class Brand(models.Model):
     station = models.ForeignKey(Station, on_delete=models.CASCADE)
     name = models.CharField(max_length=120)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
     url = models.URLField()
     description = models.TextField(blank=True, default="")
     brand_color = models.CharField(max_length=7, blank=True, default="")
@@ -25,6 +26,22 @@ class Brand(models.Model):
     def book_count(self):
         """Count of books associated with this brand"""
         return Book.objects.filter(episode__brand=self).count()
+
+    def save(self, *args, **kwargs):
+        # Auto-generate slug from name if not provided
+        if not self.slug and self.name:
+            base_slug = slugify(self.name) or f"brand-{self.id or 0}"
+            self.slug = base_slug
+            # Ensure uniqueness
+            counter = 1
+            while (
+                Brand.objects.filter(slug=self.slug)
+                .exclude(pk=self.pk if self.pk else None)
+                .exists()
+            ):
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -63,10 +80,27 @@ class Episode(models.Model):
 class Book(models.Model):
     episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, blank=True)
     author = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
     cover_image = models.URLField(blank=True, default="")
     purchase_link = models.URLField(blank=True, default="")
+
+    def save(self, *args, **kwargs):
+        # Auto-generate slug from title if not provided
+        if not self.slug and self.title:
+            base_slug = slugify(self.title) or f"book-{self.id or 0}"
+            self.slug = base_slug
+            # Ensure uniqueness
+            counter = 1
+            while (
+                Book.objects.filter(slug=self.slug)
+                .exclude(pk=self.pk if self.pk else None)
+                .exists()
+            ):
+                self.slug = f"{base_slug}-{counter}"
+                counter += 1
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.title

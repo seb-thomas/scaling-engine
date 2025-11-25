@@ -5,7 +5,7 @@
 
   <div class="max-w-3xl">
     <a
-      href="{% url 'stations:show_detail' book.episode.brand.id %}"
+      href="{% url 'stations:show_detail' book.episode.brand.slug %}"
       class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-8"
     >
       <svg
@@ -62,7 +62,7 @@
         </h2>
         <div class="mb-2">
           <a
-            href="{% url 'stations:show_detail' book.episode.brand.id %}"
+            href="{% url 'stations:show_detail' book.episode.brand.slug %}"
             class="hover:opacity-70 transition-opacity"
           >
             {{ book.episode.brand.name }}, {{ book.episode.brand.station.name }}

@@ -6,7 +6,7 @@ Props: show (Brand instance required)
 {% load static %}
 
 <article class="group block">
-    <a href="{% url 'stations:show_detail' show.id %}" class="block">
+    <a href="{% url 'stations:show_detail' show.slug %}" class="block">
         {# Wave pattern masthead - different colors per show #}
         <div class="mb-4 overflow-hidden h-6">
             {% if show.station.station_id == 'bbc' %}

@@ -5,7 +5,7 @@ Props: book (required), featured (optional, default: False)
 
 {% if featured %}
     {# Featured card - larger layout #}
-    <a href="{% url 'stations:book_detail' book.id %}" class="group block">
+    <a href="{% url 'stations:book_detail' book.slug %}" class="group block">
         <article class="border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
             <div class="flex gap-6 mb-6">
                 {% if book.cover_image %}
@@ -43,7 +43,7 @@ Props: book (required), featured (optional, default: False)
     </a>
 {% else %}
     {# Regular card - compact layout #}
-    <a href="{% url 'stations:book_detail' book.id %}" class="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4">
+    <a href="{% url 'stations:book_detail' book.slug %}" class="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4">
         <article class="flex gap-4">
             {% if book.cover_image %}
             <div class="flex-shrink-0 w-16">
