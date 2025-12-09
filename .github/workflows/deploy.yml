@@ -278,9 +278,9 @@ jobs:
             echo "Running migrations..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py migrate --noinput
 
-            # Collect static files
+            # Collect static files (clear first to avoid permission issues)
             echo "Collecting static files..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py collectstatic --noinput
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py collectstatic --noinput --clear
 
             # Show container status
             $DOCKER_COMPOSE -f $COMPOSE_FILE ps
