@@ -133,8 +133,9 @@ jobs:
             # Navigate to project directory
             cd ~/scaling-engine || cd /root/scaling-engine || { echo "Error: Could not find project directory"; exit 1; }
 
-            # Pull latest code
-            git pull origin master
+            # Pull latest code (force update to match origin)
+            git fetch origin master
+            git reset --hard origin/master
 
             # Verify required secrets are set
             if [ -z "${SECRET_KEY:-}" ]; then
