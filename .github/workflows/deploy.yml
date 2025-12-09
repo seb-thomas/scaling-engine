@@ -280,7 +280,7 @@ jobs:
 
             # Fix staticfiles permissions and collect
             echo "Fixing staticfiles permissions..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T -u root web sh -c "rm -rf /home/app/web/staticfiles/* || true"
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T -u root web sh -c "rm -rf /home/app/web/staticfiles/* && chown -R app:app /home/app/web/staticfiles"
             echo "Collecting static files..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py collectstatic --noinput
 
