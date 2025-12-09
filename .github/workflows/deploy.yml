@@ -219,8 +219,8 @@ jobs:
               exit 1
             fi
 
-            # Use docker-compose.react.yml for deployment
-            COMPOSE_FILE="docker-compose.react.yml"
+            # Use docker-compose.prod.yml for deployment
+            COMPOSE_FILE="docker-compose.prod.yml"
 
             # Stop existing containers (keep volumes to preserve data)
             echo "Stopping existing containers..."
