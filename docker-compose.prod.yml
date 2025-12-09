@@ -5,10 +5,15 @@ services:
     build: ./nginx
     volumes:
       - static_volume:/home/app/web/staticfiles
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/nginx.conf.react:/etc/nginx/conf.d/nginx.conf:ro
     ports:
-      - 8080:80
+      - 80:80
+      - 443:443
     depends_on:
       - web
+      - frontend
+
   web:
     build:
       context: ./api
@@ -23,21 +28,49 @@ services:
     depends_on:
       - db
       - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - 3000
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - API_URL=http://web:8000
+    depends_on:
+      - web
+
   db:
     image: postgres:16-alpine
     volumes:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - ./.env.prod.db
+
   redis:
     image: redis:7-alpine
     expose:
       - 6379
+
   celery:
     build:
       context: ./api
       dockerfile: Dockerfile.prod
     command: celery -A paperwaves worker --loglevel=info
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - db
+      - redis
+
+  celery-beat:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod
+    command: celery -A paperwaves beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
     env_file:
       - ./.env.prod
     depends_on:

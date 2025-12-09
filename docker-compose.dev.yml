@@ -5,13 +5,12 @@ services:
     build: ./nginx
     volumes:
       - static_volume:/home/app/web/staticfiles
-      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./nginx/nginx.conf.local:/etc/nginx/conf.d/nginx.conf:ro
     ports:
-      - 80:80
-      - 443:443
       - 8080:80
     depends_on:
       - web
+      - frontend
 
   web:
     build:
@@ -24,17 +23,33 @@ services:
     expose:
       - 8000
     env_file:
-      - ./.env.prod
+      - ./.env.dev
     depends_on:
       - db
       - redis
 
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    expose:
+      - 3000
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOST=0.0.0.0
+      - API_URL=http://web:8000
+    depends_on:
+      - web
+
   db:
     image: postgres:16-alpine
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
     env_file:
-      - ./.env.prod.db
+      - ./.env.dev.db
+    ports:
+      - "5433:5432"
 
   redis:
     image: redis:7-alpine
@@ -49,7 +64,7 @@ services:
     volumes:
       - ./api:/home/app/web
     env_file:
-      - ./.env.prod
+      - ./.env.dev
     depends_on:
       - db
       - redis
@@ -62,11 +77,11 @@ services:
     volumes:
       - ./api:/home/app/web
     env_file:
-      - ./.env.prod
+      - ./.env.dev
     depends_on:
       - db
       - redis
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
   static_volume:

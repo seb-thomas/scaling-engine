@@ -3,7 +3,7 @@
 #
 
 # pull official base image
-FROM python:3.12-alpine as builder
+FROM python:3.12-slim as builder
 
 # set work directory
 WORKDIR /usr/src/api
@@ -13,31 +13,38 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 # install psycopg2 dependencies
-RUN apk update \
-  && apk add postgresql-dev gcc python3-dev musl-dev libffi-dev openssl-dev libxslt-dev libxml2-dev linux-headers
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends \
+    postgresql-client \
+    gcc \
+    python3-dev \
+    libpq-dev \
+    libffi-dev \
+    libssl-dev \
+    libxslt1-dev \
+    libxml2-dev \
+  && rm -rf /var/lib/apt/lists/*
 
 # install dependencies
-RUN pip install --upgrade pip
-RUN pip install flake8
+RUN pip install --upgrade pip --trusted-host pypi.org --trusted-host files.pythonhosted.org
 COPY . .
-RUN flake8 --ignore=E501,F401,E722,E128,F841,W293,F541,W391 .
 
 # install dependencies
 COPY ./requirements.txt .
-RUN pip wheel --no-cache-dir --wheel-dir /usr/src/api/wheels -r requirements.txt
+RUN pip wheel --no-cache-dir --wheel-dir /usr/src/api/wheels -r requirements.txt --trusted-host pypi.org --trusted-host files.pythonhosted.org
 
 #
 # Final stage
 #
 
 # pull official base image
-FROM python:3.12-alpine
+FROM python:3.12-slim
 
 # create directory for the app user
 RUN mkdir -p /home/app
 
 # create the app user
-RUN addgroup -S app && adduser -S app -G app
+RUN groupadd -r app && useradd -r -g app app
 
 # create the appropriate directories
 ENV HOME=/home/app
@@ -47,10 +54,12 @@ RUN mkdir $APP_HOME/staticfiles
 WORKDIR $APP_HOME
 
 # install dependencies
-RUN apk update && apk add libpq
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends libpq5 \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /usr/src/api/wheels /wheels
 COPY --from=builder /usr/src/api/requirements.txt .
-RUN pip install --no-cache /wheels/*
+RUN pip install --no-cache /wheels/* --trusted-host pypi.org --trusted-host files.pythonhosted.org
 
 # copy entrypoint-prod.sh
 COPY ./entrypoint.sh $APP_HOME

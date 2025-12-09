@@ -15,6 +15,7 @@ Including another URLconf
 """
 
 from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework import routers
@@ -30,3 +31,7 @@ urlpatterns = [
     path("", include("stations.urls")),
     path("api/", include(router.urls)),
 ]
+
+# Serve static files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
