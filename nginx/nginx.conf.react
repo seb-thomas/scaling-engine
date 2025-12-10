@@ -71,6 +71,13 @@ server {
         alias /home/app/web/staticfiles/;
     }
 
+    # Media files (book covers, etc.)
+    location /media/ {
+        alias /home/app/web/media/;
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
     # All other requests go to React SSR
     location / {
         proxy_pass http://frontend;

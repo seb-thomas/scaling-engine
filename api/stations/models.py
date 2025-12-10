@@ -77,13 +77,24 @@ class Episode(models.Model):
         return self.title
 
 
+def book_cover_path(instance, filename):
+    """Generate upload path for book covers: covers/brand-slug/author-title.ext"""
+    import os
+    ext = os.path.splitext(filename)[1] or ".jpg"
+    brand_slug = instance.episode.brand.slug if instance.episode and instance.episode.brand else "unknown"
+    return f"covers/{brand_slug}/{instance.slug}{ext}"
+
+
 class Book(models.Model):
     episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     author = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
-    cover_image = models.URLField(blank=True, default="")
+    cover_image = models.URLField(blank=True, default="")  # Legacy: remote URL
+    cover_image_local = models.ImageField(
+        upload_to=book_cover_path, blank=True, null=True
+    )  # New: local file
     purchase_link = models.URLField(blank=True, default="")
 
     def save(self, *args, **kwargs):
@@ -115,6 +126,13 @@ class Book(models.Model):
         from .utils import generate_bookshop_affiliate_url
 
         return generate_bookshop_affiliate_url(self.title, self.author)
+
+    @property
+    def cover_url(self):
+        """Return the best available cover image URL (local preferred)"""
+        if self.cover_image_local:
+            return self.cover_image_local.url
+        return self.cover_image or ""
 
 
 class RawEpisodeData(models.Model):

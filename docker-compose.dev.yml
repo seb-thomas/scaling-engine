@@ -5,6 +5,7 @@ services:
     build: ./nginx
     volumes:
       - static_volume:/home/app/web/staticfiles
+      - ./api/media:/home/app/web/media
       - ./nginx/nginx.conf.local:/etc/nginx/conf.d/nginx.conf:ro
     ports:
       - 8080:80

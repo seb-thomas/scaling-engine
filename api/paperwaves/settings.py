@@ -197,6 +197,10 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
 ]
 
+# Media files (user-uploaded content like book covers)
+MEDIA_URL = "/media/"
+MEDIA_ROOT = os.path.join(BASE_DIR, "media")
+
 # Debug toolbar - IP addresses that can see the debug toolbar
 # Configure via DEBUG_IP_ADDRESS environment variable (comma-separated)
 INTERNAL_IPS = ["127.0.0.1"]

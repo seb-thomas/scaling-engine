@@ -37,7 +37,12 @@ class EpisodeSerializer(serializers.ModelSerializer):
 
 class BookSerializer(serializers.ModelSerializer):
     episode = EpisodeSerializer(read_only=True)
+    cover_image = serializers.SerializerMethodField()
 
     class Meta:
         model = Book
         fields = ('id', 'title', 'slug', 'author', 'description', 'cover_image', 'purchase_link', 'episode')
+
+    def get_cover_image(self, obj):
+        """Return local cover if available, otherwise remote URL"""
+        return obj.cover_url
