@@ -191,7 +191,7 @@ class BookAdmin(admin.ModelAdmin):
     readonly_fields = ("slug", "cover_preview_large", "cover_source_info")
     fieldsets = (
         ("Book Information", {
-            "fields": ("title", "author", "slug", "description")
+            "fields": ("title", "author", "slug", "blurb", "description")
         }),
         ("Cover Image", {
             "fields": ("cover_preview_large", "cover_source_info", "cover_image_local", "cover_image"),
@@ -252,7 +252,7 @@ class BookAdmin(admin.ModelAdmin):
         return format_html('<br>'.join(info))
     cover_source_info.short_description = "Cover Sources"
 
-    actions = ["fetch_covers_from_openlibrary", "download_remote_covers"]
+    actions = ["fetch_covers_from_openlibrary", "download_remote_covers", "generate_blurbs"]
 
     @admin.action(description="Fetch covers from Open Library API")
     def fetch_covers_from_openlibrary(self, request, queryset):
@@ -307,6 +307,56 @@ class BookAdmin(admin.ModelAdmin):
         self.message_user(
             request,
             f"Downloaded {downloaded} cover(s) to local storage. {failed} failed."
+        )
+
+    @admin.action(description="Generate AI blurbs for selected books")
+    def generate_blurbs(self, request, queryset):
+        """Generate AI-powered blurbs for selected books"""
+        import os
+        from anthropic import Anthropic
+
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            self.message_user(request, "ANTHROPIC_API_KEY not configured", level="error")
+            return
+
+        client = Anthropic(api_key=api_key)
+        generated = 0
+        failed = 0
+
+        for book in queryset:
+            show_name = book.episode.brand.name if book.episode and book.episode.brand else "a radio show"
+
+            prompt = f"""Generate a very short, engaging blurb (max 120 characters) for this book that was featured on {show_name}.
+The blurb should be intriguing and make someone want to learn more.
+
+Book: "{book.title}"
+Author: {book.author or "Unknown"}
+{f'Description: {book.description[:200]}' if book.description else ''}
+
+Write ONLY the blurb text, nothing else. No quotes. Keep it under 120 characters."""
+
+            try:
+                response = client.messages.create(
+                    model="claude-3-haiku-20240307",
+                    max_tokens=100,
+                    messages=[{"role": "user", "content": prompt}],
+                )
+
+                blurb = response.content[0].text.strip()
+                if len(blurb) > 150:
+                    blurb = blurb[:147] + "..."
+
+                book.blurb = blurb
+                book.save(update_fields=["blurb"])
+                generated += 1
+
+            except Exception as e:
+                failed += 1
+
+        self.message_user(
+            request,
+            f"Generated {generated} blurb(s). {failed} failed."
         )
 
 

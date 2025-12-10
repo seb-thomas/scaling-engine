@@ -4,6 +4,7 @@ export type Book = {
   slug: string;
   author?: string;
   description?: string;
+  blurb?: string;
   cover_image?: string;
   purchase_link?: string;
   episode: {
