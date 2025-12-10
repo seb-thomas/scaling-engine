@@ -4,10 +4,11 @@ import urllib.request
 from django.core.management.base import BaseCommand
 from django.core.files import File
 from stations.models import Book
+from stations.utils import fetch_book_cover
 
 
 class Command(BaseCommand):
-    help = "Download book covers from remote URLs and store them locally"
+    help = "Fetch book covers from Open Library and store them locally"
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -19,7 +20,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--overwrite",
             action="store_true",
-            help="Overwrite existing local covers",
+            help="Overwrite existing covers",
         )
         parser.add_argument(
             "--dry-run",
@@ -31,13 +32,13 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
         overwrite = options["overwrite"]
 
-        # Get books with remote cover URLs
-        books = Book.objects.exclude(cover_image="").exclude(cover_image__isnull=True)
-
-        if not overwrite:
-            # Only process books without local covers
-            books = books.filter(cover_image_local="") | books.filter(
-                cover_image_local__isnull=True
+        # Get books
+        if overwrite:
+            books = Book.objects.all()
+        else:
+            # Only process books without covers
+            books = Book.objects.filter(cover_image="") | Book.objects.filter(
+                cover_image__isnull=True
             )
 
         if options["limit"]:
@@ -51,20 +52,22 @@ class Command(BaseCommand):
         skipped = 0
 
         for book in books:
-            # Skip if already has local cover and not overwriting
-            if book.cover_image_local and not overwrite:
+            # Skip if already has cover and not overwriting
+            if book.cover_image and not overwrite:
                 skipped += 1
                 continue
 
-            remote_url = book.cover_image
-            if not remote_url:
-                skipped += 1
-                continue
+            self.stdout.write(f"Processing: {book.title} by {book.author or 'Unknown'}")
 
-            self.stdout.write(f"Processing: {book.title}")
+            # Fetch cover URL from Open Library
+            cover_url = fetch_book_cover(book.title, book.author)
+            if not cover_url:
+                self.stdout.write(self.style.WARNING(f"  No cover found"))
+                failed += 1
+                continue
 
             if dry_run:
-                self.stdout.write(f"  Would download: {remote_url}")
+                self.stdout.write(f"  Would download: {cover_url}")
                 downloaded += 1
                 continue
 
@@ -73,9 +76,8 @@ class Command(BaseCommand):
                 with tempfile.NamedTemporaryFile(
                     delete=False, suffix=".jpg"
                 ) as tmp_file:
-                    # Add headers to avoid being blocked
                     request = urllib.request.Request(
-                        remote_url,
+                        cover_url,
                         headers={
                             "User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"
                         },
@@ -88,14 +90,14 @@ class Command(BaseCommand):
                 # Save to the model
                 filename = f"{book.slug}.jpg"
                 with open(tmp_path, "rb") as f:
-                    book.cover_image_local.save(filename, File(f), save=True)
+                    book.cover_image.save(filename, File(f), save=True)
 
                 # Clean up temp file
                 os.unlink(tmp_path)
 
                 downloaded += 1
                 self.stdout.write(
-                    self.style.SUCCESS(f"  Downloaded: {book.cover_image_local.url}")
+                    self.style.SUCCESS(f"  Downloaded: {book.cover_image.url}")
                 )
 
             except Exception as e:
@@ -105,12 +107,12 @@ class Command(BaseCommand):
         if dry_run:
             self.stdout.write(
                 self.style.WARNING(
-                    f"\nDry run: {downloaded} books would be processed, {skipped} skipped"
+                    f"\nDry run: {downloaded} books would be processed, {skipped} skipped, {failed} no cover found"
                 )
             )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"\nCompleted: {downloaded} downloaded, {failed} failed, {skipped} skipped"
+                    f"\nCompleted: {downloaded} downloaded, {failed} failed/no cover, {skipped} skipped"
                 )
             )

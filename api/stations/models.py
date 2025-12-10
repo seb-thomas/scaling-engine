@@ -95,10 +95,10 @@ class Book(models.Model):
         max_length=150, blank=True, default="",
         help_text="Short AI-generated teaser for homepage display"
     )
-    cover_image = models.URLField(blank=True, default="")  # Legacy: remote URL
-    cover_image_local = models.ImageField(
-        upload_to=book_cover_path, blank=True, null=True
-    )  # New: local file
+    cover_image = models.ImageField(
+        upload_to=book_cover_path, blank=True, null=True,
+        help_text="Book cover image stored locally"
+    )
     purchase_link = models.URLField(blank=True, default="")
 
     def save(self, *args, **kwargs):
@@ -130,13 +130,6 @@ class Book(models.Model):
         from .utils import generate_bookshop_affiliate_url
 
         return generate_bookshop_affiliate_url(self.title, self.author)
-
-    @property
-    def cover_url(self):
-        """Return the best available cover image URL (local preferred)"""
-        if self.cover_image_local:
-            return self.cover_image_local.url
-        return self.cover_image or ""
 
 
 class RawEpisodeData(models.Model):

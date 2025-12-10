@@ -44,5 +44,7 @@ class BookSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'slug', 'author', 'description', 'blurb', 'cover_image', 'purchase_link', 'episode')
 
     def get_cover_image(self, obj):
-        """Return local cover if available, otherwise remote URL"""
-        return obj.cover_url
+        """Return cover image URL if available"""
+        if obj.cover_image:
+            return obj.cover_image.url
+        return ""

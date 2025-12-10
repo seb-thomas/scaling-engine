@@ -185,17 +185,16 @@ class RawEpisodeDataAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "episode_brand", "cover_preview_small", "has_local_cover")
+    list_display = ("title", "author", "episode_brand", "cover_preview_small", "has_blurb")
     list_filter = ("episode__brand",)
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "cover_source_info")
+    readonly_fields = ("slug", "cover_preview_large")
     fieldsets = (
         ("Book Information", {
             "fields": ("title", "author", "slug", "blurb", "description")
         }),
         ("Cover Image", {
-            "fields": ("cover_preview_large", "cover_source_info", "cover_image_local", "cover_image"),
-            "description": "Upload a local cover image, or provide a URL to fetch from."
+            "fields": ("cover_preview_large", "cover_image"),
         }),
         ("Links", {
             "fields": ("purchase_link",)
@@ -213,81 +212,60 @@ class BookAdmin(admin.ModelAdmin):
 
     def cover_preview_small(self, obj):
         """Small thumbnail for list view"""
-        if obj.cover_url:
+        if obj.cover_image:
             return format_html(
                 '<img src="{}" style="max-height: 50px; max-width: 40px;" />',
-                obj.cover_url
+                obj.cover_image.url
             )
         return "-"
     cover_preview_small.short_description = "Cover"
 
     def cover_preview_large(self, obj):
         """Large preview for detail view"""
-        if obj.cover_url:
+        if obj.cover_image:
             return format_html(
                 '<img src="{}" style="max-height: 200px; max-width: 150px; border: 1px solid #ddd; padding: 4px;" />',
-                obj.cover_url
+                obj.cover_image.url
             )
         return format_html('<em>No cover image</em>')
     cover_preview_large.short_description = "Current Cover"
 
-    def has_local_cover(self, obj):
-        """Indicator if cover is stored locally"""
-        if obj.cover_image_local:
-            return format_html('<span style="color: green;">Local</span>')
-        elif obj.cover_image:
-            return format_html('<span style="color: orange;">Remote</span>')
-        return format_html('<span style="color: gray;">None</span>')
-    has_local_cover.short_description = "Storage"
+    def has_blurb(self, obj):
+        """Indicator if book has a blurb"""
+        if obj.blurb:
+            return format_html('<span style="color: green;">✓</span>')
+        return format_html('<span style="color: gray;">-</span>')
+    has_blurb.short_description = "Blurb"
 
-    def cover_source_info(self, obj):
-        """Info about where the cover is from"""
-        info = []
-        if obj.cover_image_local:
-            info.append(f'<strong>Local file:</strong> {obj.cover_image_local.name}')
-        if obj.cover_image:
-            info.append(f'<strong>Remote URL:</strong> <a href="{obj.cover_image}" target="_blank">{obj.cover_image[:60]}...</a>' if len(obj.cover_image) > 60 else f'<strong>Remote URL:</strong> <a href="{obj.cover_image}" target="_blank">{obj.cover_image}</a>')
-        if not info:
-            return format_html('<em>No cover sources configured</em>')
-        return format_html('<br>'.join(info))
-    cover_source_info.short_description = "Cover Sources"
+    actions = ["fetch_and_download_covers", "generate_blurbs"]
 
-    actions = ["fetch_covers_from_openlibrary", "download_remote_covers", "generate_blurbs"]
-
-    @admin.action(description="Fetch covers from Open Library API")
-    def fetch_covers_from_openlibrary(self, request, queryset):
-        """Fetch cover URLs from Open Library for selected books"""
-        from .utils import fetch_book_cover
-
-        updated = 0
-        for book in queryset:
-            cover_url = fetch_book_cover(book.title, book.author)
-            if cover_url:
-                book.cover_image = cover_url
-                book.save(update_fields=["cover_image"])
-                updated += 1
-
-        self.message_user(request, f"Updated {updated} book(s) with cover URLs from Open Library.")
-
-    @admin.action(description="Download remote covers to local storage")
-    def download_remote_covers(self, request, queryset):
-        """Download remote cover images and store locally"""
+    @admin.action(description="Fetch and download covers from Open Library")
+    def fetch_and_download_covers(self, request, queryset):
+        """Fetch cover images from Open Library and store locally"""
         import tempfile
         import urllib.request
         import os
         from django.core.files import File
+        from .utils import fetch_book_cover
 
         downloaded = 0
         failed = 0
 
-        for book in queryset.exclude(cover_image="").exclude(cover_image__isnull=True):
-            if book.cover_image_local:
-                continue  # Skip if already has local cover
+        for book in queryset:
+            if book.cover_image:
+                continue  # Skip if already has cover
 
+            # First fetch the URL from Open Library
+            cover_url = fetch_book_cover(book.title, book.author)
+            if not cover_url:
+                failed += 1
+                continue
+
+            # Then download and save locally
             try:
                 with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
                     req = urllib.request.Request(
-                        book.cover_image,
+                        cover_url,
                         headers={"User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"}
                     )
                     with urllib.request.urlopen(req, timeout=30) as response:
@@ -296,7 +274,7 @@ class BookAdmin(admin.ModelAdmin):
 
                 filename = f"{book.slug}.jpg"
                 with open(tmp_path, "rb") as f:
-                    book.cover_image_local.save(filename, File(f), save=True)
+                    book.cover_image.save(filename, File(f), save=True)
 
                 os.unlink(tmp_path)
                 downloaded += 1
@@ -306,7 +284,7 @@ class BookAdmin(admin.ModelAdmin):
 
         self.message_user(
             request,
-            f"Downloaded {downloaded} cover(s) to local storage. {failed} failed."
+            f"Downloaded {downloaded} cover(s). {failed} failed or skipped."
         )
 
     @admin.action(description="Generate AI blurbs for selected books")
