@@ -25,16 +25,16 @@ export function ShowPageContent({
     const fetchBooks = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`/api/books/?episode__brand=${initialShow.id}&page=${currentPage}&page_size=${booksPerPage}`)
+        const response = await fetch(`/api/books/?brand_slug=${initialShow.slug}&page=${currentPage}&page_size=${booksPerPage}`)
         if (!response.ok) throw new Error('Failed to fetch show books')
         const data = await response.json()
-        const booksData = data.results 
-          ? data 
+        const booksData = data.results
+          ? data
           : { count: data.length, results: data, next: null, previous: null }
         setBooks(booksData)
-        
+
         // Update URL without page reload
-        const newUrl = `/show/${initialShow.id}?page=${currentPage}`
+        const newUrl = `/show/${initialShow.slug}?page=${currentPage}`
         window.history.replaceState({}, '', newUrl)
       } catch (error) {
         console.error('Error fetching books:', error)
@@ -44,7 +44,7 @@ export function ShowPageContent({
     }
 
     fetchBooks()
-  }, [currentPage, initialShow.id])
+  }, [currentPage, initialShow.slug])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)

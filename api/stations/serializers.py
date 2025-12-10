@@ -11,10 +11,10 @@ class StationSerializer(serializers.ModelSerializer):
 class BrandShowSerializer(serializers.ModelSerializer):
     station = StationSerializer(read_only=True)
     book_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Brand
-        fields = ('id', 'name', 'description', 'url', 'station', 'book_count', 'brand_color')
+        fields = ('id', 'name', 'slug', 'description', 'url', 'station', 'book_count', 'brand_color')
     
     def get_book_count(self, obj):
         # Use annotated_book_count if available (from queryset annotation)
@@ -37,7 +37,7 @@ class EpisodeSerializer(serializers.ModelSerializer):
 
 class BookSerializer(serializers.ModelSerializer):
     episode = EpisodeSerializer(read_only=True)
-    
+
     class Meta:
         model = Book
-        fields = ('id', 'title', 'author', 'description', 'cover_image', 'purchase_link', 'episode')
+        fields = ('id', 'title', 'slug', 'author', 'description', 'cover_image', 'purchase_link', 'episode')

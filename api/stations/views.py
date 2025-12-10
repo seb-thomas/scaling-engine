@@ -26,6 +26,7 @@ class StationViewSet(viewsets.ReadOnlyModelViewSet):
 class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BrandShowSerializer
     queryset = Brand.objects.select_related("station").all()
+    lookup_field = "slug"
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "created"]
@@ -71,6 +72,7 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Book.objects.select_related(
         "episode", "episode__brand", "episode__brand__station"
     ).all()
+    lookup_field = "slug"
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "author", "description"]
     ordering_fields = ["episode__aired_at", "episode__id"]
@@ -81,6 +83,9 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         brand_id = self.request.query_params.get("brand", None)
         if brand_id:
             queryset = queryset.filter(episode__brand__id=brand_id)
+        brand_slug = self.request.query_params.get("brand_slug", None)
+        if brand_slug:
+            queryset = queryset.filter(episode__brand__slug=brand_slug)
         station_id = self.request.query_params.get("station_id", None)
         if station_id:
             queryset = queryset.filter(episode__brand__station__station_id=station_id)

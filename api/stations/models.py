@@ -87,9 +87,14 @@ class Book(models.Model):
     purchase_link = models.URLField(blank=True, default="")
 
     def save(self, *args, **kwargs):
-        # Auto-generate slug from title if not provided
+        # Auto-generate slug from author + title if not provided
         if not self.slug and self.title:
-            base_slug = slugify(self.title) or f"book-{self.id or 0}"
+            # Include author in slug for better URLs (e.g., alan-hollinghurst-the-line-of-beauty)
+            if self.author:
+                slug_source = f"{self.author} {self.title}"
+            else:
+                slug_source = self.title
+            base_slug = slugify(slug_source) or f"book-{self.id or 0}"
             self.slug = base_slug
             # Ensure uniqueness
             counter = 1

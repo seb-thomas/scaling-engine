@@ -1,6 +1,7 @@
 export type Book = {
   id: number;
   title: string;
+  slug: string;
   author?: string;
   description?: string;
   cover_image?: string;
@@ -8,12 +9,14 @@ export type Book = {
   episode: {
     id: number;
     title: string;
+    slug: string;
     url?: string;
     aired_at?: string;
     description?: string;
     brand: {
       id: number;
       name: string;
+      slug: string;
       station: {
         id: number;
         name: string;
@@ -26,6 +29,7 @@ export type Book = {
 export type Show = {
   id: number;
   name: string;
+  slug: string;
   description?: string;
   url: string;
   station: {

@@ -27,7 +27,7 @@ export function ShowCard({ show }: ShowCardProps) {
 
   return (
     <article className="group block">
-      <a href={`/show/${show.id}`} className="block">
+      <a href={`/show/${show.slug}`} className="block">
         {/* Wave pattern masthead */}
         <div className="mb-4 overflow-hidden h-6">
           <div

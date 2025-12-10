@@ -55,8 +55,8 @@ export async function fetchBooks(
   return { count: data.length, results: data, next: null, previous: null }
 }
 
-export async function fetchBook(id: number) {
-  const response = await fetch(`${API_BASE}/books/${id}/`);
+export async function fetchBook(slug: string) {
+  const response = await fetch(`${API_BASE}/books/${slug}/`);
   if (!response.ok) throw new Error('Failed to fetch book');
   return response.json();
 }
@@ -72,14 +72,14 @@ export async function fetchShows() {
   return Array.isArray(data) ? data : [];
 }
 
-export async function fetchShow(id: number) {
-  const response = await fetch(`${API_BASE}/brands/${id}/`);
+export async function fetchShow(slug: string) {
+  const response = await fetch(`${API_BASE}/brands/${slug}/`);
   if (!response.ok) throw new Error('Failed to fetch show');
   return response.json();
 }
 
-export async function fetchShowBooks(showId: number, page: number = 1, pageSize: number = 10) {
-  const response = await fetch(`${API_BASE}/books/?episode__brand=${showId}&page=${page}&page_size=${pageSize}`);
+export async function fetchShowBooks(showSlug: string, page: number = 1, pageSize: number = 10) {
+  const response = await fetch(`${API_BASE}/books/?brand_slug=${showSlug}&page=${page}&page_size=${pageSize}`);
   if (!response.ok) throw new Error('Failed to fetch show books');
   const data = await response.json();
   // Handle both paginated and non-paginated responses

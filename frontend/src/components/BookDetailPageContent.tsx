@@ -13,7 +13,7 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
   const breadcrumbItems = [
     { label: 'Home', href: '/' },
     { label: book.episode.brand.station.name, href: `/station/${book.episode.brand.station.station_id}` },
-    { label: book.episode.brand.name, href: `/show/${book.episode.brand.id}` },
+    { label: book.episode.brand.name, href: `/show/${book.episode.brand.slug}` },
     { label: book.title }
   ]
 
@@ -23,7 +23,7 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
 
       <div className="max-w-3xl">
         <a
-          href={`/show/${book.episode.brand.id}`}
+          href={`/show/${book.episode.brand.slug}`}
           className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-8"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -64,7 +64,7 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
             </h2>
             <div className="mb-2">
               <a
-                href={`/show/${book.episode.brand.id}`}
+                href={`/show/${book.episode.brand.slug}`}
                 className="hover:opacity-70 transition-opacity"
               >
                 {book.episode.brand.name}, {book.episode.brand.station.name}

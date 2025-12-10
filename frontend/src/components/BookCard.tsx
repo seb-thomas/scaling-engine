@@ -10,7 +10,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
   if (featured) {
     return (
       <a
-        href={`/book/${book.id}`}
+        href={`/${book.episode.brand.slug}/${book.slug}`}
         className="group block"
       >
         <article className="border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
@@ -60,7 +60,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
 
   return (
     <a
-      href={`/book/${book.id}`}
+      href={`/${book.episode.brand.slug}/${book.slug}`}
       className="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4"
     >
       <article className="flex gap-4">

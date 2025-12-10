@@ -3,21 +3,16 @@ import Layout from '../../layouts/Layout.astro';
 import { BookDetailPageContent } from '../../components/BookDetailPageContent';
 import { fetchBook } from '../../api/client';
 
-const { bookId } = Astro.params;
+const { showSlug, bookSlug } = Astro.params;
 
-if (!bookId) {
+if (!showSlug || !bookSlug) {
   return Astro.redirect('/404');
 }
 
-const bookIdNum = Number(bookId);
-if (!bookIdNum) {
-  return Astro.redirect('/404');
-}
-
-// Fetch data
+// Fetch book by slug
 let book;
 try {
-  book = await fetchBook(bookIdNum);
+  book = await fetchBook(bookSlug);
 } catch (error) {
   console.error('Error fetching book:', error);
   return Astro.redirect('/404');
@@ -26,9 +21,14 @@ try {
 if (!book) {
   return Astro.redirect('/404');
 }
+
+// Verify the book belongs to the correct show (by slug)
+if (book.episode?.brand?.slug !== showSlug) {
+  // Redirect to correct URL if show slug doesn't match
+  return Astro.redirect(`/${book.episode.brand.slug}/${book.slug}`);
+}
 ---
 
 <Layout pathname={Astro.url.pathname}>
   <BookDetailPageContent book={book} client:load />
 </Layout>
-

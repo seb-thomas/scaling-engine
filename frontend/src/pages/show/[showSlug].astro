@@ -3,14 +3,9 @@ import Layout from '../../layouts/Layout.astro';
 import { ShowPageContent } from '../../components/ShowPageContent';
 import { fetchShow, fetchShowBooks } from '../../api/client';
 
-const { showId } = Astro.params;
+const { showSlug } = Astro.params;
 
-if (!showId) {
-  return Astro.redirect('/404');
-}
-
-const showIdNum = Number(showId);
-if (!showIdNum) {
+if (!showSlug) {
   return Astro.redirect('/404');
 }
 
@@ -18,14 +13,14 @@ if (!showIdNum) {
 const page = parseInt(Astro.url.searchParams.get('page') || '1', 10);
 const booksPerPage = 10;
 
-// Fetch data
+// Fetch data by slug
 let show;
 let books = { results: [], count: 0 };
 
 try {
   const [showData, booksData] = await Promise.all([
-    fetchShow(showIdNum),
-    fetchShowBooks(showIdNum, page, booksPerPage).catch(() => ({ results: [], count: 0 }))
+    fetchShow(showSlug),
+    fetchShowBooks(showSlug, page, booksPerPage).catch(() => ({ results: [], count: 0 }))
   ]);
   show = showData;
   books = booksData;
@@ -40,11 +35,10 @@ if (!show) {
 ---
 
 <Layout pathname={Astro.url.pathname}>
-  <ShowPageContent 
-    initialShow={show} 
-    initialBooks={books} 
+  <ShowPageContent
+    initialShow={show}
+    initialBooks={books}
     initialPage={page}
-    client:load 
+    client:load
   />
 </Layout>
-
