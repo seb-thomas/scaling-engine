@@ -9,30 +9,28 @@ type ThemeContextType = {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  // Get initial theme from system preference (set synchronously in HTML)
-  const [theme] = useState<Theme>(() => {
-    // During SSR, default to light (the inline script will set dark class if needed)
-    if (typeof window === 'undefined' || typeof document === 'undefined') {
-      return 'light'
-    }
-    // Check if dark class is already set by the inline script
-    if (document.documentElement.classList.contains('dark')) {
-      return 'dark'
-    }
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-  })
+  // Always start with 'light' to match SSR output - the inline script in Layout.astro
+  // handles the actual theme detection before React hydrates
+  const [theme, setTheme] = useState<Theme>('light')
 
-  // Listen for system theme changes (client-side only)
+  // Sync theme state with actual document state after hydration
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    
+    if (typeof document === 'undefined') return
+
+    // Read the actual theme from the document (set by inline script)
+    const isDark = document.documentElement.classList.contains('dark')
+    setTheme(isDark ? 'dark' : 'light')
+
+    // Listen for system theme changes
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       if (e.matches) {
         document.documentElement.classList.add('dark')
+        setTheme('dark')
       } else {
         document.documentElement.classList.remove('dark')
+        setTheme('light')
       }
     }
 

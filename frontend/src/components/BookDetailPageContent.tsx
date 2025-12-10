@@ -3,6 +3,7 @@ import { ImageWithFallback } from './ImageWithFallback'
 import { Breadcrumbs } from './Breadcrumbs'
 import { Button } from './ui/button'
 import { AffiliateDisclosure } from './AffiliateDisclosure'
+import { formatDateLong } from '../lib/utils'
 import type { Book } from '../types'
 
 interface BookDetailPageContentProps {
@@ -79,11 +80,7 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
             <p className="italic mb-2">{book.episode.title}</p>
             {book.episode.aired_at && (
               <div className="text-sm text-gray-500 dark:text-gray-500 mb-3">
-                {new Date(book.episode.aired_at).toLocaleDateString('en-US', {
-                  month: 'long',
-                  day: 'numeric',
-                  year: 'numeric'
-                })}
+                {formatDateLong(book.episode.aired_at)}
               </div>
             )}
             {book.episode.url && (

@@ -1,4 +1,5 @@
 import { ImageWithFallback } from './ImageWithFallback'
+import { formatDateLong, formatDateShort } from '@/lib/utils'
 import type { Book } from '@/types'
 
 type BookCardProps = {
@@ -46,11 +47,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
           <div className="text-sm text-gray-600 dark:text-gray-400">
             {book.episode.brand.station.name}
             {book.episode.aired_at && (
-              <> · {new Date(book.episode.aired_at).toLocaleDateString('en-US', {
-                month: 'long',
-                day: 'numeric',
-                year: 'numeric'
-              })}</>
+              <> · {formatDateLong(book.episode.aired_at)}</>
             )}
           </div>
         </article>
@@ -92,7 +89,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               <>
                 {book.episode.brand.station.name}
                 {book.episode.aired_at && (
-                  <> · {new Date(book.episode.aired_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</>
+                  <> · {formatDateShort(book.episode.aired_at)}</>
                 )}
               </>
             )}
