@@ -1,3 +1,6 @@
+# Build output
+.astro/
+
 # Logs
 logs
 *.log
