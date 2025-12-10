@@ -29,10 +29,10 @@ class BrandShowSerializer(serializers.ModelSerializer):
 
 class EpisodeSerializer(serializers.ModelSerializer):
     brand = BrandShowSerializer(read_only=True)
-    
+
     class Meta:
         model = Episode
-        fields = ('id', 'title', 'url', 'description', 'aired_at', 'has_book', 'brand')
+        fields = ('id', 'title', 'url', 'slug', 'aired_at', 'has_book', 'brand')
 
 
 class BookSerializer(serializers.ModelSerializer):
