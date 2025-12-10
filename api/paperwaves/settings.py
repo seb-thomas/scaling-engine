@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
-    # "django_celery_beat",  # Commented out for local dev
+    "django_celery_beat",
 ]
 
 
@@ -105,14 +105,48 @@ WSGI_APPLICATION = "paperwaves.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+# PostgreSQL is required for consistency between dev and prod
+# This prevents SQLite fallback issues and ensures migrations work predictably
+SQL_ENGINE = os.environ.get("SQL_ENGINE")
+if not SQL_ENGINE:
+    raise ValueError(
+        "SQL_ENGINE environment variable is required. "
+        "Set it to 'django.db.backends.postgresql' in your .env file."
+    )
+if SQL_ENGINE != "django.db.backends.postgresql":
+    raise ValueError(
+        f"Only PostgreSQL is supported. Got SQL_ENGINE='{SQL_ENGINE}'. "
+        "Please set SQL_ENGINE='django.db.backends.postgresql' in your .env file."
+    )
+
+SQL_DATABASE = os.environ.get("SQL_DATABASE")
+SQL_USER = os.environ.get("SQL_USER")
+SQL_PASSWORD = os.environ.get("SQL_PASSWORD")
+SQL_HOST = os.environ.get("SQL_HOST")
+SQL_PORT = os.environ.get("SQL_PORT", "5432")
+
+if not all([SQL_DATABASE, SQL_USER, SQL_PASSWORD, SQL_HOST]):
+    missing = [
+        var for var, val in [
+            ("SQL_DATABASE", SQL_DATABASE),
+            ("SQL_USER", SQL_USER),
+            ("SQL_PASSWORD", SQL_PASSWORD),
+            ("SQL_HOST", SQL_HOST),
+        ] if not val
+    ]
+    raise ValueError(
+        f"Missing required database environment variables: {', '.join(missing)}. "
+        "Please configure these in your .env file."
+    )
+
 DATABASES = {
     "default": {
-        "ENGINE": os.environ.get("SQL_ENGINE", "django.db.backends.sqlite3"),
-        "NAME": os.environ.get("SQL_DATABASE", os.path.join(BASE_DIR, "db.sqlite3")),
-        "USER": os.environ.get("SQL_USER", "user"),
-        "PASSWORD": os.environ.get("SQL_PASSWORD", "password"),
-        "HOST": os.environ.get("SQL_HOST", "localhost"),
-        "PORT": os.environ.get("SQL_PORT", "5432"),
+        "ENGINE": SQL_ENGINE,
+        "NAME": SQL_DATABASE,
+        "USER": SQL_USER,
+        "PASSWORD": SQL_PASSWORD,
+        "HOST": SQL_HOST,
+        "PORT": SQL_PORT,
     }
 }
 

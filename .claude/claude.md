@@ -35,14 +35,23 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
 
 ## Deployment
 - **Production**: docker-compose.prod.yml (immutable containers)
-- **Development**: docker-compose.dev.yml (volume mounts, hot reload)
+- **Development**: docker-compose.dev.yml (volume mounts, hot reload, separate PostgreSQL)
 - **URL**: http://159.65.18.16:8080
 - **Domain**: radioreads.fun (DNS A record configured, propagating)
 - **IP**: 159.65.18.16 (regular IP, not reserved IP)
 - **SSL**: Certbot installed, ready to generate certificate once DNS propagates
 
-## Current Status (Nov 18, 2025)
-- ✅ 3,910 real BBC episodes scraped
+## Database Setup
+- **PostgreSQL 16 required** for both dev and prod (SQLite disabled)
+- **Development DB**: `paperwaves_dev` on `localhost:5433`
+- **Production DB**: `paperwaves_prod` (internal Docker network)
+- **Access production safely**: Use SSH tunnel (see DATABASE.md)
+- Django settings enforce PostgreSQL - will fail if misconfigured
+
+## Current Status (Dec 8, 2025)
+- ✅ Database standardized to PostgreSQL only (dev + prod)
+- ✅ Development environment uses separate database
+- ✅ 3,910 real BBC episodes scraped (production)
 - ✅ 82 books extracted from 72 episodes (1.8% detection rate)
 - ✅ Automated scraping and extraction working
 - ✅ NY Times-inspired frontend live
