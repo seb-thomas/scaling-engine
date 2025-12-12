@@ -29,11 +29,14 @@ class Command(BaseCommand):
 
         for book in Book.objects.exclude(cover_image="").exclude(cover_image__isnull=True):
             cover_path = str(book.cover_image)
+            cover_path_lower = cover_path.lower()
             # Check if it looks like a URL was stored as a path
+            # Must match actual URL patterns, not just filenames containing "http"
             if (
-                "http" in cover_path.lower()
-                or "%3a" in cover_path.lower()  # URL-encoded colon
-                or "://" in cover_path
+                cover_path_lower.startswith("http://")
+                or cover_path_lower.startswith("https://")
+                or "http%3a" in cover_path_lower  # URL-encoded http:
+                or "https%3a" in cover_path_lower  # URL-encoded https:
             ):
                 broken_books.append(book)
 
