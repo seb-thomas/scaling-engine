@@ -36,10 +36,20 @@ def contains_keywords(episode_id):
         raise  # Re-raise to trigger Celery retry
 
 
-def fetch_book_cover(title: str, author: str = "") -> str:
+def verify_book_exists(title: str, author: str = "") -> dict:
     """
-    Fetch book cover image URL from Open Library API.
-    Returns empty string if no cover found.
+    Verify a book exists in Open Library and return its metadata.
+    
+    Uses the Open Library Search API to check if a book exists.
+    See: https://openlibrary.org/dev/docs/api/covers
+    
+    Returns:
+        dict with keys:
+            - exists: bool
+            - title: str (canonical title from Open Library)
+            - author: str (canonical author from Open Library)  
+            - cover_id: int or None (Open Library cover ID)
+            - isbn: str or None (ISBN if available)
     """
     try:
         # Search Open Library for the book
@@ -51,26 +61,69 @@ def fetch_book_cover(title: str, author: str = "") -> str:
         params = {
             "q": search_query,
             "limit": 1,
-            "fields": "isbn,cover_i"
+            "fields": "title,author_name,cover_i,isbn,first_publish_year"
         }
         
         url_with_params = f"{search_url}?{urllib.parse.urlencode(params)}"
         
-        with urllib.request.urlopen(url_with_params, timeout=5) as response:
+        request = urllib.request.Request(
+            url_with_params,
+            headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
+        )
+        
+        with urllib.request.urlopen(request, timeout=10) as response:
             data = json.loads(response.read().decode())
         
         if data.get("docs") and len(data["docs"]) > 0:
             book = data["docs"][0]
             
-            # Try to get cover image
-            if "cover_i" in book:
-                cover_id = book["cover_i"]
-                return f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+            # Get author name (it's a list in the API)
+            author_names = book.get("author_name", [])
+            canonical_author = author_names[0] if author_names else ""
             
-            # Fallback: try ISBN if available
-            if "isbn" in book and book["isbn"]:
-                isbn = book["isbn"][0] if isinstance(book["isbn"], list) else book["isbn"]
-                return f"https://covers.openlibrary.org/b/isbn/{isbn}-L.jpg"
+            # Get ISBN (it's a list)
+            isbns = book.get("isbn", [])
+            isbn = isbns[0] if isbns else None
+            
+            return {
+                "exists": True,
+                "title": book.get("title", title),
+                "author": canonical_author,
+                "cover_id": book.get("cover_i"),
+                "isbn": isbn,
+                "first_publish_year": book.get("first_publish_year"),
+            }
+        
+        return {"exists": False, "title": title, "author": author, "cover_id": None, "isbn": None}
+        
+    except Exception as e:
+        logger.warning(f"Failed to verify book '{title}': {e}")
+        return {"exists": False, "title": title, "author": author, "cover_id": None, "isbn": None}
+
+
+def fetch_book_cover(title: str, author: str = "") -> str:
+    """
+    Fetch book cover image URL from Open Library API.
+    
+    Uses the Open Library Covers API:
+    https://openlibrary.org/dev/docs/api/covers
+    
+    Returns empty string if no cover found.
+    """
+    try:
+        # First verify the book exists and get its cover_id
+        book_info = verify_book_exists(title, author)
+        
+        if not book_info["exists"]:
+            return ""
+        
+        # Use cover_id if available (most reliable)
+        if book_info["cover_id"]:
+            return f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
+        
+        # Fallback to ISBN
+        if book_info["isbn"]:
+            return f"https://covers.openlibrary.org/b/isbn/{book_info['isbn']}-L.jpg"
         
         return ""
     except Exception as e:

@@ -4,26 +4,6 @@
   {% breadcrumbs items=breadcrumb_items %}
 
   <div class="max-w-3xl">
-    <a
-      href="{% url 'stations:show_detail' book.episode.brand.slug %}"
-      class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-8"
-    >
-      <svg
-        class="w-4 h-4"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M15 19l-7-7 7-7"
-        />
-      </svg>
-      Back to all books
-    </a>
-
     <article>
       <div class="flex gap-8 mb-8">
         {% if book.cover_image %}

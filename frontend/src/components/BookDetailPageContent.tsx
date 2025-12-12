@@ -1,4 +1,4 @@
-import { ArrowLeft, ExternalLink } from 'lucide-react'
+import { ExternalLink } from 'lucide-react'
 import { ImageWithFallback } from './ImageWithFallback'
 import { Breadcrumbs } from './Breadcrumbs'
 import { Button } from './ui/button'
@@ -23,14 +23,6 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
       <Breadcrumbs items={breadcrumbItems} />
 
       <div className="max-w-3xl">
-        <a
-          href={`/show/${book.episode.brand.slug}`}
-          className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors mb-8"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Back to all books
-        </a>
-
         <article>
           <div className="flex gap-8 mb-8">
             {book.cover_image && (

@@ -287,54 +287,77 @@ def extract_books_from_episode(episode_id: int) -> Dict:
 
             # Save extracted books to database
             from .models import Book
-            from .utils import fetch_book_cover
+            from .utils import fetch_book_cover, verify_book_exists
 
             logger.info(
-                f"Saving {len(result.get('books', []))} books to database for episode {episode_id}"
+                f"Processing {len(result.get('books', []))} potential books for episode {episode_id}"
             )
             for book_data in result.get("books", []):
                 book_title = book_data.get("title", "").strip()
                 book_author = book_data.get("author", "").strip()
-                logger.info(f"Processing book: {book_title}")
-                if book_title:
-                    # Create or get book (avoid duplicates)
-                    book, created = Book.objects.get_or_create(
-                        episode=episode,
-                        title=book_title,
-                        defaults={
-                            "author": book_author,
-                            "description": book_data.get("description", "").strip(),
-                        },
-                    )
+                
+                # Skip invalid titles
+                if not book_title or book_title.upper() in ["N/A", "NA", "UNKNOWN", "TBD", "TBA"]:
+                    logger.info(f"Skipping invalid book title: '{book_title}'")
+                    continue
+                
+                logger.info(f"Verifying book exists: '{book_title}' by '{book_author}'")
+                
+                # Verify the book exists in Open Library before creating
+                book_info = verify_book_exists(book_title, book_author)
+                
+                if not book_info["exists"]:
+                    logger.info(f"Book not found in Open Library, skipping: '{book_title}'")
+                    continue
+                
+                # Use canonical title/author from Open Library if available
+                verified_title = book_info.get("title") or book_title
+                verified_author = book_info.get("author") or book_author
+                
+                logger.info(f"Book verified: '{verified_title}' by '{verified_author}'")
+                
+                # Create or get book (avoid duplicates)
+                book, created = Book.objects.get_or_create(
+                    episode=episode,
+                    title=verified_title,
+                    defaults={
+                        "author": verified_author,
+                        "description": book_data.get("description", "").strip(),
+                    },
+                )
 
-                    # Update author and description if book already existed
-                    if not created:
-                        updated = False
-                        if book_author and not book.author:
-                            book.author = book_author
-                            updated = True
-                        if book_data.get("description") and not book.description:
-                            book.description = book_data.get("description", "").strip()
-                            updated = True
-                        if updated:
-                            book.save()
+                # Update author and description if book already existed
+                if not created:
+                    updated = False
+                    if verified_author and not book.author:
+                        book.author = verified_author
+                        updated = True
+                    if book_data.get("description") and not book.description:
+                        book.description = book_data.get("description", "").strip()
+                        updated = True
+                    if updated:
+                        book.save()
 
-                    # Fetch and download cover image if not already set
-                    if created and not book.cover_image:
+                # Fetch and download cover image if not already set
+                if created and not book.cover_image:
+                    # Use cover_id from verification if available
+                    if book_info.get("cover_id"):
+                        cover_url = f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
+                    else:
                         cover_url = fetch_book_cover(book.title, book.author)
-                        if cover_url:
-                            download_and_save_cover(book, cover_url)
+                    if cover_url:
+                        download_and_save_cover(book, cover_url)
 
-                    # Generate purchase link if not already set
-                    if created and not book.purchase_link:
-                        from .utils import generate_bookshop_affiliate_url
+                # Generate purchase link if not already set
+                if created and not book.purchase_link:
+                    from .utils import generate_bookshop_affiliate_url
 
-                        purchase_url = generate_bookshop_affiliate_url(
-                            book.title, book.author
-                        )
-                        if purchase_url:
-                            book.purchase_link = purchase_url
-                            book.save(update_fields=["purchase_link"])
+                    purchase_url = generate_bookshop_affiliate_url(
+                        book.title, book.author
+                    )
+                    if purchase_url:
+                        book.purchase_link = purchase_url
+                        book.save(update_fields=["purchase_link"])
 
         # Mark raw_data as processed
         if hasattr(episode, "raw_data") and episode.raw_data:
