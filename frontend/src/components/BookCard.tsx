@@ -2,6 +2,16 @@ import { ImageWithFallback } from './ImageWithFallback'
 import { formatDateLong, formatDateShort } from '@/lib/utils'
 import type { Book } from '@/types'
 
+/** Truncate text at word boundary, max length chars */
+function truncateAtWord(text: string, maxLength: number): string {
+  if (text.length <= maxLength) return text
+  const truncated = text.slice(0, maxLength)
+  const lastSpace = truncated.lastIndexOf(' ')
+  // If no space found or it's too early, just use the truncated version
+  if (lastSpace < maxLength * 0.5) return truncated.trim() + '…'
+  return truncated.slice(0, lastSpace).trim() + '…'
+}
+
 type BookCardProps = {
   book: Book
   featured?: boolean
@@ -85,7 +95,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
           <div className="text-sm text-gray-500 dark:text-gray-500">
             {book.episode.brand.station.name}
             {book.episode.title && (
-              <> · {book.episode.title.length > 50 ? book.episode.title.slice(0, 50) + '…' : book.episode.title}</>
+              <> · {truncateAtWord(book.episode.title, 50)}</>
             )}
             {book.episode.aired_at && (
               <> · {formatDateShort(book.episode.aired_at)}</>
