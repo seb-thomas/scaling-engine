@@ -24,7 +24,7 @@ class Command(BaseCommand):
         dry_run = options["dry_run"]
 
         # Find books where cover_image looks like a URL was stored as a path
-        # These will have patterns like "https%3A" or "http%3A" or start with "http"
+        # These will start with "http://" or "https://" or contain URL-encoded versions
         broken_books = []
 
         for book in Book.objects.exclude(cover_image="").exclude(cover_image__isnull=True):
@@ -70,4 +70,3 @@ class Command(BaseCommand):
                     "Run 'python manage.py download_book_covers' to fetch proper images."
                 )
             )
-
