@@ -91,7 +91,6 @@ class Command(BaseCommand):
                 "book_title": "Tomorrow, and Tomorrow, and Tomorrow",
                 "book_author": "Gabrielle Zevin",
                 "book_description": "A novel about two friends who build video games together, exploring creativity, identity, and the profound connections between art and life.",
-                "book_cover": "https://images.unsplash.com/photo-1610882648335-ced8fc8fa6b6?w=400",
             },
             {
                 "brand": fresh_air,
@@ -100,7 +99,6 @@ class Command(BaseCommand):
                 "book_title": "The Covenant of Water",
                 "book_author": "Abraham Verghese",
                 "book_description": "A sweeping, magical novel spanning three generations of a family in South India, bound by a peculiar family secret.",
-                "book_cover": "https://images.unsplash.com/photo-1758279771969-2cc6bcac3fd1?w=400",
             },
             {
                 "brand": all_things,
@@ -109,7 +107,6 @@ class Command(BaseCommand):
                 "book_title": "Holly",
                 "book_author": "Stephen King",
                 "book_description": "Stephen King's detective Holly Gibney takes on a new case involving a pair of mysterious professors in a thriller that confronts our current moment.",
-                "book_cover": "https://images.unsplash.com/photo-1696947833843-9707b58254fa?w=400",
             },
             {
                 "brand": front_row,
@@ -118,7 +115,6 @@ class Command(BaseCommand):
                 "book_title": "The Woman in Me",
                 "book_author": "Britney Spears",
                 "book_description": "A brave and astonishingly moving memoir about freedom, fame, motherhood, survival, faith, and hope.",
-                "book_cover": "https://images.unsplash.com/photo-1619878473858-ace2b236897c?w=400",
             },
             {
                 "brand": bookclub,
@@ -127,7 +123,6 @@ class Command(BaseCommand):
                 "book_title": "The Heaven & Earth Grocery Store",
                 "book_author": "James McBride",
                 "book_description": "A richly colorful portrait of a community in a small town in Pennsylvania, where Jewish and Black families forge deep bonds of friendship in the face of prejudice.",
-                "book_cover": "https://images.unsplash.com/photo-1611576673788-a954e01092d1?w=400",
             },
             {
                 "brand": saturday_review,
@@ -136,7 +131,6 @@ class Command(BaseCommand):
                 "book_title": "The Fraud",
                 "book_author": "Zadie Smith",
                 "book_description": "A historical novel set in Victorian England, centered around a famous trial and the search for truth.",
-                "book_cover": "https://images.unsplash.com/photo-1723220217588-3fc2fb87b69a?w=400",
             },
             {
                 "brand": fresh_air,
@@ -145,7 +139,6 @@ class Command(BaseCommand):
                 "book_title": "North Woods",
                 "book_author": "Daniel Mason",
                 "book_description": "A novel that follows a single house in New England through three centuries, told through the lives of its inhabitants and the natural world around it.",
-                "book_cover": "https://images.unsplash.com/photo-1758279771969-2cc6bcac3fd1?w=400",
             },
             {
                 "brand": bookclub,
@@ -154,7 +147,6 @@ class Command(BaseCommand):
                 "book_title": "The Bee Sting",
                 "book_author": "Paul Murray",
                 "book_description": "A darkly comic novel about a family in rural Ireland dealing with financial collapse and buried secrets.",
-                "book_cover": "https://images.unsplash.com/photo-1696947833843-9707b58254fa?w=400",
             },
             {
                 "brand": all_things,
@@ -163,7 +155,6 @@ class Command(BaseCommand):
                 "book_title": "Our Missing Hearts",
                 "book_author": "Celeste Ng",
                 "book_description": "A dystopian novel about a mother who leaves her family to protect them, and the son who searches for her.",
-                "book_cover": "https://images.unsplash.com/photo-1610882648335-ced8fc8fa6b6?w=400",
             },
             {
                 "brand": fresh_air,
@@ -172,7 +163,6 @@ class Command(BaseCommand):
                 "book_title": "Demon Copperhead",
                 "book_author": "Barbara Kingsolver",
                 "book_description": "A retelling of David Copperfield set in modern-day Appalachia, exploring poverty and resilience.",
-                "book_cover": "https://images.unsplash.com/photo-1758279771969-2cc6bcac3fd1?w=400",
             },
             {
                 "brand": front_row,
@@ -181,7 +171,6 @@ class Command(BaseCommand):
                 "book_title": "Lessons in Chemistry",
                 "book_author": "Bonnie Garmus",
                 "book_description": "A debut novel about a chemist in the 1960s who becomes an unlikely cooking show star.",
-                "book_cover": "https://images.unsplash.com/photo-1611576673788-a954e01092d1?w=400",
             },
             {
                 "brand": bookclub,
@@ -190,7 +179,6 @@ class Command(BaseCommand):
                 "book_title": "The Rachel Incident",
                 "book_author": "Caroline O'Donoghue",
                 "book_description": "A sharp, funny novel about friendship, first love, and what it means to grow up in Ireland.",
-                "book_cover": "https://images.unsplash.com/photo-1610882648335-ced8fc8fa6b6?w=400",
             },
         ]
 
@@ -207,14 +195,13 @@ class Command(BaseCommand):
                 },
             )
 
-            # Create book
+            # Create book (cover_image is an ImageField - use download_book_covers command to fetch)
             book, book_created = Book.objects.get_or_create(
                 episode=episode,
                 title=data["book_title"],
                 defaults={
                     "author": data["book_author"],
                     "description": data["book_description"],
-                    "cover_image": data["book_cover"],
                 },
             )
 
