@@ -8,9 +8,12 @@ from episode titles and descriptions, replacing simple keyword matching.
 import os
 import logging
 import json
+import tempfile
+import urllib.request
 from typing import Dict, List, Optional
 from datetime import datetime
 from anthropic import Anthropic, APIError, APITimeoutError, RateLimitError
+from django.core.files import File
 
 logger = logging.getLogger(__name__)
 
@@ -185,6 +188,91 @@ Return ONLY valid JSON, no additional text."""
         return self.client is not None
 
 
+def generate_book_blurb(title: str, author: str, description: str = "", show_name: str = "") -> Optional[str]:
+    """
+    Generate an engaging blurb for a book using Claude.
+
+    Args:
+        title: Book title
+        author: Book author
+        description: Optional description of the book
+        show_name: Name of the radio show that featured the book
+
+    Returns:
+        Short blurb string (max 120 chars) or None if generation fails
+    """
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        logger.warning("ANTHROPIC_API_KEY not configured, skipping blurb generation")
+        return None
+
+    client = Anthropic(api_key=api_key)
+
+    prompt = f"""Generate a very short, engaging blurb (max 120 characters) for this book{f' that was featured on {show_name}' if show_name else ''}.
+The blurb should be intriguing and make someone want to learn more.
+
+Book: "{title}"
+Author: {author or "Unknown"}
+{f'Description: {description[:200]}' if description else ''}
+
+Write ONLY the blurb text, nothing else. No quotes. Keep it under 120 characters."""
+
+    try:
+        response = client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=100,
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        blurb = response.content[0].text.strip()
+        if len(blurb) > 150:
+            blurb = blurb[:147] + "..."
+
+        logger.info(f"Generated blurb for '{title}': {blurb}")
+        return blurb
+
+    except Exception as e:
+        logger.error(f"Failed to generate blurb for '{title}': {e}")
+        return None
+
+
+def download_and_save_cover(book, cover_url: str) -> bool:
+    """
+    Download a cover image from URL and save it to the book's ImageField.
+
+    Args:
+        book: Book model instance
+        cover_url: URL of the cover image
+
+    Returns:
+        True if successful, False otherwise
+    """
+    if not cover_url:
+        return False
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+            request = urllib.request.Request(
+                cover_url,
+                headers={"User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"}
+            )
+            with urllib.request.urlopen(request, timeout=30) as response:
+                tmp_file.write(response.read())
+                tmp_path = tmp_file.name
+
+        filename = f"{book.slug}.jpg"
+        with open(tmp_path, "rb") as f:
+            book.cover_image.save(filename, File(f), save=True)
+
+        os.unlink(tmp_path)
+        logger.info(f"Downloaded and saved cover for '{book.title}'")
+        return True
+
+    except Exception as e:
+        logger.error(f"Failed to download cover for '{book.title}': {e}")
+        return False
+
+
 # Singleton instance
 _extractor = None
 
@@ -279,13 +367,24 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                         if updated:
                             book.save()
 
-                    # Fetch cover image if not already set
+                    # Generate blurb if not already set
+                    if created and not book.blurb:
+                        show_name = episode.brand.name if episode.brand else ""
+                        blurb = generate_book_blurb(
+                            book.title,
+                            book.author,
+                            book.description,
+                            show_name
+                        )
+                        if blurb:
+                            book.blurb = blurb
+                            book.save(update_fields=["blurb"])
+
+                    # Fetch and download cover image if not already set
                     if created and not book.cover_image:
                         cover_url = fetch_book_cover(book.title, book.author)
                         if cover_url:
-                            book.cover_image = cover_url
-                            book.save(update_fields=["cover_image"])
-                            logger.info(f"Fetched cover image for {book_title}")
+                            download_and_save_cover(book, cover_url)
 
                     # Generate purchase link if not already set
                     if created and not book.purchase_link:
