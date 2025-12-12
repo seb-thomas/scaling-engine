@@ -82,13 +82,11 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               by {book.author}
             </div>
           )}
-          {book.micro_synopsis && (
-            <div className="text-sm text-gray-500 dark:text-gray-500 italic mb-1">
-              {book.micro_synopsis}
-            </div>
-          )}
           <div className="text-sm text-gray-500 dark:text-gray-500">
             {book.episode.brand.station.name}
+            {book.episode.title && (
+              <> · {book.episode.title.length > 50 ? book.episode.title.slice(0, 50) + '…' : book.episode.title}</>
+            )}
             {book.episode.aired_at && (
               <> · {formatDateShort(book.episode.aired_at)}</>
             )}

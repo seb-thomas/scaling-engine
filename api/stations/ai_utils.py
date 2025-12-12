@@ -188,64 +188,6 @@ Return ONLY valid JSON, no additional text."""
         return self.client is not None
 
 
-def generate_micro_synopsis(title: str, author: str, description: str = "") -> Optional[str]:
-    """
-    Generate an ultra-short micro synopsis for a book using Claude.
-
-    Args:
-        title: Book title
-        author: Book author
-        description: Optional description of the book
-
-    Returns:
-        Micro synopsis string (35-40 chars) or None if generation fails
-    """
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        logger.warning("ANTHROPIC_API_KEY not configured, skipping micro_synopsis generation")
-        return None
-
-    client = Anthropic(api_key=api_key)
-
-    prompt = f"""Write an ultra-short hook for this book in exactly 35-40 characters.
-
-Book: "{title}"
-Author: {author or "Unknown"}
-{f'About: {description[:200]}' if description else ''}
-
-Examples of good micro synopses:
-- "A love letter to 1980s Britain"
-- "Secrets unravel in a small town"
-- "One choice changes everything"
-
-Rules:
-- Exactly 35-40 characters (including spaces)
-- Focus on the book's essence or appeal
-- No quotes, no punctuation at end
-- Evocative and intriguing
-
-Write ONLY the micro synopsis, nothing else."""
-
-    try:
-        response = client.messages.create(
-            model="claude-3-haiku-20240307",
-            max_tokens=50,
-            messages=[{"role": "user", "content": prompt}],
-        )
-
-        synopsis = response.content[0].text.strip()
-        # Hard limit at 40 chars, no truncation marker
-        if len(synopsis) > 40:
-            synopsis = synopsis[:40]
-
-        logger.info(f"Generated micro_synopsis for '{title}': {synopsis}")
-        return synopsis
-
-    except Exception as e:
-        logger.error(f"Failed to generate micro_synopsis for '{title}': {e}")
-        return None
-
-
 def download_and_save_cover(book, cover_url: str) -> bool:
     """
     Download a cover image from URL and save it to the book's ImageField.
@@ -376,17 +318,6 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                             updated = True
                         if updated:
                             book.save()
-
-                    # Generate micro_synopsis if not already set
-                    if created and not book.micro_synopsis:
-                        synopsis = generate_micro_synopsis(
-                            book.title,
-                            book.author,
-                            book.description
-                        )
-                        if synopsis:
-                            book.micro_synopsis = synopsis
-                            book.save(update_fields=["micro_synopsis"])
 
                     # Fetch and download cover image if not already set
                     if created and not book.cover_image:
