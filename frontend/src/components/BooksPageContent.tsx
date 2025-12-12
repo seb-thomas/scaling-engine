@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search } from "lucide-react";
 import { BookCard } from "./BookCard";
 import { Pagination } from "./Pagination";
@@ -22,18 +22,30 @@ export function BooksPageContent({
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [isLoading, setIsLoading] = useState(false);
   const booksPerPage = 10;
+  
+  // Track if this is the initial mount to avoid refetching SSR data
+  const isInitialMount = useRef(true);
 
   // Debounce search input
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearch(searchQuery);
-      setCurrentPage(1); // Reset to first page on search
+      // Only reset page if search actually changed (not on initial mount)
+      if (searchQuery !== initialSearch || !isInitialMount.current) {
+        setCurrentPage(1);
+      }
     }, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, initialSearch]);
 
   // Fetch books when search or page changes
   useEffect(() => {
+    // Skip fetch on initial mount - we already have SSR data
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     const fetchBooks = async () => {
       setIsLoading(true);
       try {

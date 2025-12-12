@@ -27,7 +27,9 @@ class Command(BaseCommand):
         # These will start with "http://" or "https://" or contain URL-encoded versions
         broken_books = []
 
-        for book in Book.objects.exclude(cover_image="").exclude(cover_image__isnull=True):
+        for book in Book.objects.exclude(cover_image="").exclude(
+            cover_image__isnull=True
+        ):
             cover_path = str(book.cover_image)
             cover_path_lower = cover_path.lower()
             # Check if it looks like a URL was stored as a path
@@ -44,7 +46,9 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("No broken cover images found!"))
             return
 
-        self.stdout.write(f"Found {len(broken_books)} books with broken cover_image paths:\n")
+        self.stdout.write(
+            f"Found {len(broken_books)} books with broken cover_image paths:\n"
+        )
 
         for book in broken_books:
             self.stdout.write(f"  - {book.title}: {book.cover_image}")

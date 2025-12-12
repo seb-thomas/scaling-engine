@@ -14,6 +14,7 @@ services:
     depends_on:
       - web
       - frontend
+    restart: unless-stopped
 
   web:
     build:
@@ -30,6 +31,13 @@ services:
     depends_on:
       - db
       - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
     build:
@@ -44,6 +52,7 @@ services:
       - API_URL=http://web:8000
     depends_on:
       - web
+    restart: unless-stopped
 
   db:
     image: postgres:16-alpine
@@ -51,11 +60,23 @@ services:
       - postgres_data:/var/lib/postgresql/data
     env_file:
       - ./.env.prod.db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U paperwaves_user -d paperwaves_prod"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
     expose:
       - 6379
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   celery:
     build:
@@ -69,6 +90,12 @@ services:
     depends_on:
       - db
       - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "celery", "-A", "paperwaves", "inspect", "ping"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
 
   celery-beat:
     build:
@@ -80,6 +107,25 @@ services:
     depends_on:
       - db
       - redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "celery.*beat"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+
+  flower:
+    build:
+      context: ./api
+      dockerfile: Dockerfile.prod
+    command: celery -A paperwaves flower --port=5555
+    ports:
+      - "5555:5555"
+    env_file:
+      - ./.env.prod
+    depends_on:
+      - redis
+    restart: unless-stopped
 
 volumes:
   postgres_data:

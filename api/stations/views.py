@@ -1,10 +1,12 @@
 from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Prefetch, Q, Count
+from django.db import connection
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
+import redis
 
 from .serializers import StationSerializer, BookSerializer, BrandShowSerializer
 from .models import Station, Book, Episode, Brand
@@ -238,3 +240,33 @@ def episode_detail(request, slug):
         "breadcrumb_items": breadcrumb_items,
     }
     return render(request, "stations/episode_detail.html", context)
+
+
+def health_check(request):
+    """Health check endpoint that verifies DB and Redis connectivity"""
+    import os
+
+    status = {"status": "healthy", "checks": {}}
+
+    # Check database connection
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            status["checks"]["database"] = "ok"
+    except Exception as e:
+        status["status"] = "unhealthy"
+        status["checks"]["database"] = f"error: {str(e)}"
+
+    # Check Redis connection
+    try:
+        redis_url = os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
+        r = redis.from_url(redis_url)
+        r.ping()
+        status["checks"]["redis"] = "ok"
+    except Exception as e:
+        status["status"] = "unhealthy"
+        status["checks"]["redis"] = f"error: {str(e)}"
+
+    # Return appropriate HTTP status
+    http_status = 200 if status["status"] == "healthy" else 503
+    return JsonResponse(status, status=http_status)

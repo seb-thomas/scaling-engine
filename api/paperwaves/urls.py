@@ -29,6 +29,7 @@ router.register(r"books", views.BookViewSet, basename="books")
 urlpatterns = [
     path("admin/", admin.site.urls),
     path("", include("stations.urls")),
+    path("api/health/", views.health_check, name="health_check"),
     path("api/", include(router.urls)),
 ]
 
