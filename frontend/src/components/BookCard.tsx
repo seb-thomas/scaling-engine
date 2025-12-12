@@ -2,14 +2,16 @@ import { ImageWithFallback } from './ImageWithFallback'
 import { formatDateLong, formatDateShort } from '@/lib/utils'
 import type { Book } from '@/types'
 
-/** Truncate text at word boundary, max length chars */
+/** Truncate text at word boundary, max length chars, avoiding trailing punctuation */
 function truncateAtWord(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text
   const truncated = text.slice(0, maxLength)
   const lastSpace = truncated.lastIndexOf(' ')
   // If no space found or it's too early, just use the truncated version
-  if (lastSpace < maxLength * 0.5) return truncated.trim() + '…'
-  return truncated.slice(0, lastSpace).trim() + '…'
+  if (lastSpace < maxLength * 0.5) {
+    return truncated.trim().replace(/[,;:.\-–—]$/, '') + '…'
+  }
+  return truncated.slice(0, lastSpace).trim().replace(/[,;:.\-–—]$/, '') + '…'
 }
 
 type BookCardProps = {
