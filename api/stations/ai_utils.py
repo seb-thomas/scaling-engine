@@ -188,51 +188,61 @@ Return ONLY valid JSON, no additional text."""
         return self.client is not None
 
 
-def generate_book_blurb(title: str, author: str, description: str = "", show_name: str = "") -> Optional[str]:
+def generate_micro_synopsis(title: str, author: str, description: str = "") -> Optional[str]:
     """
-    Generate an engaging blurb for a book using Claude.
+    Generate an ultra-short micro synopsis for a book using Claude.
 
     Args:
         title: Book title
         author: Book author
         description: Optional description of the book
-        show_name: Name of the radio show that featured the book
 
     Returns:
-        Short blurb string (max 120 chars) or None if generation fails
+        Micro synopsis string (35-40 chars) or None if generation fails
     """
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        logger.warning("ANTHROPIC_API_KEY not configured, skipping blurb generation")
+        logger.warning("ANTHROPIC_API_KEY not configured, skipping micro_synopsis generation")
         return None
 
     client = Anthropic(api_key=api_key)
 
-    prompt = f"""Generate a very short, engaging blurb (max 120 characters) for this book{f' that was featured on {show_name}' if show_name else ''}.
-The blurb should be intriguing and make someone want to learn more.
+    prompt = f"""Write an ultra-short hook for this book in exactly 35-40 characters.
 
 Book: "{title}"
 Author: {author or "Unknown"}
-{f'Description: {description[:200]}' if description else ''}
+{f'About: {description[:200]}' if description else ''}
 
-Write ONLY the blurb text, nothing else. No quotes. Keep it under 120 characters."""
+Examples of good micro synopses:
+- "A love letter to 1980s Britain"
+- "Secrets unravel in a small town"
+- "One choice changes everything"
+
+Rules:
+- Exactly 35-40 characters (including spaces)
+- Focus on the book's essence or appeal
+- No quotes, no punctuation at end
+- Evocative and intriguing
+
+Write ONLY the micro synopsis, nothing else."""
 
     try:
         response = client.messages.create(
             model="claude-3-haiku-20240307",
-            max_tokens=100,
+            max_tokens=50,
             messages=[{"role": "user", "content": prompt}],
         )
 
-        blurb = response.content[0].text.strip()
-        if len(blurb) > 150:
-            blurb = blurb[:147] + "..."
+        synopsis = response.content[0].text.strip()
+        # Hard limit at 40 chars, no truncation marker
+        if len(synopsis) > 40:
+            synopsis = synopsis[:40]
 
-        logger.info(f"Generated blurb for '{title}': {blurb}")
-        return blurb
+        logger.info(f"Generated micro_synopsis for '{title}': {synopsis}")
+        return synopsis
 
     except Exception as e:
-        logger.error(f"Failed to generate blurb for '{title}': {e}")
+        logger.error(f"Failed to generate micro_synopsis for '{title}': {e}")
         return None
 
 
@@ -367,18 +377,16 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                         if updated:
                             book.save()
 
-                    # Generate blurb if not already set
-                    if created and not book.blurb:
-                        show_name = episode.brand.name if episode.brand else ""
-                        blurb = generate_book_blurb(
+                    # Generate micro_synopsis if not already set
+                    if created and not book.micro_synopsis:
+                        synopsis = generate_micro_synopsis(
                             book.title,
                             book.author,
-                            book.description,
-                            show_name
+                            book.description
                         )
-                        if blurb:
-                            book.blurb = blurb
-                            book.save(update_fields=["blurb"])
+                        if synopsis:
+                            book.micro_synopsis = synopsis
+                            book.save(update_fields=["micro_synopsis"])
 
                     # Fetch and download cover image if not already set
                     if created and not book.cover_image:

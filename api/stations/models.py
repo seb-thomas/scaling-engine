@@ -91,9 +91,9 @@ class Book(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     author = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
-    blurb = models.CharField(
-        max_length=150, blank=True, default="",
-        help_text="Short AI-generated teaser for homepage display"
+    micro_synopsis = models.CharField(
+        max_length=40, blank=True, default="",
+        help_text="Ultra-short AI-generated hook (35-40 chars)"
     )
     cover_image = models.ImageField(
         upload_to=book_cover_path, blank=True, null=True,

@@ -185,13 +185,13 @@ class RawEpisodeDataAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "episode_brand", "cover_preview_small", "has_blurb")
+    list_display = ("title", "author", "episode_brand", "cover_preview_small", "has_synopsis")
     list_filter = ("episode__brand",)
     search_fields = ("title", "author", "description")
     readonly_fields = ("slug", "cover_preview_large")
     fieldsets = (
         ("Book Information", {
-            "fields": ("title", "author", "slug", "blurb", "description")
+            "fields": ("title", "author", "slug", "micro_synopsis", "description")
         }),
         ("Cover Image", {
             "fields": ("cover_preview_large", "cover_image"),
@@ -230,14 +230,14 @@ class BookAdmin(admin.ModelAdmin):
         return format_html('<em>No cover image</em>')
     cover_preview_large.short_description = "Current Cover"
 
-    def has_blurb(self, obj):
-        """Indicator if book has a blurb"""
-        if obj.blurb:
+    def has_synopsis(self, obj):
+        """Indicator if book has a micro synopsis"""
+        if obj.micro_synopsis:
             return format_html('<span style="color: green;">✓</span>')
         return format_html('<span style="color: gray;">-</span>')
-    has_blurb.short_description = "Blurb"
+    has_synopsis.short_description = "Synopsis"
 
-    actions = ["fetch_and_download_covers", "generate_blurbs"]
+    actions = ["fetch_and_download_covers", "generate_micro_synopses"]
 
     @admin.action(description="Fetch and download covers from Open Library")
     def fetch_and_download_covers(self, request, queryset):
@@ -287,54 +287,31 @@ class BookAdmin(admin.ModelAdmin):
             f"Downloaded {downloaded} cover(s). {failed} failed or skipped."
         )
 
-    @admin.action(description="Generate AI blurbs for selected books")
-    def generate_blurbs(self, request, queryset):
-        """Generate AI-powered blurbs for selected books"""
-        import os
-        from anthropic import Anthropic
+    @admin.action(description="Generate micro synopses for selected books")
+    def generate_micro_synopses(self, request, queryset):
+        """Generate AI-powered micro synopses for selected books"""
+        from .ai_utils import generate_micro_synopsis
 
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            self.message_user(request, "ANTHROPIC_API_KEY not configured", level="error")
-            return
-
-        client = Anthropic(api_key=api_key)
         generated = 0
         failed = 0
 
         for book in queryset:
-            show_name = book.episode.brand.name if book.episode and book.episode.brand else "a radio show"
+            synopsis = generate_micro_synopsis(
+                book.title,
+                book.author,
+                book.description
+            )
 
-            prompt = f"""Generate a very short, engaging blurb (max 120 characters) for this book that was featured on {show_name}.
-The blurb should be intriguing and make someone want to learn more.
-
-Book: "{book.title}"
-Author: {book.author or "Unknown"}
-{f'Description: {book.description[:200]}' if book.description else ''}
-
-Write ONLY the blurb text, nothing else. No quotes. Keep it under 120 characters."""
-
-            try:
-                response = client.messages.create(
-                    model="claude-3-haiku-20240307",
-                    max_tokens=100,
-                    messages=[{"role": "user", "content": prompt}],
-                )
-
-                blurb = response.content[0].text.strip()
-                if len(blurb) > 150:
-                    blurb = blurb[:147] + "..."
-
-                book.blurb = blurb
-                book.save(update_fields=["blurb"])
+            if synopsis:
+                book.micro_synopsis = synopsis
+                book.save(update_fields=["micro_synopsis"])
                 generated += 1
-
-            except Exception as e:
+            else:
                 failed += 1
 
         self.message_user(
             request,
-            f"Generated {generated} blurb(s). {failed} failed."
+            f"Generated {generated} micro synopsis(es). {failed} failed."
         )
 
 
