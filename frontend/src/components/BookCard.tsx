@@ -83,8 +83,8 @@ export function BookCard({ book, featured = false }: BookCardProps) {
             </div>
           )}
           <div className="text-sm text-gray-500 dark:text-gray-500">
-            {book.blurb ? (
-              <span className="italic">{book.blurb}</span>
+            {book.micro_synopsis ? (
+              <span className="italic">{book.micro_synopsis}</span>
             ) : (
               <>
                 {book.episode.brand.station.name}
