@@ -20,23 +20,25 @@ const MONTHS_SHORT = [
 
 /**
  * Format date as "January 15, 2024"
+ * Uses UTC to ensure consistent output between server and client
  */
 export function formatDateLong(dateString: string): string {
   const date = new Date(dateString)
-  const month = MONTHS_FULL[date.getMonth()]
-  const day = date.getDate()
-  const year = date.getFullYear()
+  const month = MONTHS_FULL[date.getUTCMonth()]
+  const day = date.getUTCDate()
+  const year = date.getUTCFullYear()
   return `${month} ${day}, ${year}`
 }
 
 /**
  * Format date as "Jan 15, 2024"
+ * Uses UTC to ensure consistent output between server and client
  */
 export function formatDateShort(dateString: string): string {
   const date = new Date(dateString)
-  const month = MONTHS_SHORT[date.getMonth()]
-  const day = date.getDate()
-  const year = date.getFullYear()
+  const month = MONTHS_SHORT[date.getUTCMonth()]
+  const day = date.getUTCDate()
+  const year = date.getUTCFullYear()
   return `${month} ${day}, ${year}`
 }
 
