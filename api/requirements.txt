@@ -21,7 +21,7 @@ django-celery-beat==2.7.0
 flower==2.0.1
 
 # Web Scraping
-scrapy==2.11.2
+scrapy==2.14.1
 scrapy-djangoitem==1.1.1
 parsel==1.9.1
 w3lib==2.2.1
