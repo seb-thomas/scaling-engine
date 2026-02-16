@@ -135,6 +135,7 @@ class RawEpisodeData(models.Model):
         Episode, on_delete=models.CASCADE, related_name="raw_data"
     )
     scraped_data = models.JSONField(default=dict)
+    extraction_result = models.JSONField(default=dict, blank=True)
     processed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(blank=True, null=True)

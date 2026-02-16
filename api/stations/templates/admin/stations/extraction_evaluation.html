@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {% trans "Django site admin" %}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Input to AI = text sent to Claude (episode title + scraped description). Verify on BBC = episode link.</p>
+
+<table style="width: 100%; border-collapse: collapse; margin-top: 1em;">
+  <thead>
+    <tr style="background: #f8f8f8; border-bottom: 2px solid #ddd;">
+      <th style="padding: 8px; text-align: left;">Book</th>
+      <th style="padding: 8px; text-align: left;">Episode</th>
+      <th style="padding: 8px; text-align: left;">Input to AI</th>
+      <th style="padding: 8px; text-align: left;">AI Reasoning</th>
+      <th style="padding: 8px; text-align: left;">Verify on BBC</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr style="border-bottom: 1px solid #eee; vertical-align: top;">
+      <td style="padding: 8px;">{{ row.book.title }}{% if row.book.author %} <em>by {{ row.book.author }}</em>{% endif %}</td>
+      <td style="padding: 8px;">{{ row.episode_title|truncatechars:60 }}</td>
+      <td style="padding: 8px; max-width: 300px; font-size: 12px;">{{ row.input_to_ai|truncatewords:50 }}</td>
+      <td style="padding: 8px; max-width: 300px; font-size: 12px;">{{ row.reasoning|truncatewords:50 }}</td>
+      <td style="padding: 8px;"><a href="{{ row.verify_url }}" target="_blank" rel="noopener noreferrer">Listen to episode</a></td>
+    </tr>
+    {% empty %}
+    <tr><td colspan="5" style="padding: 16px;">No books with extraction data yet.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<p style="margin-top: 1em; font-size: 12px; color: #666;">Showing up to 200 most recent books by episode date.</p>
+{% endblock %}

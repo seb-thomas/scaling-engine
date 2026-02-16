@@ -77,7 +77,7 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ["title", "author", "description"]
     ordering_fields = ["episode__aired_at", "episode__id"]
-    ordering = ["-episode__id"]
+    ordering = ["-episode__aired_at", "-episode__id"]
 
     def get_queryset(self):
         queryset = super().get_queryset()

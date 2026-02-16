@@ -68,6 +68,11 @@ INSTALLED_APPS = [
     "django_celery_beat",
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 10,
+    "PAGE_SIZE_QUERY_PARAM": "page_size",
+}
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",

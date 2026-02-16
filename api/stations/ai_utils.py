@@ -93,16 +93,24 @@ class BookExtractor:
                 "reasoning": "API key not configured",
             }
 
-        prompt = f"""Analyze this BBC radio episode text and determine if it mentions or discusses books, authors, or literature.
+        prompt = f"""We collect books discussed, reviewed, or interviewed about on radio. Not books mentioned only in adaptation context (film, theatre, TV, musical, play).
+
+Analyze this BBC radio episode text. Extract only books that are the subject of the segment.
 
 Episode text: "{text}"
 
-Your task:
-1. Determine if this episode is about books, authors, or literature
-2. Extract any book titles and authors mentioned
-3. Generate a brief, engaging description for each book (1-2 sentences about the book itself, NOT the episode)
-4. Return JSON with the following structure:
+Rules:
+- Do not infer from author names alone. "Tom Stoppard" or "Anne Brontë biographer" without a book discussion = no extraction.
+- Require author + book title, OR explicit book-type words: "book", "novel", "short story collection", "autobiography", "memoir".
+- "Thriller" or "comedy" alone = often TV/film, not books. We describe books as "thrilling" or "hilarious". Do not extract titles that could be film/TV unless there is author + book signal (e.g. "the contemporary thriller Lurker" = TV show, NOT a book).
+- Exclude when context is adaptation, play, or musical. Signals: adaptation, adapted, film, movie, director, theatre, stage, screen, play, musical, transformed into, starring, choreographer, BBC adaptation, RSC production, West End. "Play" = theatre, not a book. "Musical based on [book]" = segment is about the musical, not the book.
+- Each book description must match the book title; do not mix descriptions between books.
 
+INCLUDE examples: "Mark Haddon's autobiography Leaving Home"; "Eric Schlosser's book Fast Food Nation... talks to the author"; "George Saunders' new book, Vigil"; prize announcements with author + book; "short story collection by Joy Williams"; "have read James Meek's book Your Life Without Me".
+
+EXCLUDE examples: "Anne Brontë biographer" (no book); "thriller Lurker" (TV show); "BBC adaptation of Lord of the Flies"; "A Christmas Carol... transformed into hip hop dance"; "her new play My Brother's a Genius"; "RSC's new production of Cyrano de Bergerac"; "musical based on Rachel's hit book The Unlikely Pilgrimage of Harold Fry" (context is the musical).
+
+Return JSON only:
 {{
     "has_book": true/false,
     "books": [
@@ -116,16 +124,7 @@ Your task:
     "reasoning": "Brief explanation of your decision"
 }}
 
-Rules:
-- Only return true if the episode is CLEARLY about books, authors, or literature
-- Extract specific book titles when mentioned
-- For each book, write a compelling 1-2 sentence description about what the book is about (not about the episode)
-- If the episode text provides context about the book's content, use it to craft the description
-- Confidence should be 0.0-1.0 (0.8+ for clear mentions, 0.5-0.8 for likely, <0.5 for uncertain)
-- If no books are mentioned, return empty books array
-- Be conservative: "bookshelf" or "bookstore" alone doesn't mean the episode is about a book
-
-Return ONLY valid JSON, no additional text."""
+Confidence 0.0-1.0 (0.8+ for clear mentions). Return ONLY valid JSON, no additional text."""
 
         for attempt in range(max_retries + 1):
             try:
@@ -277,6 +276,15 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                         logger.info(f"Parsed aired_at date for episode {episode_id}: {parsed_date}")
 
         result = extractor.extract_books(text_to_analyze)
+
+        # Persist extraction result for evaluation (reasoning, books list)
+        if hasattr(episode, "raw_data") and episode.raw_data:
+            episode.raw_data.extraction_result = {
+                "has_book": result.get("has_book", False),
+                "reasoning": result.get("reasoning", ""),
+                "books": result.get("books", []),
+            }
+            episode.raw_data.save(update_fields=["extraction_result"])
 
         # Update episode and save books if found
         if result["has_book"]:

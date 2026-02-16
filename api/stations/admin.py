@@ -1,8 +1,9 @@
 from django.contrib import admin
 from django.utils.html import format_html
 from django.urls import reverse, path
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.contrib import messages
+from django.utils.safestring import mark_safe
 from .models import Station, Brand, Episode, Book, Phrase, RawEpisodeData
 
 
@@ -283,3 +284,65 @@ class BookAdmin(admin.ModelAdmin):
 
 # Register remaining models with default admin
 admin.site.register([Station, Brand, Phrase])
+
+
+def extraction_evaluation_view(request):
+    """Model evaluation dashboard: show books with input to AI, reasoning, and verify link."""
+    from django.contrib.admin.sites import site as default_admin_site
+
+    if not request.user.is_staff:
+        return redirect(default_admin_site.login_url)
+
+    books = (
+        Book.objects.select_related("episode", "episode__brand")
+        .prefetch_related("episode__raw_data")
+        .order_by("-episode__aired_at", "-episode__id")[:200]
+    )
+
+    rows = []
+    for book in books:
+        episode = book.episode
+        raw = getattr(episode, "raw_data", None)
+        if raw and raw.scraped_data:
+            input_text = (raw.scraped_data.get("title") or "") + ". " + (raw.scraped_data.get("description") or "")
+            input_text = (input_text.strip() or episode.title or "")[:500]
+        else:
+            input_text = (episode.title or "")[:500]
+
+        reasoning = ""
+        if raw and raw.extraction_result:
+            reasoning = (raw.extraction_result.get("reasoning") or "")[:500]
+
+        verify_url = episode.url or "#"
+        rows.append({
+            "book": book,
+            "episode_title": episode.title,
+            "input_to_ai": input_text,
+            "reasoning": reasoning,
+            "verify_url": verify_url,
+        })
+
+    context = {
+        "title": "Extraction Evaluation",
+        "rows": rows,
+    }
+    return render(request, "admin/stations/extraction_evaluation.html", context)
+
+
+# Add extraction evaluation URL to admin
+_original_admin_get_urls = admin.site.get_urls
+
+
+def _admin_get_urls_with_extraction():
+    urls = _original_admin_get_urls()
+    custom = [
+        path(
+            "stations/extraction-evaluation/",
+            admin.site.admin_view(extraction_evaluation_view),
+            name="stations_extraction_evaluation",
+        ),
+    ]
+    return custom + urls
+
+
+admin.site.get_urls = _admin_get_urls_with_extraction
