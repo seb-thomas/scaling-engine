@@ -1,7 +1,6 @@
-from django.shortcuts import get_object_or_404, render
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Prefetch, Q, Count
+from django.db.models import Count
 from django.db import connection
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
@@ -9,7 +8,7 @@ from rest_framework.response import Response
 import redis
 
 from .serializers import StationSerializer, BookSerializer, BrandShowSerializer
-from .models import Station, Book, Episode, Brand
+from .models import Station, Book, Brand
 
 
 class StationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -92,154 +91,6 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         if station_id:
             queryset = queryset.filter(episode__brand__station__station_id=station_id)
         return queryset
-
-
-# Keep template views for backward compatibility during migration
-def index(request):
-    """Homepage showing all discovered books"""
-    books = Book.objects.select_related(
-        "episode", "episode__brand", "episode__brand__station"
-    ).order_by("-episode__id")
-
-    # Pagination - 10 books per page
-    paginator = Paginator(books, 10)
-    page_number = request.GET.get("page", 1)
-    page_obj = paginator.get_page(page_number)
-
-    # Get all brands for "All Shows" section
-    brands = (
-        Brand.objects.select_related("station").all().order_by("station__name", "name")
-    )
-
-    # Get all stations for navigation
-    stations = Station.objects.all().order_by("name")
-
-    context = {
-        "books": page_obj,
-        "page_obj": page_obj,
-        "total_books": books.count(),
-        "brands": brands,
-        "stations": stations,
-    }
-    return render(request, "stations/index.html", context)
-
-
-def station_detail(request, station_id):
-    """Station detail page showing all shows for a station"""
-    station = get_object_or_404(Station, station_id=station_id)
-    brands = Brand.objects.filter(station=station).order_by("name")
-
-    # Get all stations for navigation
-    stations = Station.objects.all().order_by("name")
-
-    # Breadcrumbs
-    breadcrumb_items = [{"label": "Home", "href": "/"}, {"label": station.name}]
-
-    context = {
-        "station": station,
-        "brands": brands,
-        "stations": stations,
-        "breadcrumb_items": breadcrumb_items,
-    }
-    return render(request, "stations/station_detail.html", context)
-
-
-def show_detail(request, slug):
-    """Show detail page showing all books for a show/brand"""
-    brand = get_object_or_404(Brand.objects.select_related("station"), slug=slug)
-
-    books = (
-        Book.objects.filter(episode__brand=brand)
-        .select_related("episode", "episode__brand", "episode__brand__station")
-        .order_by("-episode__aired_at", "-episode__id")
-    )
-
-    # Pagination - 10 books per page
-    paginator = Paginator(books, 10)
-    page_number = request.GET.get("page", 1)
-    page_obj = paginator.get_page(page_number)
-
-    # Get all stations for navigation
-    stations = Station.objects.all().order_by("name")
-
-    # Breadcrumbs
-    breadcrumb_items = [
-        {"label": "Home", "href": "/"},
-        {"label": brand.station.name, "href": f"/station/{brand.station.station_id}/"},
-        {"label": brand.name},
-    ]
-
-    context = {
-        "show": brand,
-        "books": page_obj,
-        "page_obj": page_obj,
-        "stations": stations,
-        "breadcrumb_items": breadcrumb_items,
-    }
-    return render(request, "stations/show_detail.html", context)
-
-
-def book_detail(request, slug):
-    """Individual book detail page"""
-    book = get_object_or_404(
-        Book.objects.select_related(
-            "episode", "episode__brand", "episode__brand__station"
-        ),
-        slug=slug,
-    )
-
-    # Get all stations for navigation
-    stations = Station.objects.all().order_by("name")
-
-    # Breadcrumbs
-    breadcrumb_items = [
-        {"label": "Home", "href": "/"},
-        {
-            "label": book.episode.brand.station.name,
-            "href": f"/station/{book.episode.brand.station.station_id}/",
-        },
-        {"label": book.episode.brand.name, "href": f"/show/{book.episode.brand.slug}/"},
-        {"label": book.title},
-    ]
-
-    context = {
-        "book": book,
-        "stations": stations,
-        "breadcrumb_items": breadcrumb_items,
-    }
-    return render(request, "stations/book_detail.html", context)
-
-
-def episode_detail(request, slug):
-    """Individual episode detail page using slug"""
-    episode = get_object_or_404(
-        Episode.objects.select_related("brand", "brand__station"), slug=slug
-    )
-
-    # Get all stations for navigation
-    stations = Station.objects.all().order_by("name")
-
-    # Get books for this episode
-    books = Book.objects.filter(episode=episode).order_by("id")
-
-    # Breadcrumbs
-    breadcrumb_items = [
-        {"label": "Home", "href": "/"},
-        {
-            "label": episode.brand.station.name,
-            "href": f"/station/{episode.brand.station.station_id}/",
-        },
-        {"label": episode.brand.name, "href": f"/show/{episode.brand.slug}/"},
-        {"label": episode.title},
-    ]
-
-    context = {
-        "episode": episode,
-        "books": books,
-        "stations": stations,
-        "breadcrumb_items": breadcrumb_items,
-    }
-    return render(request, "stations/episode_detail.html", context)
 
 
 def health_check(request):
