@@ -7,6 +7,7 @@ services:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/media
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - ./certbot-webroot:/var/www/certbot:ro
       - ./nginx/nginx.conf.react:/etc/nginx/conf.d/nginx.conf:ro
     ports:
       - 80:80

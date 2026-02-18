@@ -14,6 +14,8 @@ This guide explains how to deploy the Paperwaves BBC Radio scraping engine to pr
 
 **Never suggest manual rebuilds or restarts** - the CI/CD pipeline handles everything automatically. Just push to master.
 
+**When waiting for deployment to complete:** Use `gh run watch --repo seb-thomas/scaling-engine <run_id>` - **never use `sleep`**. Get the run ID with `gh run list --repo seb-thomas/scaling-engine --limit 1`.
+
 ### Why This Setup?
 
 ✅ Push to master = automatic deployment
@@ -379,6 +381,31 @@ All commits must pass tests before merging to master.
 6. ✅ **Use secrets management**: Consider AWS Secrets Manager or HashiCorp Vault
 7. ✅ **Enable database backups**: Automate daily backups
 8. ✅ **Monitor logs**: Set up log aggregation (e.g., ELK stack, Datadog)
+
+## SSL / Certificate renewal (Let's Encrypt)
+
+The app uses Let's Encrypt certificates. Certs expire after 90 days. Renewal uses **webroot**: nginx serves `/.well-known/acme-challenge/` from a directory where certbot writes challenge files.
+
+**On the server (one-time):**
+
+1. Install certbot: `apt install certbot` (Debian/Ubuntu).
+2. Create the webroot directory (same path as in docker-compose):  
+   `mkdir -p /root/scaling-engine/certbot-webroot` (or your project path).
+3. Renewal command (run manually once to fix an expired cert, or let cron run it):
+
+   ```bash
+   certbot renew --webroot -w /root/scaling-engine/certbot-webroot --deploy-hook "docker compose -f /root/scaling-engine/docker-compose.prod.yml exec -T nginx nginx -s reload"
+   ```
+
+   Use `docker-compose` instead of `docker compose` if that's what the server has. `--deploy-hook` runs only when a cert was renewed, so nginx reloads only then.
+
+4. **Cron** (run at least twice per 90 days). As root: `crontab -e` and add:
+
+   ```cron
+   0 3 1,15 * * certbot renew --webroot -w /root/scaling-engine/certbot-webroot --deploy-hook "docker compose -f /root/scaling-engine/docker-compose.prod.yml exec -T nginx nginx -s reload" >> /var/log/certbot-renew.log 2>&1
+   ```
+
+   Or call the script in the repo: `deploy/renew-cert.sh` (see that file for the exact command and path).
 
 ## Production Hosting Recommendations
 

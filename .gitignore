@@ -3,6 +3,12 @@
 .env.dev
 .env.dev.db
 
+# Local server access (contains credentials)
+.server-access.local
+
+# Certbot webroot (server-local, created on deploy)
+certbot-webroot/
+
 # SQLite databases (PostgreSQL only)
 *.sqlite3
 *.db
