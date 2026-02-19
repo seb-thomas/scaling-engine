@@ -377,14 +377,14 @@ class TestExtractBooksFromEpisode:
 
     @patch("stations.ai_utils.get_book_extractor")
     def test_extract_books_from_episode_extraction_error(self, mock_get_extractor, brand):
-        """Test handling of extraction errors."""
+        """Test handling of extraction errors: episode marked FAILED and exception re-raised."""
         from stations.models import Episode
 
         episode = Episode.objects.create(
             brand=brand,
             title="Test episode",
             url="http://test.com/episode-5",
-            has_book=False
+            has_book=False,
         )
 
         mock_extractor = Mock()
@@ -392,7 +392,9 @@ class TestExtractBooksFromEpisode:
         mock_extractor.extract_books.side_effect = Exception("Test error")
         mock_get_extractor.return_value = mock_extractor
 
-        result = extract_books_from_episode(episode.pk)
+        with pytest.raises(Exception, match="Test error"):
+            extract_books_from_episode(episode.pk)
 
-        assert result["has_book"] is False
-        assert "Error" in result["reasoning"]
+        episode.refresh_from_db()
+        assert episode.status == Episode.STATUS_FAILED
+        assert "Test error" in (episode.last_error or "")
