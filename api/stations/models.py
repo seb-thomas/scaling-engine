@@ -48,6 +48,19 @@ class Brand(models.Model):
 
 
 class Episode(models.Model):
+    STATUS_SCRAPED = "SCRAPED"
+    STATUS_QUEUED = "QUEUED"
+    STATUS_PROCESSING = "PROCESSING"
+    STATUS_PROCESSED = "PROCESSED"
+    STATUS_FAILED = "FAILED"
+    STATUS_CHOICES = [
+        (STATUS_SCRAPED, "Scraped"),
+        (STATUS_QUEUED, "Queued"),
+        (STATUS_PROCESSING, "Processing"),
+        (STATUS_PROCESSED, "Processed"),
+        (STATUS_FAILED, "Failed"),
+    ]
+
     brand = models.ForeignKey(
         Brand, on_delete=models.CASCADE, default=None, blank=True, null=True
     )
@@ -56,6 +69,16 @@ class Episode(models.Model):
     url = models.URLField(default="", unique=True)
     aired_at = models.DateTimeField(blank=True, null=True)
     has_book = models.BooleanField(default=False, editable=False)
+
+    # Snapshot + pipeline (merged from RawEpisodeData)
+    scraped_data = models.JSONField(null=True, blank=True)
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_SCRAPED
+    )
+    processed_at = models.DateTimeField(blank=True, null=True)
+    last_error = models.TextField(blank=True, null=True)
+    task_id = models.CharField(max_length=255, blank=True, null=True)
+    extraction_result = models.JSONField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from title if not provided
@@ -80,8 +103,13 @@ class Episode(models.Model):
 def book_cover_path(instance, filename):
     """Generate upload path for book covers: covers/brand-slug/author-title.ext"""
     import os
+
     ext = os.path.splitext(filename)[1] or ".jpg"
-    brand_slug = instance.episode.brand.slug if instance.episode and instance.episode.brand else "unknown"
+    brand_slug = (
+        instance.episode.brand.slug
+        if instance.episode and instance.episode.brand
+        else "unknown"
+    )
     return f"covers/{brand_slug}/{instance.slug}{ext}"
 
 
@@ -92,8 +120,10 @@ class Book(models.Model):
     author = models.CharField(max_length=255, blank=True, default="")
     description = models.TextField(blank=True, default="")
     cover_image = models.ImageField(
-        upload_to=book_cover_path, blank=True, null=True,
-        help_text="Book cover image stored locally"
+        upload_to=book_cover_path,
+        blank=True,
+        null=True,
+        help_text="Book cover image stored locally",
     )
     purchase_link = models.URLField(blank=True, default="")
 
@@ -126,22 +156,6 @@ class Book(models.Model):
         from .utils import generate_bookshop_affiliate_url
 
         return generate_bookshop_affiliate_url(self.title, self.author)
-
-
-class RawEpisodeData(models.Model):
-    """Store raw scraped data from BBC before AI processing"""
-
-    episode = models.OneToOneField(
-        Episode, on_delete=models.CASCADE, related_name="raw_data"
-    )
-    scraped_data = models.JSONField(default=dict)
-    extraction_result = models.JSONField(default=dict, blank=True)
-    processed = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    processed_at = models.DateTimeField(blank=True, null=True)
-
-    def __str__(self):
-        return f"Raw data for {self.episode.title}"
 
 
 class Phrase(models.Model):

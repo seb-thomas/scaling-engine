@@ -28,6 +28,8 @@ class BrandShowSerializer(serializers.ModelSerializer):
 
 
 class EpisodeSerializer(serializers.ModelSerializer):
+    """Public API: do not add scraped_data, extraction_result, last_error, task_id."""
+
     brand = BrandShowSerializer(read_only=True)
 
     class Meta:

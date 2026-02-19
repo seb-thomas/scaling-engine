@@ -132,12 +132,14 @@ SQL_PORT = os.environ.get("SQL_PORT", "5432")
 
 if not all([SQL_DATABASE, SQL_USER, SQL_PASSWORD, SQL_HOST]):
     missing = [
-        var for var, val in [
+        var
+        for var, val in [
             ("SQL_DATABASE", SQL_DATABASE),
             ("SQL_USER", SQL_USER),
             ("SQL_PASSWORD", SQL_PASSWORD),
             ("SQL_HOST", SQL_HOST),
-        ] if not val
+        ]
+        if not val
     ]
     raise ValueError(
         f"Missing required database environment variables: {', '.join(missing)}. "
@@ -221,6 +223,9 @@ CELERY_BROKER_TRANSPORT_OPTIONS = {"visibility_timeout": 3600}
 CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379")
 CELERY_BEAT_SCHEDULER = "django_celery_beat.schedulers:DatabaseScheduler"
 CELERY_TIMEZONE = "Europe/London"
+
+# Optional: Flower dashboard URL for admin "Open Flower" link (e.g. https://flower.example.com)
+FLOWER_URL = os.environ.get("FLOWER_URL", "")
 
 # Celery Beat Schedule
 # Set PAUSE_SCRAPING=True in environment to disable scheduled scraping

@@ -4,11 +4,14 @@ from django.urls import reverse, path
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from django.utils.safestring import mark_safe
-from .models import Station, Brand, Episode, Book, Phrase, RawEpisodeData
+from django.conf import settings as django_settings
+
+from .models import Station, Brand, Episode, Book, Phrase
 
 
 class BookInline(admin.TabularInline):
     """Inline display of books for an episode"""
+
     model = Book
     extra = 0
     fields = ("title", "author", "description")
@@ -20,49 +23,50 @@ class BookInline(admin.TabularInline):
         return False
 
 
-class RawEpisodeDataInline(admin.StackedInline):
-    """Inline display of raw episode data"""
-    model = RawEpisodeData
-    extra = 0
-    fields = ("processed", "processed_at", "created_at", "scraped_data_preview")
-    readonly_fields = ("processed", "processed_at", "created_at", "scraped_data_preview")
-    can_delete = False
-
-    def scraped_data_preview(self, obj):
-        """Show a preview of the scraped data"""
-        if not obj.scraped_data:
-            return "-"
-
-        import json
-        data = obj.scraped_data
-        preview = f"<strong>Title:</strong> {data.get('title', 'N/A')}<br>"
-        preview += f"<strong>Date:</strong> {data.get('date_text', 'N/A')}<br>"
-        preview += f"<strong>Description:</strong> {data.get('description', 'N/A')}<br>"
-        preview += f"<strong>URL:</strong> <a href=\"{data.get('url')}\" target=\"_blank\">{data.get('url')}</a>"
-        return format_html(preview)
-
-    scraped_data_preview.short_description = "Scraped Data"
-
-    def has_add_permission(self, request, obj=None):
-        return False
-
-
 @admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):
-    list_display = ("title", "brand", "aired_at", "has_book", "book_count", "raw_data_status")
-    list_filter = ("has_book", "brand", "aired_at")
+    list_display = (
+        "title",
+        "brand",
+        "aired_at",
+        "has_book",
+        "book_count",
+        "status_display",
+    )
+    list_filter = ("has_book", "brand", "aired_at", "status")
     search_fields = ("title", "url")
-    readonly_fields = ("has_book", "slug", "book_links_readonly", "raw_data_link_readonly")
+    readonly_fields = (
+        "has_book",
+        "slug",
+        "status",
+        "processed_at",
+        "last_error",
+        "scraped_data_preview",
+        "extraction_result_preview",
+        "book_links_readonly",
+    )
     date_hierarchy = "aired_at"
-    inlines = [BookInline, RawEpisodeDataInline]
+    inlines = [BookInline]
+    actions = ["reprocess_episodes_action"]
 
     fieldsets = (
-        ("Episode Information", {
-            "fields": ("brand", "title", "slug", "url", "aired_at", "has_book")
-        }),
-        ("Related Data", {
-            "fields": ("book_links_readonly", "raw_data_link_readonly")
-        }),
+        (
+            "Episode Information",
+            {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book")},
+        ),
+        (
+            "Pipeline",
+            {
+                "fields": (
+                    "status",
+                    "processed_at",
+                    "last_error",
+                    "scraped_data_preview",
+                    "extraction_result_preview",
+                ),
+            },
+        ),
+        ("Related Data", {"fields": ("book_links_readonly",)}),
     )
 
     def book_count(self, obj):
@@ -72,116 +76,90 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     book_count.short_description = "Books"
 
-    def raw_data_status(self, obj):
-        """Display raw data processing status"""
-        if hasattr(obj, "raw_data") and obj.raw_data:
-            status = "✅" if obj.raw_data.processed else "⏳"
-            return format_html(status)
-        return "-"
+    def status_display(self, obj):
+        """Status chip for list view"""
+        return obj.get_status_display()
 
-    raw_data_status.short_description = "Status"
+    status_display.short_description = "Status"
+
+    def scraped_data_preview(self, obj):
+        """Preview of scraped description from episode.scraped_data"""
+        if not obj.scraped_data:
+            return "-"
+        desc = (obj.scraped_data.get("description") or "")[:200]
+        return desc + ("..." if len(obj.scraped_data.get("description") or "") > 200 else "")
+
+    scraped_data_preview.short_description = "Scraped description"
+
+    def extraction_result_preview(self, obj):
+        """Preview of extraction reasoning"""
+        if not obj.extraction_result:
+            return "-"
+        return (obj.extraction_result.get("reasoning") or "")[:500]
+
+    extraction_result_preview.short_description = "Extraction reasoning"
 
     def book_links_readonly(self, obj):
         """Display links to related books (readonly)"""
         books = obj.book_set.all()
         if not books:
-            return format_html('<em>No books detected</em>')
-
+            return format_html("<em>No books detected</em>")
         links = []
         for book in books:
             url = reverse("admin:stations_book_change", args=[book.pk])
             links.append(f'<a href="{url}" target="_blank">{book.title}</a>')
-
         return format_html("<br>".join(links))
 
     book_links_readonly.short_description = "Books"
 
-    def raw_data_link_readonly(self, obj):
-        """Display link to raw episode data (readonly)"""
-        if hasattr(obj, "raw_data") and obj.raw_data:
-            url = reverse("admin:stations_rawepisodedata_change", args=[obj.raw_data.pk])
-            status = "Processed" if obj.raw_data.processed else "Unprocessed"
-            return format_html('<a href="{}" target="_blank">View Raw Data ({})</a>', url, status)
-        return format_html('<em>No raw data</em>')
-
-    raw_data_link_readonly.short_description = "Raw Data"
-
     def get_urls(self):
-        """Add custom URL for reprocessing"""
         urls = super().get_urls()
         custom_urls = [
             path(
-                '<int:episode_id>/reprocess/',
+                "<int:episode_id>/reprocess/",
                 self.admin_site.admin_view(self.reprocess_episode),
-                name='stations_episode_reprocess',
+                name="stations_episode_reprocess",
             ),
         ]
         return custom_urls + urls
 
     def reprocess_episode(self, request, episode_id):
-        """Reprocess a single episode (reset and trigger AI extraction)"""
+        """Reprocess a single episode: set QUEUED and enqueue AI extraction."""
         from .tasks import ai_extract_books_task
 
         episode = Episode.objects.get(pk=episode_id)
-
-        # Reset processed flag if raw_data exists
-        if hasattr(episode, "raw_data") and episode.raw_data:
-            episode.raw_data.processed = False
-            episode.raw_data.processed_at = None
-            episode.raw_data.save(update_fields=["processed", "processed_at"])
-
-        # Trigger AI extraction
+        episode.status = Episode.STATUS_QUEUED
+        episode.last_error = None
+        episode.save(update_fields=["status", "last_error"])
         ai_extract_books_task.delay(episode_id)
 
-        messages.success(request, f'Triggered AI extraction for "{episode.title}". Check results in a few seconds.')
-        return redirect('admin:stations_episode_change', episode_id)
+        msg = "Queued extraction for 1 episode."
+        flower_url = getattr(django_settings, "FLOWER_URL", "") or ""
+        if flower_url:
+            msg = format_html('{} <a href="{}" target="_blank">Open Flower</a>', msg, flower_url)
+        messages.success(request, msg)
+        return redirect("admin:stations_episode_change", episode_id)
 
-    def change_view(self, request, object_id, form_url='', extra_context=None):
-        """Add reprocess button to change view"""
-        extra_context = extra_context or {}
-        extra_context['show_reprocess_button'] = True
-        return super().change_view(request, object_id, form_url, extra_context)
-
-
-@admin.register(RawEpisodeData)
-class RawEpisodeDataAdmin(admin.ModelAdmin):
-    list_display = ("episode_title", "processed", "processed_at", "created_at", "episode_link")
-    list_filter = ("processed", "created_at", "processed_at")
-    search_fields = ("episode__title",)
-    readonly_fields = ("created_at", "processed_at")
-    actions = ["reprocess_episodes"]
-
-    def episode_title(self, obj):
-        return obj.episode.title
-
-    episode_title.short_description = "Episode"
-
-    def episode_link(self, obj):
-        """Display link to episode"""
-        url = reverse("admin:stations_episode_change", args=[obj.episode.pk])
-        return format_html('<a href="{}">View Episode</a>', url)
-
-    episode_link.short_description = "Episode"
-
-    @admin.action(description="Reprocess selected episodes (run AI extraction)")
-    def reprocess_episodes(self, request, queryset):
-        """Reprocess selected raw episode data (trigger AI extraction)"""
+    @admin.action(description="Reprocess (AI) selected episodes")
+    def reprocess_episodes_action(self, request, queryset):
         from .tasks import ai_extract_books_task
 
-        count = 0
-        for raw_data in queryset:
-            # Reset processed flag
-            raw_data.processed = False
-            raw_data.processed_at = None
-            raw_data.save(update_fields=["processed", "processed_at"])
+        for episode in queryset:
+            episode.status = Episode.STATUS_QUEUED
+            episode.last_error = None
+            episode.save(update_fields=["status", "last_error"])
+            ai_extract_books_task.delay(episode.id)
+        count = queryset.count()
+        msg = f"Queued extraction for {count} episode(s)."
+        flower_url = getattr(django_settings, "FLOWER_URL", "") or ""
+        if flower_url:
+            msg = format_html('{} <a href="{}" target="_blank">Open Flower</a>', msg, flower_url)
+        self.message_user(request, msg)
 
-            # Trigger AI extraction
-            ai_extract_books_task.delay(raw_data.episode.id)
-            count += 1
-
-        self.message_user(
-            request, f"Triggered AI extraction for {count} episode(s). Check Celery logs for progress."
-        )
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["show_reprocess_button"] = True
+        return super().change_view(request, object_id, form_url, extra_context)
 
 
 @admin.register(Book)
@@ -191,24 +169,22 @@ class BookAdmin(admin.ModelAdmin):
     search_fields = ("title", "author", "description")
     readonly_fields = ("slug", "cover_preview_large")
     fieldsets = (
-        ("Book Information", {
-            "fields": ("title", "author", "slug", "description")
-        }),
-        ("Cover Image", {
-            "fields": ("cover_preview_large", "cover_image"),
-        }),
-        ("Links", {
-            "fields": ("purchase_link",)
-        }),
-        ("Episode", {
-            "fields": ("episode",)
-        }),
+        ("Book Information", {"fields": ("title", "author", "slug", "description")}),
+        (
+            "Cover Image",
+            {
+                "fields": ("cover_preview_large", "cover_image"),
+            },
+        ),
+        ("Links", {"fields": ("purchase_link",)}),
+        ("Episode", {"fields": ("episode",)}),
     )
 
     def episode_brand(self, obj):
         if obj.episode and obj.episode.brand:
             return obj.episode.brand.name
         return "-"
+
     episode_brand.short_description = "Show"
 
     def cover_preview_small(self, obj):
@@ -216,9 +192,10 @@ class BookAdmin(admin.ModelAdmin):
         if obj.cover_image:
             return format_html(
                 '<img src="{}" style="max-height: 50px; max-width: 40px;" />',
-                obj.cover_image.url
+                obj.cover_image.url,
             )
         return "-"
+
     cover_preview_small.short_description = "Cover"
 
     def cover_preview_large(self, obj):
@@ -226,9 +203,10 @@ class BookAdmin(admin.ModelAdmin):
         if obj.cover_image:
             return format_html(
                 '<img src="{}" style="max-height: 200px; max-width: 150px; border: 1px solid #ddd; padding: 4px;" />',
-                obj.cover_image.url
+                obj.cover_image.url,
             )
-        return format_html('<em>No cover image</em>')
+        return format_html("<em>No cover image</em>")
+
     cover_preview_large.short_description = "Current Cover"
 
     actions = ["fetch_and_download_covers"]
@@ -257,10 +235,14 @@ class BookAdmin(admin.ModelAdmin):
 
             # Then download and save locally
             try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=".jpg"
+                ) as tmp_file:
                     req = urllib.request.Request(
                         cover_url,
-                        headers={"User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"}
+                        headers={
+                            "User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"
+                        },
                     )
                     with urllib.request.urlopen(req, timeout=30) as response:
                         tmp_file.write(response.read())
@@ -277,8 +259,7 @@ class BookAdmin(admin.ModelAdmin):
                 failed += 1
 
         self.message_user(
-            request,
-            f"Downloaded {downloaded} cover(s). {failed} failed or skipped."
+            request, f"Downloaded {downloaded} cover(s). {failed} failed or skipped."
         )
 
 
@@ -295,32 +276,36 @@ def extraction_evaluation_view(request):
 
     books = (
         Book.objects.select_related("episode", "episode__brand")
-        .prefetch_related("episode__raw_data")
         .order_by("-episode__aired_at", "-episode__id")[:200]
     )
 
     rows = []
     for book in books:
         episode = book.episode
-        raw = getattr(episode, "raw_data", None)
-        if raw and raw.scraped_data:
-            input_text = (raw.scraped_data.get("title") or "") + ". " + (raw.scraped_data.get("description") or "")
+        if episode.scraped_data:
+            input_text = (
+                (episode.scraped_data.get("title") or "")
+                + ". "
+                + (episode.scraped_data.get("description") or "")
+            )
             input_text = (input_text.strip() or episode.title or "")[:500]
         else:
             input_text = (episode.title or "")[:500]
 
         reasoning = ""
-        if raw and raw.extraction_result:
-            reasoning = (raw.extraction_result.get("reasoning") or "")[:500]
+        if episode.extraction_result:
+            reasoning = (episode.extraction_result.get("reasoning") or "")[:500]
 
         verify_url = episode.url or "#"
-        rows.append({
-            "book": book,
-            "episode_title": episode.title,
-            "input_to_ai": input_text,
-            "reasoning": reasoning,
-            "verify_url": verify_url,
-        })
+        rows.append(
+            {
+                "book": book,
+                "episode_title": episode.title,
+                "input_to_ai": input_text,
+                "reasoning": reasoning,
+                "verify_url": verify_url,
+            }
+        )
 
     context = {
         "title": "Extraction Evaluation",

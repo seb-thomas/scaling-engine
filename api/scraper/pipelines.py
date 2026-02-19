@@ -8,7 +8,7 @@ import logging
 from django.db import IntegrityError, DatabaseError
 from django.core.exceptions import ValidationError
 from scrapy.exceptions import DropItem
-from stations.models import RawEpisodeData
+from stations.models import Episode
 
 logger = logging.getLogger(__name__)
 
@@ -36,20 +36,12 @@ class SaveToDbPipeline:
                 episode_url = item.get("url", "")
                 raw_data = spider._raw_data_cache.pop(episode_url, None)
 
-            # Save raw data to RawEpisodeData if available
+            # Store snapshot and status on Episode
             if raw_data and episode:
-                # Create or update RawEpisodeData
-                raw_episode_data, created = RawEpisodeData.objects.get_or_create(
-                    episode=episode, defaults={"scraped_data": raw_data}
-                )
-                if not created:
-                    # Update existing raw data
-                    raw_episode_data.scraped_data = raw_data
-                    raw_episode_data.processed = False
-                    raw_episode_data.save()
-                    logger.info(f"Updated raw data for episode: {item['title']}")
-                else:
-                    logger.info(f"Created raw data for episode: {item['title']}")
+                episode.scraped_data = raw_data
+                episode.status = Episode.STATUS_SCRAPED
+                episode.save(update_fields=["scraped_data", "status"])
+                logger.info(f"Saved scraped_data for episode: {item['title']}")
 
         except IntegrityError as e:
             # Duplicate entry (URL already exists) - this is expected, just skip

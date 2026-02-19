@@ -5,7 +5,7 @@ from django.db import DatabaseError
 from datetime import datetime
 from .utils import contains_keywords
 from .ai_utils import extract_books_from_episode, get_book_extractor
-from .models import Brand, Episode, RawEpisodeData
+from .models import Brand, Episode
 
 logger = get_task_logger(__name__)
 
@@ -46,6 +46,12 @@ def ai_extract_books_task(self, episode_id):
     """
     logger.info(f"AI extracting books for episode {episode_id}")
     try:
+        episode = Episode.objects.get(pk=episode_id)
+        episode.status = Episode.STATUS_PROCESSING
+        episode.task_id = self.request.id
+        episode.last_error = None
+        episode.save(update_fields=["status", "task_id", "last_error"])
+
         result = extract_books_from_episode(episode_id)
         logger.info(
             f"AI extraction complete for episode {episode_id}: "
@@ -111,32 +117,25 @@ def extract_books_from_new_episodes():
     """
     logger.info("Starting AI extraction for new episodes")
 
-    # Find episodes that haven't been processed (no related books)
-    episodes = Episode.objects.filter(book__isnull=True)[
-        :50
-    ]  # Process in batches of 50
+    # Find episodes with status=SCRAPED (not yet processed)
+    episodes = Episode.objects.filter(status=Episode.STATUS_SCRAPED)[:50]
 
     if not episodes.exists():
         logger.info("No new episodes to process")
         return {"status": "no_new_episodes", "processed": 0}
 
     processed = 0
-    books_found = 0
 
     for episode in episodes:
-        logger.info(f"Processing episode: {episode.title} (ID: {episode.id})")
+        logger.info(f"Queuing episode: {episode.title} (ID: {episode.id})")
         try:
-            # Trigger AI extraction task
-            result = ai_extract_books_task.delay(episode.id)
+            episode.status = Episode.STATUS_QUEUED
+            episode.last_error = None
+            episode.save(update_fields=["status", "last_error"])
+            ai_extract_books_task.delay(episode.id)
             processed += 1
-
-            # Note: We can't check the result here since it's async
-            # The task will handle saving books to the database
-
         except Exception as e:
             logger.error(f"Error triggering extraction for episode {episode.id}: {e}")
 
     logger.info(f"Triggered AI extraction for {processed} episodes")
     return {"status": "complete", "episodes_processed": processed}
-
-

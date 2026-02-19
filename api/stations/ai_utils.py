@@ -31,15 +31,17 @@ def _parse_date(date_text: str) -> Optional[datetime]:
         return None
 
     # Clean the date text
-    clean_date = date_text.split(",")[-1].strip() if "," in date_text else date_text.strip()
+    clean_date = (
+        date_text.split(",")[-1].strip() if "," in date_text else date_text.strip()
+    )
     clean_date = clean_date.split("·")[0].strip() if "·" in clean_date else clean_date
 
     # Try common BBC date formats
     date_formats = [
-        "%d %b %Y",      # "24 Nov 2025"
-        "%d %B %Y",      # "24 November 2025"
-        "%Y-%m-%d",      # "2025-11-24"
-        "%d/%m/%Y",      # "24/11/2025"
+        "%d %b %Y",  # "24 Nov 2025"
+        "%d %B %Y",  # "24 November 2025"
+        "%Y-%m-%d",  # "2025-11-24"
+        "%d/%m/%Y",  # "24/11/2025"
     ]
 
     for fmt in date_formats:
@@ -205,7 +207,7 @@ def download_and_save_cover(book, cover_url: str) -> bool:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
             request = urllib.request.Request(
                 cover_url,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"}
+                headers={"User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"},
             )
             with urllib.request.urlopen(request, timeout=30) as response:
                 tmp_file.write(response.read())
@@ -236,151 +238,119 @@ def get_book_extractor() -> BookExtractor:
     return _extractor
 
 
+def _set_episode_failed(episode, error: Exception) -> None:
+    """Set episode status to FAILED and store short error message."""
+    from .models import Episode
+
+    short = (str(error)[:200]) if str(error) else "Extraction error"
+    episode.status = Episode.STATUS_FAILED
+    episode.last_error = short
+    episode.save(update_fields=["status", "last_error"])
+
+
 def extract_books_from_episode(episode_id: int) -> Dict:
     """
     Extract book information from an episode using AI.
 
-    Args:
-        episode_id: Episode primary key
-
-    Returns:
-        Dict with extraction results
+    Reads from episode.scraped_data, writes extraction_result and status to Episode.
+    Replaces all books for the episode (delete then create). Sets PROCESSED or FAILED.
     """
-    from .models import Episode
+    from django.utils import timezone
+
+    from .models import Book, Episode
 
     try:
         episode = Episode.objects.get(pk=episode_id)
-        extractor = get_book_extractor()
-
-        if not extractor.is_available():
-            logger.warning("AI extraction not available. Please set ANTHROPIC_API_KEY.")
-            return {"has_book": False, "books": [], "reasoning": "API not configured"}
-
-        # Extract from raw_data if available, otherwise fall back to title
-        text_to_analyze = episode.title
-        if hasattr(episode, "raw_data") and episode.raw_data:
-            # Combine title and description from raw_data for better context
-            scraped_data = episode.raw_data.scraped_data
-            raw_title = scraped_data.get("title", episode.title)
-            raw_description = scraped_data.get("description", "")
-            text_to_analyze = f"{raw_title}. {raw_description}".strip()
-
-            # Parse and update aired_at date if not already set
-            if not episode.aired_at:
-                date_text = scraped_data.get("date_text")
-                if date_text:
-                    parsed_date = _parse_date(date_text)
-                    if parsed_date:
-                        episode.aired_at = parsed_date
-                        episode.save(update_fields=["aired_at"])
-                        logger.info(f"Parsed aired_at date for episode {episode_id}: {parsed_date}")
-
-        result = extractor.extract_books(text_to_analyze)
-
-        # Persist extraction result for evaluation (reasoning, books list)
-        if hasattr(episode, "raw_data") and episode.raw_data:
-            episode.raw_data.extraction_result = {
-                "has_book": result.get("has_book", False),
-                "reasoning": result.get("reasoning", ""),
-                "books": result.get("books", []),
-            }
-            episode.raw_data.save(update_fields=["extraction_result"])
-
-        # Update episode and save books if found
-        if result["has_book"]:
-            if not episode.has_book:
-                episode.has_book = True
-                episode.save(update_fields=["has_book"])
-                logger.info(f"Episode {episode_id} marked as has_book=True by AI")
-
-            # Save extracted books to database
-            from .models import Book
-            from .utils import fetch_book_cover, verify_book_exists
-
-            logger.info(
-                f"Processing {len(result.get('books', []))} potential books for episode {episode_id}"
-            )
-            for book_data in result.get("books", []):
-                book_title = book_data.get("title", "").strip()
-                book_author = book_data.get("author", "").strip()
-                
-                # Skip invalid titles
-                if not book_title or book_title.upper() in ["N/A", "NA", "UNKNOWN", "TBD", "TBA"]:
-                    logger.info(f"Skipping invalid book title: '{book_title}'")
-                    continue
-                
-                logger.info(f"Verifying book exists: '{book_title}' by '{book_author}'")
-                
-                # Verify the book exists in Open Library before creating
-                book_info = verify_book_exists(book_title, book_author)
-                
-                if not book_info["exists"]:
-                    logger.info(f"Book not found in Open Library, skipping: '{book_title}'")
-                    continue
-                
-                # Use canonical title/author from Open Library if available
-                verified_title = book_info.get("title") or book_title
-                verified_author = book_info.get("author") or book_author
-                
-                logger.info(f"Book verified: '{verified_title}' by '{verified_author}'")
-                
-                # Create or get book (avoid duplicates)
-                book, created = Book.objects.get_or_create(
-                    episode=episode,
-                    title=verified_title,
-                    defaults={
-                        "author": verified_author,
-                        "description": book_data.get("description", "").strip(),
-                    },
-                )
-
-                # Update author and description if book already existed
-                if not created:
-                    updated = False
-                    if verified_author and not book.author:
-                        book.author = verified_author
-                        updated = True
-                    if book_data.get("description") and not book.description:
-                        book.description = book_data.get("description", "").strip()
-                        updated = True
-                    if updated:
-                        book.save()
-
-                # Fetch and download cover image if not already set
-                if created and not book.cover_image:
-                    # Use cover_id from verification if available
-                    if book_info.get("cover_id"):
-                        cover_url = f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
-                    else:
-                        cover_url = fetch_book_cover(book.title, book.author)
-                    if cover_url:
-                        download_and_save_cover(book, cover_url)
-
-                # Generate purchase link if not already set
-                if created and not book.purchase_link:
-                    from .utils import generate_bookshop_affiliate_url
-
-                    purchase_url = generate_bookshop_affiliate_url(
-                        book.title, book.author
-                    )
-                    if purchase_url:
-                        book.purchase_link = purchase_url
-                        book.save(update_fields=["purchase_link"])
-
-        # Mark raw_data as processed
-        if hasattr(episode, "raw_data") and episode.raw_data:
-            from django.utils import timezone
-
-            episode.raw_data.processed = True
-            episode.raw_data.processed_at = timezone.now()
-            episode.raw_data.save(update_fields=["processed", "processed_at"])
-            logger.info(f"Marked raw_data as processed for episode {episode_id}")
-
-        return result
-
     except Episode.DoesNotExist:
         logger.warning(f"Episode {episode_id} does not exist")
         return {"has_book": False, "books": [], "reasoning": "Episode not found"}
+
+    extractor = get_book_extractor()
+    if not extractor.is_available():
+        episode.status = Episode.STATUS_FAILED
+        episode.last_error = "API not configured"
+        episode.save(update_fields=["status", "last_error"])
+        return {"has_book": False, "books": [], "reasoning": "API not configured"}
+
+    # Text from scraped_data or fallback to title
+    text_to_analyze = episode.title
+    if episode.scraped_data:
+        raw_title = episode.scraped_data.get("title", episode.title)
+        raw_description = episode.scraped_data.get("description", "")
+        text_to_analyze = f"{raw_title}. {raw_description}".strip()
+
+    try:
+        result = extractor.extract_books(text_to_analyze)
     except Exception as e:
-        logger.exception(f"Error extracting books from episode {episode_id}: {e}")
-        return {"has_book": False, "books": [], "reasoning": f"Error: {str(e)}"}
+        _set_episode_failed(episode, e)
+        raise
+
+    try:
+        # Persist extraction result for evaluation
+        episode.extraction_result = {
+            "has_book": result.get("has_book", False),
+            "reasoning": result.get("reasoning", ""),
+            "books": result.get("books", []),
+        }
+
+        # Replace books: delete all for this episode, then create from result
+        Book.objects.filter(episode=episode).delete()
+
+        from .utils import (
+            fetch_book_cover,
+            generate_bookshop_affiliate_url,
+            verify_book_exists,
+        )
+
+        new_books = []
+        for book_data in result.get("books", []):
+            book_title = book_data.get("title", "").strip()
+            book_author = book_data.get("author", "").strip()
+            if not book_title or book_title.upper() in [
+                "N/A", "NA", "UNKNOWN", "TBD", "TBA",
+            ]:
+                continue
+            book_info = verify_book_exists(book_title, book_author)
+            if not book_info["exists"]:
+                continue
+            verified_title = book_info.get("title") or book_title
+            verified_author = book_info.get("author") or book_author
+            book = Book.objects.create(
+                episode=episode,
+                title=verified_title,
+                author=verified_author,
+                description=book_data.get("description", "").strip(),
+            )
+            new_books.append(book)
+            if book_info.get("cover_id"):
+                cover_url = f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
+            else:
+                cover_url = fetch_book_cover(book.title, book.author)
+            if cover_url:
+                download_and_save_cover(book, cover_url)
+            purchase_url = generate_bookshop_affiliate_url(book.title, book.author)
+            if purchase_url:
+                book.purchase_link = purchase_url
+                book.save(update_fields=["purchase_link"])
+
+        episode.has_book = len(new_books) > 0
+        if not episode.aired_at and episode.scraped_data:
+            date_text = episode.scraped_data.get("date_text")
+            if date_text:
+                parsed = _parse_date(date_text)
+                if parsed:
+                    episode.aired_at = parsed
+
+        episode.status = Episode.STATUS_PROCESSED
+        episode.processed_at = timezone.now()
+        episode.last_error = None
+        episode.save(
+            update_fields=[
+                "extraction_result", "has_book", "aired_at",
+                "status", "processed_at", "last_error",
+            ]
+        )
+        return result
+    except Exception as e:
+        _set_episode_failed(episode, e)
+        raise

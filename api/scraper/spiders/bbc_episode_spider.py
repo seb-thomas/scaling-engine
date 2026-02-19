@@ -233,7 +233,7 @@ class BbcEpisodeSpider(scrapy.Spider):
                     break
 
         # Build raw_data dictionary with all scraped information
-        # This will be stored in RawEpisodeData model by the pipeline
+        # Stored in Episode.scraped_data by the pipeline
         raw_data = {
             "title": item.get("title", ""),
             "url": item.get("url", ""),
