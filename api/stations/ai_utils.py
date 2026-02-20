@@ -132,12 +132,17 @@ Confidence 0.0-1.0 (0.8+ for clear mentions). Return ONLY valid JSON, no additio
             try:
                 message = self.client.messages.create(
                     model="claude-sonnet-4-6",  # Reliable instruction-following
-                    max_tokens=512,
+                    max_tokens=1024,
                     messages=[{"role": "user", "content": prompt}],
                 )
 
                 # Extract text from response
                 response_text = message.content[0].text.strip()
+
+                # Strip markdown code fences if present
+                if response_text.startswith("```"):
+                    response_text = response_text.split("\n", 1)[1]
+                    response_text = response_text.rsplit("```", 1)[0].strip()
 
                 # Parse JSON response
                 result = json.loads(response_text)
