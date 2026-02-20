@@ -119,6 +119,7 @@ jobs:
             export ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY }}"
             export DEBUG_IP_ADDRESS="${{ secrets.DEBUG_IP_ADDRESS }}"
             export DEBUG_MODE="${{ secrets.DEBUG_MODE }}"
+            export GOOGLE_BOOKS_API_KEY="${{ secrets.GOOGLE_BOOKS_API_KEY }}"
 
             # Determine docker-compose command
             if command -v docker-compose &> /dev/null; then
@@ -186,6 +187,11 @@ jobs:
             # Add ANTHROPIC_API_KEY if provided
             if [ -n "${ANTHROPIC_API_KEY}" ]; then
               echo "ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}" >> .env.prod
+            fi
+
+            # Add GOOGLE_BOOKS_API_KEY if provided (tokenised cover URLs)
+            if [ -n "${GOOGLE_BOOKS_API_KEY:-}" ]; then
+              echo "GOOGLE_BOOKS_API_KEY=${GOOGLE_BOOKS_API_KEY}" >> .env.prod
             fi
 
             # Add DEBUG_IP_ADDRESS if provided (for IP-based debug access)

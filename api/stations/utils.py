@@ -1,4 +1,5 @@
 import json
+import os
 import urllib.request
 import urllib.parse
 from celery.utils.log import get_task_logger
@@ -36,12 +37,26 @@ def contains_keywords(episode_id):
         raise  # Re-raise to trigger Celery retry
 
 
+def _gb_api_key():
+    return os.environ.get("GOOGLE_BOOKS_API_KEY", "")
+
+
+def _gb_request(url):
+    """Make a request to Google Books API."""
+    req = urllib.request.Request(
+        url, headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
+    )
+    with urllib.request.urlopen(req, timeout=10) as resp:
+        return json.loads(resp.read().decode())
+
+
 def verify_book_exists(title: str, author: str = "") -> dict:
     """
     Look up a book via Google Books API and return metadata.
 
     Used for enrichment (canonical title/author, cover, ISBN), not as a gate.
-    Free, no API key required.
+    With an API key, fetches volume detail to get tokenised cover URLs
+    that work from server IPs.
 
     Returns:
         dict with keys:
@@ -52,16 +67,15 @@ def verify_book_exists(title: str, author: str = "") -> dict:
             - isbn: str or None
     """
     not_found = {"exists": False, "title": title, "author": author, "cover_url": None, "isbn": None}
+    api_key = _gb_api_key()
     try:
+        # Step 1: Search
         query = f"{title} {author}".strip() if author else title
         params = {"q": query, "maxResults": 1}
-        url = f"https://www.googleapis.com/books/v1/volumes?{urllib.parse.urlencode(params)}"
-
-        request = urllib.request.Request(
-            url, headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
-        )
-        with urllib.request.urlopen(request, timeout=10) as response:
-            data = json.loads(response.read().decode())
+        if api_key:
+            params["key"] = api_key
+        search_url = f"https://www.googleapis.com/books/v1/volumes?{urllib.parse.urlencode(params)}"
+        data = _gb_request(search_url)
 
         items = data.get("items")
         if not items:
@@ -72,21 +86,39 @@ def verify_book_exists(title: str, author: str = "") -> dict:
         gb_authors = info.get("authors", [])
         gb_author = gb_authors[0] if gb_authors else ""
 
-        # Cover image: prefer thumbnail, upgrade to larger size
-        cover_url = None
-        image_links = info.get("imageLinks", {})
-        if image_links.get("thumbnail"):
-            # Replace zoom=1 with zoom=2 for a larger image
-            cover_url = image_links["thumbnail"].replace("zoom=1", "zoom=2")
-
         # ISBN: prefer ISBN-13
         isbn = None
+        isbn_10 = None
         for ident in info.get("industryIdentifiers", []):
             if ident.get("type") == "ISBN_13":
                 isbn = ident.get("identifier")
-                break
-            if ident.get("type") == "ISBN_10" and not isbn:
-                isbn = ident.get("identifier")
+            elif ident.get("type") == "ISBN_10":
+                isbn_10 = ident.get("identifier")
+        isbn = isbn or isbn_10
+
+        # Step 2: Get cover URL via volume detail endpoint (tokenised URLs
+        # that work from server IPs). Falls back to search thumbnails.
+        cover_url = None
+        vol_id = items[0].get("id")
+        if api_key and vol_id:
+            try:
+                vol_url = f"https://www.googleapis.com/books/v1/volumes/{vol_id}?key={api_key}"
+                vol_data = _gb_request(vol_url)
+                vol_links = vol_data.get("volumeInfo", {}).get("imageLinks", {})
+                # Prefer medium (~575px wide), fall back through sizes
+                cover_url = (
+                    vol_links.get("medium")
+                    or vol_links.get("large")
+                    or vol_links.get("small")
+                    or vol_links.get("thumbnail")
+                )
+            except Exception as e:
+                logger.debug(f"Volume detail fetch failed for {vol_id}: {e}")
+
+        # Fallback: use search thumbnail (may 403 from server IPs)
+        if not cover_url:
+            image_links = info.get("imageLinks", {})
+            cover_url = image_links.get("thumbnail")
 
         return {
             "exists": True,
