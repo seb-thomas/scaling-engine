@@ -131,7 +131,7 @@ Confidence 0.0-1.0 (0.8+ for clear mentions). Return ONLY valid JSON, no additio
         for attempt in range(max_retries + 1):
             try:
                 message = self.client.messages.create(
-                    model="claude-3-haiku-20240307",  # Fast and cost-effective
+                    model="claude-sonnet-4-6",  # Reliable instruction-following
                     max_tokens=512,
                     messages=[{"role": "user", "content": prompt}],
                 )
