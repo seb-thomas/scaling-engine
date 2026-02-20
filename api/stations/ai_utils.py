@@ -103,6 +103,7 @@ Episode text: "{text}"
 
 Rules:
 - Do not infer from author names alone. "Tom Stoppard" or "Anne Brontë biographer" without a book discussion = no extraction.
+- Every extracted book MUST have an identified author. If the text does not name the author, do not extract the book. Never use "Unknown", "N/A", "Various" etc. as author — either provide the real name or skip the book.
 - Require author + book title, OR explicit book-type words: "book", "novel", "short story collection", "autobiography", "memoir".
 - "Thriller" or "comedy" alone = often TV/film, not books. We describe books as "thrilling" or "hilarious". Do not extract titles that could be film/TV unless there is author + book signal (e.g. "the contemporary thriller Lurker" = TV show, NOT a book).
 - Exclude when context is adaptation, play, or musical. Signals: adaptation, adapted, film, movie, director, theatre, stage, screen, play, musical, transformed into, starring, choreographer, BBC adaptation, RSC production, West End. "Play" = theatre, not a book. "Musical based on [book]" = segment is about the musical, not the book.
@@ -315,18 +316,47 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 "N/A", "NA", "UNKNOWN", "TBD", "TBA",
             ]:
                 continue
-            book_info = verify_book_exists(book_title, book_author)
-            if not book_info["exists"]:
+            # Skip books without a real author
+            if not book_author or book_author.upper() in [
+                "N/A", "NA", "UNKNOWN", "TBD", "TBA", "VARIOUS",
+            ]:
+                logger.info(
+                    f"Skipping '{book_title}': no author identified"
+                )
                 continue
-            verified_title = book_info.get("title") or book_title
-            verified_author = book_info.get("author") or book_author
+
+            # Look up in Open Library for metadata/cover (not as a gate)
+            book_info = verify_book_exists(book_title, book_author)
+
+            # Sanity check: if Open Library returned a completely different
+            # book, ignore its metadata and use the AI's values
+            if book_info["exists"]:
+                ol_title = (book_info.get("title") or "").lower()
+                ai_title = book_title.lower()
+                # Check if titles share meaningful words
+                ai_words = set(ai_title.split()) - {"the", "a", "an", "of", "and", "in", "on", "for", "to"}
+                ol_words = set(ol_title.split()) - {"the", "a", "an", "of", "and", "in", "on", "for", "to"}
+                if not ai_words & ol_words:
+                    logger.warning(
+                        f"Open Library mismatch: searched '{book_title}', "
+                        f"got '{book_info.get('title')}'. Using AI values."
+                    )
+                    book_info = {"exists": False}
+
+            use_title = book_title
+            use_author = book_author
+            if book_info["exists"]:
+                use_title = book_info.get("title") or book_title
+                use_author = book_info.get("author") or book_author
+
             book = Book.objects.create(
                 episode=episode,
-                title=verified_title,
-                author=verified_author,
+                title=use_title,
+                author=use_author,
                 description=book_data.get("description", "").strip(),
             )
             new_books.append(book)
+            cover_url = None
             if book_info.get("cover_id"):
                 cover_url = f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
             else:
