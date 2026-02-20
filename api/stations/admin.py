@@ -1,5 +1,7 @@
+import json
+
 from django.contrib import admin
-from django.utils.html import format_html
+from django.utils.html import format_html, escape
 from django.urls import reverse, path
 from django.shortcuts import redirect, render
 from django.contrib import messages
@@ -14,10 +16,17 @@ class BookInline(admin.TabularInline):
 
     model = Book
     extra = 0
-    fields = ("title", "author", "description")
-    readonly_fields = ("title", "author", "description")
+    fields = ("title", "author", "description", "view_link")
+    readonly_fields = ("title", "author", "description", "view_link")
     can_delete = False
-    show_change_link = True
+
+    def view_link(self, obj):
+        if obj.pk:
+            url = reverse("admin:stations_book_change", args=[obj.pk])
+            return format_html('<a href="{}">View</a>', url)
+        return "-"
+
+    view_link.short_description = "Edit"
 
     def has_add_permission(self, request, obj=None):
         return False
@@ -41,9 +50,8 @@ class EpisodeAdmin(admin.ModelAdmin):
         "status",
         "processed_at",
         "last_error",
-        "scraped_data_preview",
-        "extraction_result_preview",
-        "book_links_readonly",
+        "scraped_data_formatted",
+        "extraction_result_formatted",
     )
     date_hierarchy = "aired_at"
     inlines = [BookInline]
@@ -61,12 +69,11 @@ class EpisodeAdmin(admin.ModelAdmin):
                     "status",
                     "processed_at",
                     "last_error",
-                    "scraped_data_preview",
-                    "extraction_result_preview",
+                    "scraped_data_formatted",
+                    "extraction_result_formatted",
                 ),
             },
         ),
-        ("Related Data", {"fields": ("book_links_readonly",)}),
     )
 
     def book_count(self, obj):
@@ -82,35 +89,28 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     status_display.short_description = "Status"
 
-    def scraped_data_preview(self, obj):
-        """Preview of scraped description from episode.scraped_data"""
-        if not obj.scraped_data:
-            return "-"
-        desc = (obj.scraped_data.get("description") or "")[:200]
-        return desc + ("..." if len(obj.scraped_data.get("description") or "") > 200 else "")
+    def _json_block(self, data):
+        """Render a JSON dict as a formatted, readable block."""
+        if not data:
+            return format_html("<em>-</em>")
+        formatted = json.dumps(data, indent=2, ensure_ascii=False)
+        return format_html(
+            '<pre style="white-space: pre-wrap; word-break: break-word; '
+            'max-width: 800px; background: #f8f8f8; padding: 10px; '
+            'border: 1px solid #ddd; border-radius: 4px; font-size: 12px; '
+            'line-height: 1.5;">{}</pre>',
+            formatted,
+        )
 
-    scraped_data_preview.short_description = "Scraped description"
+    def scraped_data_formatted(self, obj):
+        return self._json_block(obj.scraped_data)
 
-    def extraction_result_preview(self, obj):
-        """Preview of extraction reasoning"""
-        if not obj.extraction_result:
-            return "-"
-        return (obj.extraction_result.get("reasoning") or "")[:500]
+    scraped_data_formatted.short_description = "Scraped data"
 
-    extraction_result_preview.short_description = "Extraction reasoning"
+    def extraction_result_formatted(self, obj):
+        return self._json_block(obj.extraction_result)
 
-    def book_links_readonly(self, obj):
-        """Display links to related books (readonly)"""
-        books = obj.book_set.all()
-        if not books:
-            return format_html("<em>No books detected</em>")
-        links = []
-        for book in books:
-            url = reverse("admin:stations_book_change", args=[book.pk])
-            links.append(f'<a href="{url}" target="_blank">{book.title}</a>')
-        return format_html("<br>".join(links))
-
-    book_links_readonly.short_description = "Books"
+    extraction_result_formatted.short_description = "Extraction result"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -120,8 +120,20 @@ class EpisodeAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.reprocess_episode),
                 name="stations_episode_reprocess",
             ),
+            path(
+                "<int:episode_id>/status/",
+                self.admin_site.admin_view(self.episode_status_json),
+                name="stations_episode_status",
+            ),
         ]
         return custom_urls + urls
+
+    def episode_status_json(self, request, episode_id):
+        """Return episode status as JSON for polling."""
+        from django.http import JsonResponse
+
+        episode = Episode.objects.get(pk=episode_id)
+        return JsonResponse({"status": episode.status})
 
     def reprocess_episode(self, request, episode_id):
         """Reprocess a single episode: set QUEUED and enqueue AI extraction."""
@@ -133,12 +145,14 @@ class EpisodeAdmin(admin.ModelAdmin):
         episode.save(update_fields=["status", "last_error"])
         ai_extract_books_task.delay(episode_id)
 
-        msg = "Queued extraction for 1 episode."
-        flower_url = getattr(django_settings, "FLOWER_URL", "") or ""
-        if flower_url:
-            msg = format_html('{} <a href="{}" target="_blank">Open Flower</a>', msg, flower_url)
-        messages.success(request, msg)
-        return redirect("admin:stations_episode_change", episode_id)
+        messages.info(
+            request,
+            "Reprocessing started. This page will refresh automatically when done.",
+        )
+        return redirect(
+            reverse("admin:stations_episode_change", args=[episode_id])
+            + "?awaiting_reprocess=1"
+        )
 
     @admin.action(description="Reprocess (AI) selected episodes")
     def reprocess_episodes_action(self, request, queryset):
@@ -159,6 +173,10 @@ class EpisodeAdmin(admin.ModelAdmin):
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
         extra_context["show_reprocess_button"] = True
+        extra_context["awaiting_reprocess"] = "awaiting_reprocess" in request.GET
+        extra_context["status_url"] = reverse(
+            "admin:stations_episode_status", args=[object_id]
+        )
         return super().change_view(request, object_id, form_url, extra_context)
 
 
