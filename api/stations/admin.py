@@ -140,6 +140,14 @@ class EpisodeAdmin(admin.ModelAdmin):
         from .tasks import ai_extract_books_task
 
         episode = Episode.objects.get(pk=episode_id)
+
+        if episode.status in (Episode.STATUS_QUEUED, Episode.STATUS_PROCESSING):
+            messages.warning(request, "Already processing — please wait.")
+            return redirect(
+                reverse("admin:stations_episode_change", args=[episode_id])
+                + "?awaiting_reprocess=1"
+            )
+
         episode.status = Episode.STATUS_QUEUED
         episode.last_error = None
         episode.save(update_fields=["status", "last_error"])
