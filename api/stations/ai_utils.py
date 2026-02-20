@@ -303,7 +303,6 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         Book.objects.filter(episode=episode).delete()
 
         from .utils import (
-            fetch_book_cover,
             generate_bookshop_affiliate_url,
             verify_book_exists,
         )
@@ -325,20 +324,20 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 )
                 continue
 
-            # Look up in Open Library for metadata/cover (not as a gate)
+            # Look up in Google Books for metadata/cover (not as a gate)
             book_info = verify_book_exists(book_title, book_author)
 
-            # Sanity check: if Open Library returned a completely different
+            # Sanity check: if Google Books returned a completely different
             # book, ignore its metadata and use the AI's values
             if book_info["exists"]:
-                ol_title = (book_info.get("title") or "").lower()
+                gb_title = (book_info.get("title") or "").lower()
                 ai_title = book_title.lower()
-                # Check if titles share meaningful words
-                ai_words = set(ai_title.split()) - {"the", "a", "an", "of", "and", "in", "on", "for", "to"}
-                ol_words = set(ol_title.split()) - {"the", "a", "an", "of", "and", "in", "on", "for", "to"}
-                if not ai_words & ol_words:
+                stopwords = {"the", "a", "an", "of", "and", "in", "on", "for", "to"}
+                ai_words = set(ai_title.split()) - stopwords
+                gb_words = set(gb_title.split()) - stopwords
+                if ai_words and gb_words and not ai_words & gb_words:
                     logger.warning(
-                        f"Open Library mismatch: searched '{book_title}', "
+                        f"Google Books mismatch: searched '{book_title}', "
                         f"got '{book_info.get('title')}'. Using AI values."
                     )
                     book_info = {"exists": False}
@@ -356,11 +355,7 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 description=book_data.get("description", "").strip(),
             )
             new_books.append(book)
-            cover_url = None
-            if book_info.get("cover_id"):
-                cover_url = f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
-            else:
-                cover_url = fetch_book_cover(book.title, book.author)
+            cover_url = book_info.get("cover_url") or ""
             if cover_url:
                 download_and_save_cover(book, cover_url)
             purchase_url = generate_bookshop_affiliate_url(book.title, book.author)

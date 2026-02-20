@@ -38,94 +38,76 @@ def contains_keywords(episode_id):
 
 def verify_book_exists(title: str, author: str = "") -> dict:
     """
-    Verify a book exists in Open Library and return its metadata.
-    
-    Uses the Open Library Search API to check if a book exists.
-    See: https://openlibrary.org/dev/docs/api/covers
-    
+    Look up a book via Google Books API and return metadata.
+
+    Used for enrichment (canonical title/author, cover, ISBN), not as a gate.
+    Free, no API key required.
+
     Returns:
         dict with keys:
-            - exists: bool
-            - title: str (canonical title from Open Library)
-            - author: str (canonical author from Open Library)  
-            - cover_id: int or None (Open Library cover ID)
-            - isbn: str or None (ISBN if available)
+            - exists: bool (found a matching result)
+            - title: str
+            - author: str
+            - cover_url: str or None (direct image URL)
+            - isbn: str or None
     """
+    not_found = {"exists": False, "title": title, "author": author, "cover_url": None, "isbn": None}
     try:
-        # Search Open Library for the book
-        search_query = title
-        if author:
-            search_query = f"{title} {author}"
-        
-        search_url = "https://openlibrary.org/search.json"
-        params = {
-            "q": search_query,
-            "limit": 1,
-            "fields": "title,author_name,cover_i,isbn,first_publish_year"
-        }
-        
-        url_with_params = f"{search_url}?{urllib.parse.urlencode(params)}"
-        
+        query = f"{title} {author}".strip() if author else title
+        params = {"q": query, "maxResults": 1}
+        url = f"https://www.googleapis.com/books/v1/volumes?{urllib.parse.urlencode(params)}"
+
         request = urllib.request.Request(
-            url_with_params,
-            headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
+            url, headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
         )
-        
         with urllib.request.urlopen(request, timeout=10) as response:
             data = json.loads(response.read().decode())
-        
-        if data.get("docs") and len(data["docs"]) > 0:
-            book = data["docs"][0]
-            
-            # Get author name (it's a list in the API)
-            author_names = book.get("author_name", [])
-            canonical_author = author_names[0] if author_names else ""
-            
-            # Get ISBN (it's a list)
-            isbns = book.get("isbn", [])
-            isbn = isbns[0] if isbns else None
-            
-            return {
-                "exists": True,
-                "title": book.get("title", title),
-                "author": canonical_author,
-                "cover_id": book.get("cover_i"),
-                "isbn": isbn,
-                "first_publish_year": book.get("first_publish_year"),
-            }
-        
-        return {"exists": False, "title": title, "author": author, "cover_id": None, "isbn": None}
-        
+
+        items = data.get("items")
+        if not items:
+            return not_found
+
+        info = items[0].get("volumeInfo", {})
+        gb_title = info.get("title", "")
+        gb_authors = info.get("authors", [])
+        gb_author = gb_authors[0] if gb_authors else ""
+
+        # Cover image: prefer thumbnail, upgrade to larger size
+        cover_url = None
+        image_links = info.get("imageLinks", {})
+        if image_links.get("thumbnail"):
+            # Replace zoom=1 with zoom=2 for a larger image
+            cover_url = image_links["thumbnail"].replace("zoom=1", "zoom=2")
+
+        # ISBN: prefer ISBN-13
+        isbn = None
+        for ident in info.get("industryIdentifiers", []):
+            if ident.get("type") == "ISBN_13":
+                isbn = ident.get("identifier")
+                break
+            if ident.get("type") == "ISBN_10" and not isbn:
+                isbn = ident.get("identifier")
+
+        return {
+            "exists": True,
+            "title": gb_title,
+            "author": gb_author,
+            "cover_url": cover_url,
+            "isbn": isbn,
+        }
     except Exception as e:
-        logger.warning(f"Failed to verify book '{title}': {e}")
-        return {"exists": False, "title": title, "author": author, "cover_id": None, "isbn": None}
+        logger.warning(f"Google Books lookup failed for '{title}': {e}")
+        return not_found
 
 
 def fetch_book_cover(title: str, author: str = "") -> str:
     """
-    Fetch book cover image URL from Open Library API.
-    
-    Uses the Open Library Covers API:
-    https://openlibrary.org/dev/docs/api/covers
-    
+    Fetch book cover image URL via Google Books API.
     Returns empty string if no cover found.
     """
     try:
-        # First verify the book exists and get its cover_id
         book_info = verify_book_exists(title, author)
-        
-        if not book_info["exists"]:
-            return ""
-        
-        # Use cover_id if available (most reliable)
-        if book_info["cover_id"]:
-            return f"https://covers.openlibrary.org/b/id/{book_info['cover_id']}-L.jpg"
-        
-        # Fallback to ISBN
-        if book_info["isbn"]:
-            return f"https://covers.openlibrary.org/b/isbn/{book_info['isbn']}-L.jpg"
-        
-        return ""
+        return book_info.get("cover_url") or ""
     except Exception as e:
         logger.warning(f"Failed to fetch cover for '{title}': {e}")
         return ""
