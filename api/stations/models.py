@@ -126,6 +126,8 @@ class Book(models.Model):
         help_text="Book cover image stored locally",
     )
     purchase_link = models.URLField(blank=True, default="")
+    ai_confidence = models.FloatField(null=True, blank=True)
+    google_books_verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from author + title if not provided

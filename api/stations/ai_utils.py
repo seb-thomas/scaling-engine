@@ -338,6 +338,8 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 title=use_title,
                 author=use_author,
                 description=book_data.get("description", "").strip(),
+                ai_confidence=book_data.get("confidence"),
+                google_books_verified=book_info["exists"],
             )
             new_books.append(book)
             cover_url = book_info.get("cover_url") or ""

@@ -190,12 +190,12 @@ class EpisodeAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "episode_brand", "cover_preview_small")
-    list_filter = ("episode__brand",)
+    list_display = ("title", "author", "episode_brand", "confidence_display", "cover_preview_small")
+    list_filter = ("episode__brand", "google_books_verified")
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large")
+    readonly_fields = ("slug", "cover_preview_large", "ai_confidence", "google_books_verified")
     fieldsets = (
-        ("Book Information", {"fields": ("title", "author", "slug", "description")}),
+        ("Book Information", {"fields": ("title", "author", "slug", "description", "ai_confidence", "google_books_verified")}),
         (
             "Cover Image",
             {
@@ -212,6 +212,20 @@ class BookAdmin(admin.ModelAdmin):
         return "-"
 
     episode_brand.short_description = "Show"
+
+    def confidence_display(self, obj):
+        """Show AI confidence + Google Books verification as a quick indicator."""
+        parts = []
+        if obj.ai_confidence is not None:
+            pct = int(obj.ai_confidence * 100)
+            parts.append(f"{pct}%")
+        if obj.google_books_verified:
+            parts.append("GB")
+        else:
+            parts.append("no GB")
+        return " / ".join(parts) if parts else "-"
+
+    confidence_display.short_description = "Confidence"
 
     def cover_preview_small(self, obj):
         """Small thumbnail for list view"""
