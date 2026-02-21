@@ -326,21 +326,24 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 )
                 continue
 
-            # Look up in Google Books for metadata/cover (not as a gate)
+            # Verify via Google Books — skip if not found (likely not a real book)
             book_info = verify_book_exists(book_title, book_author)
+            if not book_info["exists"]:
+                logger.info(
+                    f"Skipping '{book_title}' by {book_author}: "
+                    f"not found on Google Books"
+                )
+                continue
 
-            use_title = book_title
-            use_author = book_author
-            if book_info["exists"]:
-                use_title = book_info.get("title") or book_title
-                use_author = book_info.get("author") or book_author
+            use_title = book_info.get("title") or book_title
+            use_author = book_info.get("author") or book_author
 
             book = Book.objects.create(
                 episode=episode,
                 title=use_title,
                 author=use_author,
                 description=book_data.get("description", "").strip(),
-                google_books_verified=book_info["exists"],
+                google_books_verified=True,
             )
             new_books.append(book)
             cover_url = book_info.get("cover_url") or ""

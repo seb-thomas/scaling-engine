@@ -55,6 +55,7 @@ This guide explains how to deploy the Paperwaves BBC Radio scraping engine to pr
    - `SECRET_KEY` - Generate with `openssl rand -hex 50`
    - `SQL_PASSWORD` - Generate with `openssl rand -hex 20`
    - `ANTHROPIC_API_KEY` - Your Claude API key (optional)
+   - `GOOGLE_BOOKS_API_KEY` - Google Books API key (for book verification + covers)
 
 4. **Deploy**
    ```bash
@@ -255,6 +256,7 @@ Set `BOOK_EXTRACTION_MODE` in `.env.prod`:
 | `CELERY_BROKER_URL` | Redis broker URL | No | redis://redis:6379/0 |
 | `BOOK_EXTRACTION_MODE` | Book detection method | No | keyword |
 | `ANTHROPIC_API_KEY` | Claude API key | No (unless mode=ai) | - |
+| `GOOGLE_BOOKS_API_KEY` | Google Books API key (verification + covers) | No (degrades: no covers, no verification gate) | - |
 
 ## Monitoring & Maintenance
 
@@ -384,7 +386,7 @@ All commits must pass tests before merging to master.
 
 ## SSL / Certificate renewal (Let's Encrypt)
 
-The app uses Let's Encrypt certificates. Certs expire after 90 days. Renewal uses **webroot**: nginx serves `/.well-known/acme-challenge/` from a directory where certbot writes challenge files.
+The app uses Let's Encrypt certificates. Certs expire after 90 days. Renewal uses **webroot**: nginx serves `/.well-known/acme-challenge/` from a directory where certbot writes challenge files. (An AI agent can perform the one-time steps below via SSH when given access, e.g. using a local-only file such as `.server-access.local`; see [CLAUDE.md](CLAUDE.md) for agent instructions.)
 
 **On the server (one-time):**
 
