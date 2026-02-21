@@ -69,8 +69,11 @@ def verify_book_exists(title: str, author: str = "") -> dict:
     not_found = {"exists": False, "title": title, "author": author, "cover_url": None, "isbn": None}
     api_key = _gb_api_key()
     try:
-        # Step 1: Search
-        query = f"{title} {author}".strip() if author else title
+        # Step 1: Search using intitle/inauthor for precise matching
+        if author:
+            query = f"intitle:{title} inauthor:{author}"
+        else:
+            query = title
         params = {"q": query, "maxResults": 1}
         if api_key:
             params["key"] = api_key

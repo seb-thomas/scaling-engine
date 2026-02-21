@@ -327,21 +327,6 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             # Look up in Google Books for metadata/cover (not as a gate)
             book_info = verify_book_exists(book_title, book_author)
 
-            # Sanity check: if Google Books returned a completely different
-            # book, ignore its metadata and use the AI's values
-            if book_info["exists"]:
-                gb_title = (book_info.get("title") or "").lower()
-                ai_title = book_title.lower()
-                stopwords = {"the", "a", "an", "of", "and", "in", "on", "for", "to"}
-                ai_words = set(ai_title.split()) - stopwords
-                gb_words = set(gb_title.split()) - stopwords
-                if ai_words and gb_words and not ai_words & gb_words:
-                    logger.warning(
-                        f"Google Books mismatch: searched '{book_title}', "
-                        f"got '{book_info.get('title')}'. Using AI values."
-                    )
-                    book_info = {"exists": False}
-
             use_title = book_title
             use_author = book_author
             if book_info["exists"]:
