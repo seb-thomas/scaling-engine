@@ -116,18 +116,18 @@ EXCLUDE examples: "Anne Brontë biographer" (no book); "thriller Lurker" (TV sho
 Return JSON only:
 {{
     "has_book": true/false,
+    "confidence": 0.95,
     "books": [
         {{
             "title": "Book Title",
             "author": "Author Name",
-            "description": "A brief, engaging description of what the book is about",
-            "confidence": 0.95
+            "description": "A brief, engaging description of what the book is about"
         }}
     ],
     "reasoning": "Brief explanation of your decision"
 }}
 
-Confidence 0.0-1.0 (0.8+ for clear mentions). Return ONLY valid JSON, no additional text."""
+confidence is your overall confidence in the decision (0.0-1.0). 0.9+ = clear-cut, 0.7-0.9 = probable, <0.7 = uncertain. Return ONLY valid JSON, no additional text."""
 
         for attempt in range(max_retries + 1):
             try:
@@ -292,12 +292,14 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         raise
 
     try:
-        # Persist extraction result for evaluation
+        # Persist extraction result and overall confidence
         episode.extraction_result = {
             "has_book": result.get("has_book", False),
+            "confidence": result.get("confidence"),
             "reasoning": result.get("reasoning", ""),
             "books": result.get("books", []),
         }
+        episode.ai_confidence = result.get("confidence")
 
         # Replace books: delete all for this episode, then create from result
         Book.objects.filter(episode=episode).delete()
@@ -338,7 +340,6 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 title=use_title,
                 author=use_author,
                 description=book_data.get("description", "").strip(),
-                ai_confidence=book_data.get("confidence"),
                 google_books_verified=book_info["exists"],
             )
             new_books.append(book)
@@ -363,8 +364,8 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         episode.last_error = None
         episode.save(
             update_fields=[
-                "extraction_result", "has_book", "aired_at",
-                "status", "processed_at", "last_error",
+                "extraction_result", "ai_confidence", "has_book",
+                "aired_at", "status", "processed_at", "last_error",
             ]
         )
         return result

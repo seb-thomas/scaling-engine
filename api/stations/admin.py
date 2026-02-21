@@ -40,6 +40,7 @@ class EpisodeAdmin(admin.ModelAdmin):
         "aired_at",
         "has_book",
         "book_count",
+        "confidence_display",
         "status_display",
     )
     list_filter = ("has_book", "brand", "aired_at", "status")
@@ -48,6 +49,7 @@ class EpisodeAdmin(admin.ModelAdmin):
         "has_book",
         "slug",
         "status",
+        "ai_confidence",
         "processed_at",
         "last_error",
         "scraped_data_formatted",
@@ -67,6 +69,7 @@ class EpisodeAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "status",
+                    "ai_confidence",
                     "processed_at",
                     "last_error",
                     "scraped_data_formatted",
@@ -82,6 +85,23 @@ class EpisodeAdmin(admin.ModelAdmin):
         return f"{count} book{'s' if count != 1 else ''}" if count > 0 else "-"
 
     book_count.short_description = "Books"
+
+    def confidence_display(self, obj):
+        if obj.ai_confidence is None:
+            return "-"
+        pct = int(obj.ai_confidence * 100)
+        if pct >= 90:
+            color = "#28a745"
+        elif pct >= 70:
+            color = "#ffc107"
+        else:
+            color = "#dc3545"
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}%</span>',
+            color, pct,
+        )
+
+    confidence_display.short_description = "AI Conf."
 
     def status_display(self, obj):
         """Status chip for list view"""
@@ -190,12 +210,12 @@ class EpisodeAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "episode_brand", "confidence_display", "cover_preview_small")
+    list_display = ("title", "author", "episode_brand", "gb_status", "cover_preview_small")
     list_filter = ("episode__brand", "google_books_verified")
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "ai_confidence", "google_books_verified")
+    readonly_fields = ("slug", "cover_preview_large", "google_books_verified")
     fieldsets = (
-        ("Book Information", {"fields": ("title", "author", "slug", "description", "ai_confidence", "google_books_verified")}),
+        ("Book Information", {"fields": ("title", "author", "slug", "description", "google_books_verified")}),
         (
             "Cover Image",
             {
@@ -213,19 +233,12 @@ class BookAdmin(admin.ModelAdmin):
 
     episode_brand.short_description = "Show"
 
-    def confidence_display(self, obj):
-        """Show AI confidence + Google Books verification as a quick indicator."""
-        parts = []
-        if obj.ai_confidence is not None:
-            pct = int(obj.ai_confidence * 100)
-            parts.append(f"{pct}%")
+    def gb_status(self, obj):
         if obj.google_books_verified:
-            parts.append("GB")
-        else:
-            parts.append("no GB")
-        return " / ".join(parts) if parts else "-"
+            return format_html('<span style="color: #28a745;">Verified</span>')
+        return format_html('<span style="color: #999;">-</span>')
 
-    confidence_display.short_description = "Confidence"
+    gb_status.short_description = "Google Books"
 
     def cover_preview_small(self, obj):
         """Small thumbnail for list view"""

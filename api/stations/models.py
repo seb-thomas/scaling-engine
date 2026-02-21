@@ -79,6 +79,7 @@ class Episode(models.Model):
     last_error = models.TextField(blank=True, null=True)
     task_id = models.CharField(max_length=255, blank=True, null=True)
     extraction_result = models.JSONField(null=True, blank=True)
+    ai_confidence = models.FloatField(null=True, blank=True)
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from title if not provided
@@ -126,7 +127,6 @@ class Book(models.Model):
         help_text="Book cover image stored locally",
     )
     purchase_link = models.URLField(blank=True, default="")
-    ai_confidence = models.FloatField(null=True, blank=True)
     google_books_verified = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
