@@ -104,9 +104,11 @@ Episode text: "{text}"
 Rules:
 - Do not infer from author names alone. "Tom Stoppard" or "Anne Brontë biographer" without a book discussion = no extraction.
 - Every extracted book MUST have an identified author. If the text does not name the author, do not extract the book. Never use "Unknown", "N/A", "Various" etc. as author — either provide the real name or skip the book.
+- Exception: if the episode title uses "Reviewing [Title]" or similar review context, you may extract the title even without an explicit author — use your knowledge to supply the author if you recognise the work. A verification step will confirm.
 - Require author + book title, OR explicit book-type words: "book", "novel", "short story collection", "autobiography", "memoir".
 - "Thriller" or "comedy" alone = often TV/film, not books. We describe books as "thrilling" or "hilarious". Do not extract titles that could be film/TV unless there is author + book signal (e.g. "the contemporary thriller Lurker" = TV show, NOT a book).
 - Exclude when context is adaptation, play, or musical. Signals: adaptation, adapted, film, movie, director, theatre, stage, screen, play, musical, transformed into, starring, choreographer, BBC adaptation, RSC production, West End. "Play" = theatre, not a book. "Musical based on [book]" = segment is about the musical, not the book.
+- When a title appears in "Reviewing X" context (episode title), lean towards inclusion even if genre words like "drama" are ambiguous — reviewing is a strong book signal. If uncertain, include it and note the uncertainty in reasoning; a separate verification step will confirm whether it exists as a book.
 - Each book description must match the book title; do not mix descriptions between books.
 
 INCLUDE examples: "Mark Haddon's autobiography Leaving Home"; "Eric Schlosser's book Fast Food Nation... talks to the author"; "George Saunders' new book, Vigil"; prize announcements with author + book; "short story collection by Joy Williams"; "have read James Meek's book Your Life Without Me".
