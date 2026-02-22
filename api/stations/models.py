@@ -126,6 +126,7 @@ class Book(models.Model):
         null=True,
         help_text="Book cover image stored locally",
     )
+    cover_fetch_error = models.TextField(blank=True, default="")
     purchase_link = models.URLField(blank=True, default="")
     google_books_verified = models.BooleanField(default=False)
 

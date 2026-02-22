@@ -224,11 +224,15 @@ def download_and_save_cover(book, cover_url: str) -> bool:
             book.cover_image.save(filename, File(f), save=True)
 
         os.unlink(tmp_path)
+        book.cover_fetch_error = ""
+        book.save(update_fields=["cover_fetch_error"])
         logger.info(f"Downloaded and saved cover for '{book.title}'")
         return True
 
     except Exception as e:
         logger.error(f"Failed to download cover for '{book.title}': {e}")
+        book.cover_fetch_error = str(e)[:500]
+        book.save(update_fields=["cover_fetch_error"])
         return False
 
 
@@ -349,6 +353,9 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             cover_url = book_info.get("cover_url") or ""
             if cover_url:
                 download_and_save_cover(book, cover_url)
+            else:
+                book.cover_fetch_error = "No cover available on Google Books"
+                book.save(update_fields=["cover_fetch_error"])
             purchase_url = generate_bookshop_affiliate_url(book.title, book.author)
             if purchase_url:
                 book.purchase_link = purchase_url

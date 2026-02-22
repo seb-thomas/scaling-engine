@@ -46,7 +46,7 @@ This document describes the current system design after merging **RawEpisodeData
   - **Confidence**: `ai_confidence` (float 0.0–1.0) — AI's overall confidence in the extraction decision. Colour-coded in admin: green ≥90%, amber ≥70%, red <70%.
 - **Episode** → **Book** (1:N): Books are derived from extraction; reprocess replaces all books for that episode. Only books verified by Google Books API are created.
   - **Verification**: `google_books_verified` (bool) — always `True` for created books (unverified candidates are skipped).
-  - **Cover**: `cover_image` (ImageField) — downloaded from Google Books volume detail endpoint (tokenised URLs).
+  - **Cover**: `cover_image` (ImageField) — downloaded from Google Books volume detail endpoint (tokenised URLs). `cover_fetch_error` (text) — stores last download error or "No cover available on Google Books"; empty when cover is present. Admin shows error in list + detail view, with a "Refetch cover" button (single book) and bulk action.
   - **Purchase**: `purchase_link` — Bookshop.org affiliate link.
 
 Station, Brand, and Phrase are configuration/content; Episode and Book are the scraped and derived data.
@@ -199,7 +199,7 @@ Public REST API **must not** expose pipeline/debug fields. Episode serializer us
 | Tasks | `api/stations/tasks.py` | Status transitions; selector by `status=SCRAPED`; enqueue with `QUEUED`. |
 | Extraction | `api/stations/ai_utils.py` | Reads `scraped_data`; calls Claude; verifies via Google Books; replaces Books; sets `extraction_result`, `ai_confidence`, `PROCESSED`/`FAILED`. |
 | Verification | `api/stations/utils.py` | Google Books API: `intitle:`/`inauthor:` search, two-step cover lookup (search → volume detail for tokenised URLs), ISBN extraction. |
-| Admin | `api/stations/admin.py` | Episode list/change: status, confidence (colour-coded), previews, reprocess single/bulk; extraction evaluation view. |
+| Admin | `api/stations/admin.py` | Episode list/change: status, confidence (colour-coded), previews, reprocess single/bulk. Book list/change: cover error column, refetch cover button (single + bulk). Extraction evaluation view. |
 | Config | `api/paperwaves/settings.py` | `FLOWER_URL` (optional) for admin “Open Flower” link. |
 
 ## Verification philosophy

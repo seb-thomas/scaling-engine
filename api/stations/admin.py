@@ -210,16 +210,17 @@ class EpisodeAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "episode_brand", "gb_status", "cover_preview_small")
+    list_display = ("title", "author", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
     list_filter = ("episode__brand", "google_books_verified")
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "google_books_verified")
+    readonly_fields = ("slug", "cover_preview_large", "google_books_verified", "cover_fetch_error")
+    change_form_template = "admin/stations/book/change_form.html"
     fieldsets = (
         ("Book Information", {"fields": ("title", "author", "slug", "description", "google_books_verified")}),
         (
             "Cover Image",
             {
-                "fields": ("cover_preview_large", "cover_image"),
+                "fields": ("cover_preview_large", "cover_image", "cover_fetch_error"),
             },
         ),
         ("Links", {"fields": ("purchase_link",)}),
@@ -239,6 +240,16 @@ class BookAdmin(admin.ModelAdmin):
         return format_html('<span style="color: #999;">-</span>')
 
     gb_status.short_description = "Google Books"
+
+    def cover_error_short(self, obj):
+        if obj.cover_fetch_error:
+            truncated = obj.cover_fetch_error[:60]
+            if len(obj.cover_fetch_error) > 60:
+                truncated += "..."
+            return format_html('<span style="color: #dc3545;" title="{}">{}</span>', obj.cover_fetch_error, truncated)
+        return "-"
+
+    cover_error_short.short_description = "Cover Error"
 
     def cover_preview_small(self, obj):
         """Small thumbnail for list view"""
@@ -262,16 +273,46 @@ class BookAdmin(admin.ModelAdmin):
 
     cover_preview_large.short_description = "Current Cover"
 
-    actions = ["fetch_and_download_covers"]
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:book_id>/refetch-cover/",
+                self.admin_site.admin_view(self.refetch_cover),
+                name="stations_book_refetch_cover",
+            ),
+        ]
+        return custom_urls + urls
 
-    @admin.action(description="Fetch and download covers from Open Library")
-    def fetch_and_download_covers(self, request, queryset):
-        """Fetch cover images from Open Library and store locally"""
-        import tempfile
-        import urllib.request
-        import os
-        from django.core.files import File
-        from .utils import fetch_book_cover
+    def refetch_cover(self, request, book_id):
+        """Refetch cover for a single book via Google Books."""
+        from .utils import verify_book_exists
+        from .ai_utils import download_and_save_cover
+
+        book = Book.objects.get(pk=book_id)
+        book_info = verify_book_exists(book.title, book.author)
+        cover_url = book_info.get("cover_url") or ""
+
+        if cover_url:
+            success = download_and_save_cover(book, cover_url)
+            if success:
+                messages.success(request, f"Cover downloaded for '{book.title}'.")
+            else:
+                messages.error(request, f"Download failed: {book.cover_fetch_error}")
+        else:
+            book.cover_fetch_error = "No cover available on Google Books"
+            book.save(update_fields=["cover_fetch_error"])
+            messages.warning(request, "No cover available on Google Books.")
+
+        return redirect(reverse("admin:stations_book_change", args=[book_id]))
+
+    actions = ["refetch_covers"]
+
+    @admin.action(description="Refetch covers from Google Books")
+    def refetch_covers(self, request, queryset):
+        """Refetch cover images from Google Books for selected books."""
+        from .utils import verify_book_exists
+        from .ai_utils import download_and_save_cover
 
         downloaded = 0
         failed = 0
@@ -280,35 +321,18 @@ class BookAdmin(admin.ModelAdmin):
             if book.cover_image:
                 continue  # Skip if already has cover
 
-            # First fetch the URL from Open Library
-            cover_url = fetch_book_cover(book.title, book.author)
+            book_info = verify_book_exists(book.title, book.author)
+            cover_url = book_info.get("cover_url") or ""
+
             if not cover_url:
+                book.cover_fetch_error = "No cover available on Google Books"
+                book.save(update_fields=["cover_fetch_error"])
                 failed += 1
                 continue
 
-            # Then download and save locally
-            try:
-                with tempfile.NamedTemporaryFile(
-                    delete=False, suffix=".jpg"
-                ) as tmp_file:
-                    req = urllib.request.Request(
-                        cover_url,
-                        headers={
-                            "User-Agent": "Mozilla/5.0 (compatible; RadioReads/1.0)"
-                        },
-                    )
-                    with urllib.request.urlopen(req, timeout=30) as response:
-                        tmp_file.write(response.read())
-                        tmp_path = tmp_file.name
-
-                filename = f"{book.slug}.jpg"
-                with open(tmp_path, "rb") as f:
-                    book.cover_image.save(filename, File(f), save=True)
-
-                os.unlink(tmp_path)
+            if download_and_save_cover(book, cover_url):
                 downloaded += 1
-
-            except Exception as e:
+            else:
                 failed += 1
 
         self.message_user(
