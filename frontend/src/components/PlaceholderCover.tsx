@@ -7,18 +7,17 @@ interface PlaceholderCoverProps {
 
 const DEFAULT_TEXT_COLOR = '#c8553d'
 
-/** Truncate title at last word boundary to avoid orphaned letters */
-function truncateTitle(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text
-  const truncated = text.slice(0, maxChars)
-  const lastSpace = truncated.lastIndexOf(' ')
-  if (lastSpace < maxChars * 0.4) return truncated.trimEnd()
-  return truncated.slice(0, lastSpace).trimEnd()
+/** Scale font size down for longer titles so text fits without truncation */
+function titleFontSize(title: string): string {
+  const len = title.length
+  if (len <= 15) return 'clamp(0.6rem, 5cqi, 1.6rem)'
+  if (len <= 25) return 'clamp(0.5rem, 4cqi, 1.4rem)'
+  if (len <= 40) return 'clamp(0.45rem, 3.2cqi, 1.2rem)'
+  return 'clamp(0.4rem, 2.6cqi, 1rem)'
 }
 
 export function PlaceholderCover({ title, author, brandColor, className }: PlaceholderCoverProps) {
   const textColor = brandColor || DEFAULT_TEXT_COLOR
-  const displayTitle = truncateTitle(title, 30)
 
   return (
     <div
@@ -32,23 +31,29 @@ export function PlaceholderCover({ title, author, brandColor, className }: Place
       />
 
       {/* Title and author */}
-      <div className="flex-1 flex flex-col justify-center px-[12%] py-2 overflow-hidden">
+      <div className="flex-1 flex flex-col justify-center px-[10%] py-2 overflow-hidden">
         <h3
-          className="font-bold leading-[1.1] text-center break-words"
+          className="font-bold leading-[1.1] text-center"
           style={{
             fontFamily: "'EB Garamond', serif",
-            fontSize: 'clamp(0.55rem, 4.5cqi, 1.5rem)',
+            fontSize: titleFontSize(title),
             color: textColor,
+            overflowWrap: 'break-word',
+            hyphens: 'auto',
           }}
+          lang="en"
         >
-          {displayTitle}
+          {title}
         </h3>
         {author && (
           <p
-            className="text-neutral-400 text-center mt-[4%] break-words"
+            className="text-neutral-400 text-center mt-[4%]"
             style={{
-              fontSize: 'clamp(0.4rem, 2.5cqi, 0.75rem)',
+              fontSize: 'clamp(0.35rem, 2.2cqi, 0.7rem)',
+              overflowWrap: 'break-word',
+              hyphens: 'auto',
             }}
+            lang="en"
           >
             {author}
           </p>
