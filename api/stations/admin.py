@@ -38,12 +38,11 @@ class EpisodeAdmin(admin.ModelAdmin):
         "title",
         "brand",
         "aired_at",
-        "has_book",
         "book_count",
-        "confidence_display",
+        "needs_review_display",
         "status_display",
     )
-    list_filter = ("has_book", "brand", "aired_at", "status")
+    list_filter = ("brand", "aired_at", "status")
     search_fields = ("title", "url")
     readonly_fields = (
         "has_book",
@@ -86,22 +85,24 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     book_count.short_description = "Books"
 
-    def confidence_display(self, obj):
+    def needs_review_display(self, obj):
         if obj.ai_confidence is None:
             return "-"
-        pct = int(obj.ai_confidence * 100)
-        if pct >= 90:
-            color = "#28a745"
-        elif pct >= 70:
-            color = "#ffc107"
-        else:
-            color = "#dc3545"
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}%</span>',
-            color, pct,
-        )
+        if obj.needs_review:
+            # Build reason hint
+            reasons = []
+            if obj.ai_confidence < 0.9:
+                reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
+            if obj.book_set.filter(google_books_verified=False).exists():
+                reasons.append("unverified book")
+            hint = ", ".join(reasons)
+            return format_html(
+                '<span style="color: #dc3545; font-weight: bold;" title="{}">Review</span>',
+                hint,
+            )
+        return format_html('<span style="color: #28a745;">OK</span>')
 
-    confidence_display.short_description = "AI Conf."
+    needs_review_display.short_description = "Review"
 
     def status_display(self, obj):
         """Status chip for list view"""

@@ -81,6 +81,20 @@ class Episode(models.Model):
     extraction_result = models.JSONField(null=True, blank=True)
     ai_confidence = models.FloatField(null=True, blank=True)
 
+    @property
+    def needs_review(self):
+        """Single signal for whether this episode needs manual review."""
+        # Unprocessed episodes don't need review yet
+        if self.ai_confidence is None:
+            return False
+        # Low AI confidence (< 90%)
+        if self.ai_confidence < 0.9:
+            return True
+        # Any book unverified on Google Books
+        if self.book_set.filter(google_books_verified=False).exists():
+            return True
+        return False
+
     def save(self, *args, **kwargs):
         # Auto-generate slug from title if not provided
         if not self.slug and self.title:
