@@ -393,10 +393,12 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         episode.status = Episode.STATUS_PROCESSED
         episode.processed_at = timezone.now()
         episode.last_error = None
+        episode.review_status = episode.compute_review_status()
         episode.save(
             update_fields=[
                 "extraction_result", "ai_confidence", "has_book",
                 "aired_at", "status", "processed_at", "last_error",
+                "review_status",
             ]
         )
         return result

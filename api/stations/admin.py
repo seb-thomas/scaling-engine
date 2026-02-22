@@ -39,10 +39,11 @@ class EpisodeAdmin(admin.ModelAdmin):
         "brand",
         "aired_at",
         "book_count",
-        "needs_review_display",
+        "review_status",
         "status_display",
     )
-    list_filter = ("brand", "aired_at", "status")
+    list_filter = ("review_status", "brand", "aired_at", "status")
+    list_editable = ("review_status",)
     search_fields = ("title", "url")
     readonly_fields = (
         "has_book",
@@ -61,7 +62,7 @@ class EpisodeAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Episode Information",
-            {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book")},
+            {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book", "review_status")},
         ),
         (
             "Pipeline",
@@ -84,25 +85,6 @@ class EpisodeAdmin(admin.ModelAdmin):
         return f"{count} book{'s' if count != 1 else ''}" if count > 0 else "-"
 
     book_count.short_description = "Books"
-
-    def needs_review_display(self, obj):
-        if obj.ai_confidence is None:
-            return "-"
-        if obj.needs_review:
-            # Build reason hint
-            reasons = []
-            if obj.ai_confidence < 0.9:
-                reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
-            if obj.book_set.filter(google_books_verified=False).exists():
-                reasons.append("unverified book")
-            hint = ", ".join(reasons)
-            return format_html(
-                '<span style="color: #dc3545; font-weight: bold;" title="{}">Review</span>',
-                hint,
-            )
-        return format_html('<span style="color: #28a745;">OK</span>')
-
-    needs_review_display.short_description = "Review"
 
     def status_display(self, obj):
         """Status chip for list view"""

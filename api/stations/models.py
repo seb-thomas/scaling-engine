@@ -81,19 +81,31 @@ class Episode(models.Model):
     extraction_result = models.JSONField(null=True, blank=True)
     ai_confidence = models.FloatField(null=True, blank=True)
 
-    @property
-    def needs_review(self):
-        """Single signal for whether this episode needs manual review."""
-        # Unprocessed episodes don't need review yet
+    REVIEW_NOT_REQUIRED = "NOT_REQUIRED"
+    REVIEW_REQUIRED = "REQUIRED"
+    REVIEW_REVIEWED = "REVIEWED"
+    REVIEW_CHOICES = [
+        ("", "Unprocessed"),
+        (REVIEW_NOT_REQUIRED, "Not required"),
+        (REVIEW_REQUIRED, "Required"),
+        (REVIEW_REVIEWED, "Reviewed"),
+    ]
+    review_status = models.CharField(
+        max_length=20, choices=REVIEW_CHOICES, blank=True, default=""
+    )
+
+    def compute_review_status(self):
+        """Determine review status based on extraction signals.
+        Does not overwrite REVIEWED — only sets REQUIRED or NOT_REQUIRED."""
+        if self.review_status == self.REVIEW_REVIEWED:
+            return self.review_status
         if self.ai_confidence is None:
-            return False
-        # Low AI confidence (< 90%)
+            return ""
         if self.ai_confidence < 0.9:
-            return True
-        # Any book unverified on Google Books
+            return self.REVIEW_REQUIRED
         if self.book_set.filter(google_books_verified=False).exists():
-            return True
-        return False
+            return self.REVIEW_REQUIRED
+        return self.REVIEW_NOT_REQUIRED
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from title if not provided
