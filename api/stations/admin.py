@@ -1,5 +1,6 @@
 import json
 
+from django import forms
 from django.contrib import admin
 from django.utils.html import format_html, escape
 from django.urls import reverse, path
@@ -32,18 +33,32 @@ class BookInline(admin.TabularInline):
         return False
 
 
+class EpisodeAdminForm(forms.ModelForm):
+    class Meta:
+        model = Episode
+        fields = "__all__"
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "review_status" in self.fields:
+            self.fields["review_status"].choices = [
+                (Episode.REVIEW_REQUIRED, "Required"),
+                (Episode.REVIEW_REVIEWED, "Reviewed"),
+            ]
+
+
 @admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):
+    form = EpisodeAdminForm
     list_display = (
         "title",
         "brand",
         "aired_at",
         "book_count",
-        "review_status",
+        "review_status_display",
         "status_display",
     )
     list_filter = ("review_status", "brand", "aired_at", "status")
-    list_editable = ("review_status",)
     search_fields = ("title", "url")
     readonly_fields = (
         "has_book",
@@ -85,6 +100,27 @@ class EpisodeAdmin(admin.ModelAdmin):
         return f"{count} book{'s' if count != 1 else ''}" if count > 0 else "-"
 
     book_count.short_description = "Books"
+
+    def review_status_display(self, obj):
+        if obj.review_status == Episode.REVIEW_REQUIRED:
+            reasons = []
+            if obj.ai_confidence is not None and obj.ai_confidence < 0.9:
+                reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
+            if obj.book_set.filter(google_books_verified=False).exists():
+                reasons.append("unverified book")
+            hint = ", ".join(reasons) or "flagged"
+            return format_html(
+                '<span style="color: #dc3545; font-weight: bold;" title="{}">Review</span>',
+                hint,
+            )
+        if obj.review_status == Episode.REVIEW_REVIEWED:
+            return format_html('<span style="color: #0d6efd; font-weight: bold;">Reviewed</span>')
+        if obj.review_status == Episode.REVIEW_NOT_REQUIRED:
+            return format_html('<span style="color: #28a745;">OK</span>')
+        return "-"
+
+    review_status_display.short_description = "Review"
+    review_status_display.admin_order_field = "review_status"
 
     def status_display(self, obj):
         """Status chip for list view"""
