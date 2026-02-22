@@ -137,6 +137,30 @@ def verify_book_exists(title: str, author: str = "") -> dict:
         return not_found
 
 
+def _open_library_cover_url(title: str, author: str = "") -> str:
+    """
+    Look up a cover image via Open Library as a fallback.
+    Returns a direct image URL (L size) or empty string.
+    """
+    try:
+        params = {"title": title, "limit": 1}
+        if author:
+            params["author"] = author
+        url = f"https://openlibrary.org/search.json?{urllib.parse.urlencode(params)}"
+        req = urllib.request.Request(
+            url, headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            data = json.loads(resp.read().decode())
+        docs = data.get("docs", [])
+        if docs and docs[0].get("cover_i"):
+            cover_id = docs[0]["cover_i"]
+            return f"https://covers.openlibrary.org/b/id/{cover_id}-L.jpg"
+    except Exception as e:
+        logger.debug(f"Open Library cover lookup failed for '{title}': {e}")
+    return ""
+
+
 def fetch_book_cover(title: str, author: str = "") -> str:
     """
     Fetch book cover image URL via Google Books API.

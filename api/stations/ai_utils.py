@@ -9,6 +9,7 @@ import os
 import logging
 import json
 import tempfile
+import urllib.error
 import urllib.request
 from typing import Dict, List, Optional
 from datetime import datetime
@@ -228,6 +229,24 @@ def download_and_save_cover(book, cover_url: str) -> bool:
         book.save(update_fields=["cover_fetch_error"])
         logger.info(f"Downloaded and saved cover for '{book.title}'")
         return True
+
+    except urllib.error.HTTPError as e:
+        if e.code == 403 and "books.google.com" in cover_url:
+            # Google Books /books/content URLs 403 from datacenter IPs;
+            # try Open Library as fallback.
+            from .utils import _open_library_cover_url
+
+            ol_url = _open_library_cover_url(book.title, book.author)
+            if ol_url:
+                logger.info(f"Google Books 403 for '{book.title}', trying Open Library")
+                return download_and_save_cover(book, ol_url)
+            msg = "Cover blocked from this server (Google Books 403, no Open Library fallback)"
+        else:
+            msg = str(e)[:500]
+        logger.error(f"Failed to download cover for '{book.title}': {msg}")
+        book.cover_fetch_error = msg
+        book.save(update_fields=["cover_fetch_error"])
+        return False
 
     except Exception as e:
         logger.error(f"Failed to download cover for '{book.title}': {e}")
