@@ -17,6 +17,7 @@ export type Book = {
       id: number;
       name: string;
       slug: string;
+      brand_color?: string;
       station: {
         id: number;
         name: string;

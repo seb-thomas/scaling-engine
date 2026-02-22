@@ -28,15 +28,16 @@ export function BookCard({ book, featured = false }: BookCardProps) {
       >
         <article className="border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
           <div className="flex gap-6 mb-6">
-            {book.cover_image && (
-              <div className="flex-shrink-0 w-32">
+              <div className="flex-shrink-0 w-32" style={{ containerType: 'inline-size' }}>
                 <ImageWithFallback
                   src={book.cover_image}
                   alt={`Cover of ${book.title}`}
                   className="w-full h-auto shadow-lg"
+                  title={book.title}
+                  author={book.author}
+                  brandColor={book.episode.brand.brand_color}
                 />
               </div>
-            )}
             <div className="flex-1">
               <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
                 {book.episode.brand.name}
@@ -73,15 +74,16 @@ export function BookCard({ book, featured = false }: BookCardProps) {
       className="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4"
     >
       <article className="flex gap-4">
-        {book.cover_image && (
-          <div className="flex-shrink-0 w-16">
+          <div className="flex-shrink-0 w-16" style={{ containerType: 'inline-size' }}>
             <ImageWithFallback
               src={book.cover_image}
               alt={`Cover of ${book.title}`}
               className="w-full h-auto shadow"
+              title={book.title}
+              author={book.author}
+              brandColor={book.episode.brand.brand_color}
             />
           </div>
-        )}
         <div className="flex-1">
           <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2">
             {book.episode.brand.name}

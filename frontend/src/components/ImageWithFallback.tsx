@@ -1,25 +1,24 @@
 import { useState } from 'react'
+import { PlaceholderCover } from './PlaceholderCover'
 
 interface ImageWithFallbackProps {
   src?: string
   alt: string
   className?: string
+  title?: string
+  author?: string
+  brandColor?: string
 }
 
-export function ImageWithFallback({ src, alt, className }: ImageWithFallbackProps) {
-  const [imgSrc, setImgSrc] = useState(src)
+export function ImageWithFallback({ src, alt, className, title, author, brandColor }: ImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false)
 
-  const handleError = () => {
-    if (!hasError) {
-      setHasError(true)
-      setImgSrc('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="300"%3E%3Crect width="200" height="300" fill="%23e5e5e5"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" dy=".3em" fill="%23999" font-family="sans-serif" font-size="14"%3ENo Cover%3C/text%3E%3C/svg%3E')
+  if (!src || hasError) {
+    if (title) {
+      return <PlaceholderCover title={title} author={author} brandColor={brandColor} className={className} />
     }
-  }
-
-  if (!imgSrc) {
     return (
-      <div className={`bg-gray-200 dark:bg-gray-800 flex items-center justify-center ${className}`}>
+      <div className={`bg-gray-200 dark:bg-gray-800 flex items-center justify-center ${className}`} style={{ aspectRatio: '2 / 3' }}>
         <span className="text-gray-400 text-sm">No Cover</span>
       </div>
     )
@@ -27,12 +26,11 @@ export function ImageWithFallback({ src, alt, className }: ImageWithFallbackProp
 
   return (
     <img
-      src={imgSrc}
+      src={src}
       alt={alt}
       className={className}
-      onError={handleError}
+      onError={() => setHasError(true)}
       loading="lazy"
     />
   )
 }
-

@@ -25,15 +25,16 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
       <div className="max-w-3xl">
         <article>
           <div className="flex gap-8 mb-8">
-            {book.cover_image && (
-              <div className="flex-shrink-0 w-48">
+              <div className="flex-shrink-0 w-48" style={{ containerType: 'inline-size' }}>
                 <ImageWithFallback
                   src={book.cover_image}
                   alt={`Cover of ${book.title}`}
                   className="w-full h-auto shadow-xl"
+                  title={book.title}
+                  author={book.author}
+                  brandColor={book.episode.brand.brand_color}
                 />
               </div>
-            )}
             <div className="flex-1">
               <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4">
                 {book.episode.brand.name}

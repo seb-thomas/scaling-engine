@@ -196,13 +196,15 @@ confidence is your overall confidence in the decision (0.0-1.0). 0.9+ = clear-cu
         return self.client is not None
 
 
-def download_and_save_cover(book, cover_url: str) -> bool:
+def download_and_save_cover(book, cover_url: str, allow_fallback: bool = False) -> bool:
     """
     Download a cover image from URL and save it to the book's ImageField.
 
     Args:
         book: Book model instance
         cover_url: URL of the cover image
+        allow_fallback: If True, try Open Library when Google Books 403s.
+                        Only used for manual refetch, not automatic extraction.
 
     Returns:
         True if successful, False otherwise
@@ -232,15 +234,15 @@ def download_and_save_cover(book, cover_url: str) -> bool:
 
     except urllib.error.HTTPError as e:
         if e.code == 403 and "books.google.com" in cover_url:
-            # Google Books /books/content URLs 403 from datacenter IPs;
-            # try Open Library as fallback.
-            from .utils import _open_library_cover_url
+            if allow_fallback:
+                # Manual refetch: try Open Library as fallback.
+                from .utils import _open_library_cover_url
 
-            ol_url = _open_library_cover_url(book.title, book.author)
-            if ol_url:
-                logger.info(f"Google Books 403 for '{book.title}', trying Open Library")
-                return download_and_save_cover(book, ol_url)
-            msg = "Cover blocked from this server (Google Books 403, no Open Library fallback)"
+                ol_url = _open_library_cover_url(book.title, book.author)
+                if ol_url:
+                    logger.info(f"Google Books 403 for '{book.title}', trying Open Library")
+                    return download_and_save_cover(book, ol_url)
+            msg = "Cover blocked from this server (Google Books 403)"
         else:
             msg = str(e)[:500]
         logger.error(f"Failed to download cover for '{book.title}': {msg}")

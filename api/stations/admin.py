@@ -306,7 +306,7 @@ class BookAdmin(admin.ModelAdmin):
         cover_url = book_info.get("cover_url") or ""
 
         if cover_url:
-            success = download_and_save_cover(book, cover_url)
+            success = download_and_save_cover(book, cover_url, allow_fallback=True)
             if success:
                 messages.success(request, f"Cover downloaded for '{book.title}'.")
             else:
@@ -342,7 +342,7 @@ class BookAdmin(admin.ModelAdmin):
                 failed += 1
                 continue
 
-            if download_and_save_cover(book, cover_url):
+            if download_and_save_cover(book, cover_url, allow_fallback=True):
                 downloaded += 1
             else:
                 failed += 1
