@@ -258,8 +258,9 @@ class TestGetBookExtractor:
 class TestExtractBooksFromEpisode:
     """Test extract_books_from_episode function."""
 
+    @patch("stations.utils.verify_book_exists")
     @patch("stations.ai_utils.get_book_extractor")
-    def test_extract_books_from_episode_success(self, mock_get_extractor, brand):
+    def test_extract_books_from_episode_success(self, mock_get_extractor, mock_verify, brand):
         """Test successful extraction from episode."""
         from stations.models import Episode
 
@@ -279,6 +280,7 @@ class TestExtractBooksFromEpisode:
             "reasoning": "Clear book mention"
         }
         mock_get_extractor.return_value = mock_extractor
+        mock_verify.return_value = {"exists": True, "title": "1984", "author": "George Orwell", "cover_url": "", "isbn": None}
 
         result = extract_books_from_episode(episode.pk)
 
@@ -318,8 +320,9 @@ class TestExtractBooksFromEpisode:
         episode.refresh_from_db()
         assert episode.has_book is False
 
+    @patch("stations.utils.verify_book_exists")
     @patch("stations.ai_utils.get_book_extractor")
-    def test_extract_books_from_episode_already_has_book(self, mock_get_extractor, brand):
+    def test_extract_books_from_episode_already_has_book(self, mock_get_extractor, mock_verify, brand):
         """Test extraction when episode already has_book=True."""
         from stations.models import Episode
 
@@ -338,6 +341,7 @@ class TestExtractBooksFromEpisode:
             "reasoning": "Book found"
         }
         mock_get_extractor.return_value = mock_extractor
+        mock_verify.return_value = {"exists": True, "title": "Test", "author": "Author", "cover_url": "", "isbn": None}
 
         result = extract_books_from_episode(episode.pk)
 
