@@ -213,14 +213,13 @@ class BookAdmin(admin.ModelAdmin):
     list_display = ("title", "author", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
     list_filter = ("episode__brand", "google_books_verified")
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "google_books_verified", "cover_fetch_error")
-    change_form_template = "admin/stations/book/change_form.html"
+    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "google_books_verified", "cover_fetch_error")
     fieldsets = (
         ("Book Information", {"fields": ("title", "author", "slug", "description", "google_books_verified")}),
         (
             "Cover Image",
             {
-                "fields": ("cover_preview_large", "cover_image", "cover_fetch_error"),
+                "fields": ("cover_preview_large", "cover_image", "cover_fetch_error", "refetch_cover_button"),
             },
         ),
         ("Links", {"fields": ("purchase_link",)}),
@@ -272,6 +271,19 @@ class BookAdmin(admin.ModelAdmin):
         return format_html("<em>No cover image</em>")
 
     cover_preview_large.short_description = "Current Cover"
+
+    def refetch_cover_button(self, obj):
+        if not obj.pk:
+            return "-"
+        url = reverse("admin:stations_book_refetch_cover", args=[obj.pk])
+        return format_html(
+            '<a href="{}" class="button" style="padding: 6px 12px;">Refetch cover</a>'
+            '<p style="margin-top: 6px; color: #666; font-size: 12px;">'
+            'Look up on Google Books and download cover image.</p>',
+            url,
+        )
+
+    refetch_cover_button.short_description = "Refetch"
 
     def get_urls(self):
         urls = super().get_urls()

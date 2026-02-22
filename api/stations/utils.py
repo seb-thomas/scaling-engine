@@ -118,8 +118,10 @@ def verify_book_exists(title: str, author: str = "") -> dict:
             except Exception as e:
                 logger.debug(f"Volume detail fetch failed for {vol_id}: {e}")
 
-        # Fallback: use search thumbnail (may 403 from server IPs)
-        if not cover_url:
+        # Fallback: use search thumbnail only without API key.
+        # With an API key, volume detail returns tokenised URLs; search
+        # thumbnails are untokenised and 403 from server/datacenter IPs.
+        if not cover_url and not api_key:
             image_links = info.get("imageLinks", {})
             cover_url = image_links.get("thumbnail")
 
