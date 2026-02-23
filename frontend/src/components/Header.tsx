@@ -8,7 +8,7 @@ interface HeaderProps {
 export function Header({ pathname }: HeaderProps) {
   return (
     <header>
-      <div className="container border-b border-gray-200 dark:border-gray-800">
+      <div className="container border-b md:border-b-0 border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -54,7 +54,7 @@ export function Header({ pathname }: HeaderProps) {
           </a>
         </div>
 
-        <nav className="hidden md:flex items-center gap-6 py-4 border-t border-gray-200 dark:border-gray-800">
+        <nav className="hidden md:flex items-center gap-6 py-4 border-t border-b border-gray-200 dark:border-gray-800">
           <a
             href="/"
             className={`hover:opacity-70 transition-opacity ${pathname === '/' ? 'opacity-100' : 'opacity-70'}`}
