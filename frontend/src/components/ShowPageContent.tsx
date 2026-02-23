@@ -59,7 +59,7 @@ export function ShowPageContent({
   const totalPages = Math.ceil(books.count / booksPerPage)
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container py-12">
       <Breadcrumbs items={breadcrumbItems} />
 
       <div className="mb-12">

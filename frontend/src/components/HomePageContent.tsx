@@ -11,7 +11,7 @@ export function HomePageContent({ books, shows }: HomePageContentProps) {
   const latestBooks = books.results.slice(0, 8)
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container py-12">
       <section className="mb-16">
         <div className="border-b border-gray-200 dark:border-gray-800 mb-8">
           <h1 className="text-sm tracking-wider uppercase mb-4">Latest Books</h1>

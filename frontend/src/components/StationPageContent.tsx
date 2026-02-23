@@ -14,7 +14,7 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
   ]
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container py-12">
       <Breadcrumbs items={breadcrumbItems} />
 
       <div className="mb-12">

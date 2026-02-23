@@ -7,8 +7,8 @@ interface HeaderProps {
 
 export function Header({ pathname }: HeaderProps) {
   return (
-    <header className="border-b border-gray-200 dark:border-gray-800">
-      <div className="container mx-auto px-4">
+    <header>
+      <div className="container border-b border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="md:hidden">
@@ -23,7 +23,7 @@ export function Header({ pathname }: HeaderProps) {
                 height="32"
                 viewBox="0 0 32 32"
                 fill="none"
-                className="text-gray-900 dark:text-gray-100"
+                className="relative top-px text-gray-900 dark:text-gray-100"
               >
                 <path
                   d="M2 10 Q 4 8, 6 10 T 10 10 T 14 10 T 18 10 T 22 10 T 26 10 T 30 10"

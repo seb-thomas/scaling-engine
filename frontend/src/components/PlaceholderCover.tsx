@@ -5,7 +5,7 @@ interface PlaceholderCoverProps {
   className?: string
 }
 
-const DEFAULT_TEXT_COLOR = '#c8553d'
+const DEFAULT_TEXT_COLOR = '#d4c5a9'
 
 /** Scale font size down for longer titles so text fits without truncation */
 function titleFontSize(title: string): string {

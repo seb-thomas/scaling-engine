@@ -87,7 +87,7 @@ export function BooksPageContent({
   const currentBooks = books.results;
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container py-12">
       <Breadcrumbs items={[{ label: "All Books" }]} />
 
       <div className="border-b border-gray-200 dark:border-gray-800 mb-8">

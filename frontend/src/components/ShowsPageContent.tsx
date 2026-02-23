@@ -15,7 +15,7 @@ export function ShowsPageContent({ shows, stations }: ShowsPageContentProps) {
   })).filter((group: { station: Station; shows: Show[] }) => group.shows.length > 0)
 
   return (
-    <div className="container mx-auto px-4 py-12">
+    <div className="container py-12">
       <Breadcrumbs
         items={[
           { label: 'Home', href: '/' },

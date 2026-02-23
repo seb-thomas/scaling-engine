@@ -6,6 +6,13 @@ export default {
   ],
   darkMode: 'class',
   theme: {
+    container: {
+      center: true,
+      padding: '1rem',
+      screens: {
+        DEFAULT: '1024px',
+      },
+    },
     extend: {
       fontFamily: {
         'serif': ['EB Garamond', 'serif'],
