@@ -108,6 +108,7 @@ Rules:
 - Require author + book title, OR explicit book-type words: "book", "novel", "short story collection", "autobiography", "memoir".
 - "Thriller" or "comedy" alone = often TV/film, not books. We describe books as "thrilling" or "hilarious". Do not extract titles that could be film/TV unless there is author + book signal (e.g. "the contemporary thriller Lurker" = TV show, NOT a book).
 - Exclude when context is adaptation, play, or musical. Signals: adaptation, adapted, film, movie, director, theatre, stage, screen, play, musical, transformed into, starring, choreographer, BBC adaptation, RSC production, West End. "Play" = theatre, not a book. "Musical based on [book]" = segment is about the musical, not the book.
+- Exception: if the source book is substantively discussed (book title + author named + book content described), include it even when the framing is an adaptation. E.g. "Kristen Stewart directs The Chronology of Water, based on the life story of author Lidia Yuknavitch" = include, because the book and author are clearly identified and the book's content is discussed.
 - Each book description must match the book title; do not mix descriptions between books.
 
 INCLUDE examples: "Mark Haddon's autobiography Leaving Home"; "Eric Schlosser's book Fast Food Nation... talks to the author"; "George Saunders' new book, Vigil"; prize announcements with author + book; "short story collection by Joy Williams"; "have read James Meek's book Your Life Without Me".
