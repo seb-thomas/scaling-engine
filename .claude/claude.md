@@ -59,30 +59,11 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
 
 ## Todo List
 
-### Completed
-- [x] Set up AI book extraction with Anthropic API key
-- [x] Redesign frontend with NY Times-inspired aesthetic
-- [x] Set up and test radio station scraping
-- [x] Fix book saving to database (rebuild containers)
-- [x] Create scheduled Celery tasks for automated scraping
-- [x] Disable robots.txt to scrape real BBC data
-
-### In Progress
-- [ ] Set up HTTPS with Let's Encrypt (waiting for DNS propagation)
-  - Certbot installed on host
-  - DNS A record configured: radioreads.fun → 159.65.18.16
-  - Need to run: `certbot certonly --standalone -d radioreads.fun`
-  - Then configure nginx SSL
-
-### Planned
-- [ ] Trim down books data (900 is overkill for development) and pause scraping
-- [ ] Move static directory to project level (out of stations app)
-- [ ] Fix confusing naming - remove /api nesting since there's no separate frontend
-- [ ] Investigate why only 1.8% of episodes detected as book-related
-- [ ] Add book cover images (API integration or web scraping)
-- [ ] Implement AI/web search to find Amazon/book purchase links
-- [ ] Set up HTTPS with Let's Encrypt for radioreads.fun
-- [ ] Add search and filter functionality for books
+Tracked in Claude memory (`memory/todos.md`). Key open items:
+- Improve confidence signal: make sortable, combine with GB verification status
+- Investigate Google Books `/books/content` vs `/books/publisher/content` URL paths
+- Review edge cases: Chronology of Water (#173), Heated Rivalry (#190)
+- Search and filter functionality for books (frontend)
 
 ## Important Notes
 
