@@ -41,10 +41,17 @@ class EpisodeAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         if "review_status" in self.fields:
-            self.fields["review_status"].choices = [
-                (Episode.REVIEW_REQUIRED, "Required"),
-                (Episode.REVIEW_REVIEWED, "Reviewed"),
-            ]
+            status = self.instance.review_status if self.instance else ""
+            if status in (Episode.REVIEW_REQUIRED, Episode.REVIEW_REVIEWED):
+                self.fields["review_status"].choices = [
+                    (Episode.REVIEW_REQUIRED, "Required"),
+                    (Episode.REVIEW_REVIEWED, "Reviewed"),
+                ]
+            else:
+                # NOT_REQUIRED or blank — show current value, disabled
+                label = dict(Episode.REVIEW_CHOICES).get(status, "Unprocessed")
+                self.fields["review_status"].choices = [(status, label)]
+                self.fields["review_status"].disabled = True
 
 
 @admin.register(Episode)
