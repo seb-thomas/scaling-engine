@@ -358,6 +358,19 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             # Verify via Google Books — skip if not found (likely not a real book)
             book_info = verify_book_exists(book_title, book_author)
             if not book_info["exists"]:
+                if book_info.get("error"):
+                    # API error (429, timeout, etc.) — fail the episode so it
+                    # surfaces in admin and can be retried later.
+                    error_msg = f"Google Books API error: {book_info['error']}"
+                    logger.warning(
+                        f"Failing episode {episode_id}: {error_msg}"
+                    )
+                    _set_episode_failed(episode, Exception(error_msg))
+                    return {
+                        "has_book": result.get("has_book", False),
+                        "books": result.get("books", []),
+                        "reasoning": error_msg,
+                    }
                 logger.info(
                     f"Skipping '{book_title}' by {book_author}: "
                     f"not found on Google Books"

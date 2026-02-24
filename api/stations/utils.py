@@ -134,6 +134,7 @@ def verify_book_exists(title: str, author: str = "") -> dict:
         }
     except Exception as e:
         logger.warning(f"Google Books lookup failed for '{title}': {e}")
+        not_found["error"] = str(e)[:200]
         return not_found
 
 

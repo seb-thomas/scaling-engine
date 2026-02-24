@@ -45,6 +45,14 @@ def ai_extract_books_task(self, episode_id):
     logger.info(f"AI extracting books for episode {episode_id}")
     try:
         episode = Episode.objects.get(pk=episode_id)
+
+        # Skip if already processed — prevents wasting API calls on duplicates
+        if episode.status in (Episode.STATUS_PROCESSED, Episode.STATUS_FAILED):
+            logger.info(
+                f"Episode {episode_id} already {episode.status}, skipping"
+            )
+            return {"skipped": True, "reason": f"already {episode.status}"}
+
         episode.status = Episode.STATUS_PROCESSING
         episode.task_id = self.request.id
         episode.last_error = None
