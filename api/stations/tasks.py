@@ -2,6 +2,7 @@ from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.core.management import call_command
 from django.db import DatabaseError
+from django.utils import timezone
 from datetime import datetime
 from .utils import contains_keywords
 from .ai_utils import extract_books_from_episode, get_book_extractor
@@ -50,7 +51,8 @@ def ai_extract_books_task(self, episode_id):
         episode.status = Episode.STATUS_PROCESSING
         episode.task_id = self.request.id
         episode.last_error = None
-        episode.save(update_fields=["status", "task_id", "last_error"])
+        episode.status_changed_at = timezone.now()
+        episode.save(update_fields=["status", "task_id", "last_error", "status_changed_at"])
 
         result = extract_books_from_episode(episode_id)
         logger.info(
@@ -157,7 +159,8 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
         for episode in scraped:
             episode.status = Episode.STATUS_QUEUED
             episode.last_error = None
-            episode.save(update_fields=["status", "last_error"])
+            episode.status_changed_at = timezone.now()
+            episode.save(update_fields=["status", "last_error", "status_changed_at"])
             ai_extract_books_task.delay(episode.id)
             queued += 1
         logger.info(f"Queued AI extraction for {queued} episodes")
@@ -194,7 +197,8 @@ def extract_books_from_new_episodes():
         try:
             episode.status = Episode.STATUS_QUEUED
             episode.last_error = None
-            episode.save(update_fields=["status", "last_error"])
+            episode.status_changed_at = timezone.now()
+            episode.save(update_fields=["status", "last_error", "status_changed_at"])
             ai_extract_books_task.delay(episode.id)
             processed += 1
         except Exception as e:

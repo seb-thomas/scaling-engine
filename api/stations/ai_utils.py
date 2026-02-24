@@ -272,12 +272,14 @@ def get_book_extractor() -> BookExtractor:
 
 def _set_episode_failed(episode, error: Exception) -> None:
     """Set episode status to FAILED and store short error message."""
+    from django.utils import timezone
     from .models import Episode
 
     short = (str(error)[:200]) if str(error) else "Extraction error"
     episode.status = Episode.STATUS_FAILED
     episode.last_error = short
-    episode.save(update_fields=["status", "last_error"])
+    episode.status_changed_at = timezone.now()
+    episode.save(update_fields=["status", "last_error", "status_changed_at"])
 
 
 def extract_books_from_episode(episode_id: int) -> Dict:
@@ -301,7 +303,8 @@ def extract_books_from_episode(episode_id: int) -> Dict:
     if not extractor.is_available():
         episode.status = Episode.STATUS_FAILED
         episode.last_error = "API not configured"
-        episode.save(update_fields=["status", "last_error"])
+        episode.status_changed_at = timezone.now()
+        episode.save(update_fields=["status", "last_error", "status_changed_at"])
         return {"has_book": False, "books": [], "reasoning": "API not configured"}
 
     # Text from scraped_data or fallback to title
@@ -393,13 +396,14 @@ def extract_books_from_episode(episode_id: int) -> Dict:
 
         episode.status = Episode.STATUS_PROCESSED
         episode.processed_at = timezone.now()
+        episode.status_changed_at = timezone.now()
         episode.last_error = None
         episode.review_status = episode.compute_review_status()
         episode.save(
             update_fields=[
                 "extraction_result", "ai_confidence", "has_book",
                 "aired_at", "status", "processed_at", "last_error",
-                "review_status",
+                "review_status", "status_changed_at",
             ]
         )
         return result

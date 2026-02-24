@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.text import slugify
+from django.utils import timezone
 import json
 
 
@@ -80,6 +81,7 @@ class Episode(models.Model):
     task_id = models.CharField(max_length=255, blank=True, null=True)
     extraction_result = models.JSONField(null=True, blank=True)
     ai_confidence = models.FloatField(null=True, blank=True)
+    status_changed_at = models.DateTimeField(null=True, blank=True)
 
     REVIEW_NOT_REQUIRED = "NOT_REQUIRED"
     REVIEW_REQUIRED = "REQUIRED"
@@ -93,6 +95,16 @@ class Episode(models.Model):
     review_status = models.CharField(
         max_length=20, choices=REVIEW_CHOICES, blank=True, default=""
     )
+
+    @classmethod
+    def stuck(cls, threshold_minutes=60):
+        """Return episodes stuck in QUEUED/PROCESSING longer than threshold."""
+        from datetime import timedelta
+        cutoff = timezone.now() - timedelta(minutes=threshold_minutes)
+        return cls.objects.filter(
+            status__in=[cls.STATUS_QUEUED, cls.STATUS_PROCESSING],
+            status_changed_at__lt=cutoff,
+        )
 
     def compute_review_status(self):
         """Determine review status based on extraction signals.

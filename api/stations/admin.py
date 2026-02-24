@@ -194,9 +194,11 @@ class EpisodeAdmin(admin.ModelAdmin):
                 + "?awaiting_reprocess=1"
             )
 
+        from django.utils import timezone as tz
         episode.status = Episode.STATUS_QUEUED
         episode.last_error = None
-        episode.save(update_fields=["status", "last_error"])
+        episode.status_changed_at = tz.now()
+        episode.save(update_fields=["status", "last_error", "status_changed_at"])
         ai_extract_books_task.delay(episode_id)
 
         messages.info(
@@ -212,10 +214,12 @@ class EpisodeAdmin(admin.ModelAdmin):
     def reprocess_episodes_action(self, request, queryset):
         from .tasks import ai_extract_books_task
 
+        from django.utils import timezone as tz
         for episode in queryset:
             episode.status = Episode.STATUS_QUEUED
             episode.last_error = None
-            episode.save(update_fields=["status", "last_error"])
+            episode.status_changed_at = tz.now()
+            episode.save(update_fields=["status", "last_error", "status_changed_at"])
             ai_extract_books_task.delay(episode.id)
         count = queryset.count()
         msg = f"Queued extraction for {count} episode(s)."
@@ -484,6 +488,57 @@ class BrandAdmin(admin.ModelAdmin):
 admin.site.register([Station, Phrase])
 
 
+def system_health_view(request):
+    """System health dashboard."""
+    if not request.user.is_staff:
+        from django.contrib.admin.sites import site as default_admin_site
+        return redirect(default_admin_site.login_url)
+
+    from .health import get_system_health
+    health = get_system_health()
+    context = {
+        **admin.site.each_context(request),
+        "title": "System Health",
+        "health": health,
+    }
+    return render(request, "admin/stations/system_health.html", context)
+
+
+def system_health_unstick(request):
+    """Reset stuck episodes back to SCRAPED."""
+    if request.method != "POST" or not request.user.is_staff:
+        return redirect("admin:stations_system_health")
+
+    from django.utils import timezone as tz
+    stuck = Episode.stuck(threshold_minutes=60)
+    count = stuck.count()
+    stuck.update(status=Episode.STATUS_SCRAPED, last_error=None, status_changed_at=tz.now())
+    messages.success(request, f"Reset {count} stuck episode(s) back to SCRAPED.")
+    return redirect("admin:stations_system_health")
+
+
+def system_health_run_extraction(request):
+    """Trigger extraction task."""
+    if request.method != "POST" or not request.user.is_staff:
+        return redirect("admin:stations_system_health")
+
+    from .tasks import extract_books_from_new_episodes
+    extract_books_from_new_episodes.delay()
+    messages.success(request, "Extraction task queued.")
+    return redirect("admin:stations_system_health")
+
+
+def system_health_run_scrape(request):
+    """Trigger scrape task."""
+    if request.method != "POST" or not request.user.is_staff:
+        return redirect("admin:stations_system_health")
+
+    from .tasks import scrape_all_brands
+    scrape_all_brands.delay()
+    messages.success(request, "Scrape task queued.")
+    return redirect("admin:stations_system_health")
+
+
 def extraction_evaluation_view(request):
     """Model evaluation dashboard: show books with input to AI, reasoning, and verify link."""
     from django.contrib.admin.sites import site as default_admin_site
@@ -538,6 +593,26 @@ _original_admin_get_urls = admin.site.get_urls
 def _admin_get_urls_with_extraction():
     urls = _original_admin_get_urls()
     custom = [
+        path(
+            "system-health/",
+            admin.site.admin_view(system_health_view),
+            name="stations_system_health",
+        ),
+        path(
+            "system-health/unstick/",
+            admin.site.admin_view(system_health_unstick),
+            name="stations_health_unstick",
+        ),
+        path(
+            "system-health/run-extraction/",
+            admin.site.admin_view(system_health_run_extraction),
+            name="stations_health_run_extraction",
+        ),
+        path(
+            "system-health/run-scrape/",
+            admin.site.admin_view(system_health_run_scrape),
+            name="stations_health_run_scrape",
+        ),
         path(
             "stations/extraction-evaluation/",
             admin.site.admin_view(extraction_evaluation_view),
