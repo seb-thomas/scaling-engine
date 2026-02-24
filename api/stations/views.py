@@ -96,5 +96,5 @@ def health_check(request):
     from .health import get_system_health
 
     health = get_system_health()
-    http_status = 200 if health["status"] == "healthy" else 503
+    http_status = 503 if health["status"] == "unhealthy" else 200
     return JsonResponse(health, status=http_status)
