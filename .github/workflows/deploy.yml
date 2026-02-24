@@ -121,11 +121,11 @@ jobs:
             export DEBUG_MODE="${{ secrets.DEBUG_MODE }}"
             export GOOGLE_BOOKS_API_KEY="${{ secrets.GOOGLE_BOOKS_API_KEY }}"
 
-            # Determine docker-compose command
-            if command -v docker-compose &> /dev/null; then
-              DOCKER_COMPOSE="docker-compose"
-            elif docker compose version &> /dev/null; then
+            # Use Compose v2 (docker compose) — v1 (docker-compose) has ContainerConfig bug
+            if docker compose version &> /dev/null; then
               DOCKER_COMPOSE="docker compose"
+            elif command -v docker-compose &> /dev/null; then
+              DOCKER_COMPOSE="docker-compose"
             else
               echo "Error: docker-compose not found!"
               exit 1
