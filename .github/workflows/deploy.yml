@@ -229,27 +229,26 @@ jobs:
             # Use docker-compose.prod.yml for deployment
             COMPOSE_FILE="docker-compose.prod.yml"
 
-            # Stop and remove existing containers completely to avoid ContainerConfig bug
-            # This bug affects docker-compose v1.29.2 with newer Docker Engine
-            echo "Stopping and removing existing containers..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE down --remove-orphans || true
-
-            # Remove any orphan containers that might cause ContainerConfig errors
-            echo "Cleaning up orphan containers..."
-            docker container prune -f || true
-
-            # Build containers
-            echo "Building containers..."
+            # Build new images while old containers keep serving traffic
+            echo "Building new images..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE build
 
-            # Start containers fresh (no --force-recreate needed after down)
-            # Note: env_file is read when containers start, so files must exist before this
-            echo "Starting containers..."
+            # Swap to new containers (Compose v2 recreates only changed services)
+            echo "Rolling out new containers..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE up -d --remove-orphans
 
-            # Wait for containers to be up
-            echo "Waiting for containers to start..."
-            sleep 10
+            # Wait for web container to be healthy
+            echo "Waiting for web to be healthy..."
+            for i in {1..20}; do
+              if $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web curl -sf http://localhost:8000/api/health/ > /dev/null 2>&1; then
+                echo "Web is healthy"
+                break
+              fi
+              if [ $i -eq 20 ]; then
+                echo "Warning: web health check not passing after 40s, continuing..."
+              fi
+              sleep 2
+            done
 
             # Verify environment variables are loaded in web container
             echo "Checking environment variables in web container..."
