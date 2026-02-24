@@ -113,7 +113,7 @@ services:
       - redis
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "pgrep", "-f", "celery.*beat"]
+      test: ["CMD-SHELL", "cat /proc/1/cmdline | tr '\\0' ' ' | grep -q 'celery.*beat'"]
       interval: 60s
       timeout: 10s
       retries: 3
