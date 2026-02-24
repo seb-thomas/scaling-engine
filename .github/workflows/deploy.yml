@@ -250,6 +250,10 @@ jobs:
               sleep 2
             done
 
+            # Reload nginx so it resolves the new web container IP
+            echo "Reloading nginx..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T nginx nginx -s reload || $DOCKER_COMPOSE -f $COMPOSE_FILE restart nginx
+
             # Verify environment variables are loaded in web container
             echo "Checking environment variables in web container..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web sh -c 'echo "SQL_PASSWORD is: ${SQL_PASSWORD:+SET (length: ${#SQL_PASSWORD})}"' || echo "Warning: Could not check env vars"
