@@ -142,10 +142,10 @@ def _check_beat_schedule(result):
         from django_celery_beat.models import PeriodicTask
 
         extraction_task = PeriodicTask.objects.filter(
-            name__icontains="extract_books"
+            task__icontains="extract_books"
         ).first()
         scrape_task = PeriodicTask.objects.filter(
-            name__icontains="scrape_all"
+            task__icontains="scrape_all"
         ).first()
 
         tasks_info = []
