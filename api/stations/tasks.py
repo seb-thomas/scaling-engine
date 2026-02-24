@@ -183,6 +183,18 @@ def extract_books_from_new_episodes():
     """
     logger.info("Starting AI extraction for new episodes")
 
+    # Unstick orphaned episodes (QUEUED/PROCESSING for >60min)
+    stuck = Episode.stuck(threshold_minutes=60)
+    stuck_count = stuck.count()
+    if stuck_count > 0:
+        stuck.update(
+            status=Episode.STATUS_SCRAPED,
+            last_error=None,
+            task_id=None,
+            status_changed_at=timezone.now(),
+        )
+        logger.warning(f"Reset {stuck_count} stuck episode(s) back to SCRAPED")
+
     # Find episodes with status=SCRAPED (not yet processed)
     episodes = Episode.objects.filter(status=Episode.STATUS_SCRAPED)[:50]
 
