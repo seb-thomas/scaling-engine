@@ -32,18 +32,15 @@ def contains_keywords_task(self, episode_id):
 @shared_task(
     name="stations.tasks.ai_extract_books_task",
     bind=True,
-    autoretry_for=(DatabaseError, ConnectionError),
-    retry_backoff=True,
-    retry_backoff_max=600,
-    max_retries=3,
+    max_retries=0,
 )
 def ai_extract_books_task(self, episode_id):
     """
     AI-powered book extraction task using Claude.
 
-    This task uses Claude AI to intelligently extract book mentions
-    from episode titles, replacing simple keyword matching with
-    context-aware natural language understanding.
+    No auto-retry — failed episodes are caught by the 30-minute
+    extraction task which unsticks and re-queues them. This prevents
+    retry pile-ups during deploys when DB connections drop transiently.
     """
     logger.info(f"AI extracting books for episode {episode_id}")
     try:
