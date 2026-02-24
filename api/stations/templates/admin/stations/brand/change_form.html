@@ -1,0 +1,17 @@
+{% extends "admin/change_form.html" %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+{% if show_backfill_button and original %}
+<div class="submit-row">
+    <a href="{% url 'admin:stations_brand_backfill' original.pk %}"
+       class="button default"
+       style="background-color: #417690; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px;">
+        Backfill historical episodes
+    </a>
+    <p style="margin-top: 10px; color: #666; font-size: 12px;">
+        Scrape older episodes from BBC Sounds with a configurable date floor.
+    </p>
+</div>
+{% endif %}
+{% endblock %}

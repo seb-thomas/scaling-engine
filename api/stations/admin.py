@@ -378,8 +378,110 @@ class BookAdmin(admin.ModelAdmin):
         )
 
 
+@admin.register(Brand)
+class BrandAdmin(admin.ModelAdmin):
+    list_display = ("name", "station", "episode_stats", "backfill_link")
+    readonly_fields = ("episode_stats_detail",)
+
+    def episode_stats(self, obj):
+        count = Episode.objects.filter(brand=obj).count()
+        if count == 0:
+            return "0 episodes"
+        oldest = Episode.objects.filter(brand=obj).order_by("aired_at").first()
+        newest = Episode.objects.filter(brand=obj).order_by("-aired_at").first()
+        oldest_str = oldest.aired_at.strftime("%-d %b %Y") if oldest and oldest.aired_at else "?"
+        newest_str = newest.aired_at.strftime("%-d %b %Y") if newest and newest.aired_at else "?"
+        return f"{count} episodes ({oldest_str} – {newest_str})"
+
+    episode_stats.short_description = "Episodes"
+
+    def episode_stats_detail(self, obj):
+        if not obj.pk:
+            return "-"
+        count = Episode.objects.filter(brand=obj).count()
+        if count == 0:
+            return format_html("<em>No episodes yet</em>")
+        oldest = Episode.objects.filter(brand=obj).order_by("aired_at").first()
+        newest = Episode.objects.filter(brand=obj).order_by("-aired_at").first()
+        oldest_str = oldest.aired_at.strftime("%-d %b %Y") if oldest and oldest.aired_at else "?"
+        newest_str = newest.aired_at.strftime("%-d %b %Y") if newest and newest.aired_at else "?"
+        book_count = Book.objects.filter(episode__brand=obj).count()
+        return format_html(
+            "<strong>{}</strong> episodes ({} – {})<br>"
+            "<strong>{}</strong> books extracted",
+            count, oldest_str, newest_str, book_count,
+        )
+
+    episode_stats_detail.short_description = "Episode coverage"
+
+    def backfill_link(self, obj):
+        if not obj.pk:
+            return "-"
+        url = reverse("admin:stations_brand_backfill", args=[obj.pk])
+        return format_html('<a href="{}">Backfill</a>', url)
+
+    backfill_link.short_description = "Actions"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:brand_id>/backfill/",
+                self.admin_site.admin_view(self.backfill_view),
+                name="stations_brand_backfill",
+            ),
+        ]
+        return custom_urls + urls
+
+    def backfill_view(self, request, brand_id):
+        brand = Brand.objects.get(pk=brand_id)
+
+        # Episode stats for context
+        episode_count = Episode.objects.filter(brand=brand).count()
+        oldest = Episode.objects.filter(brand=brand).order_by("aired_at").first()
+        newest = Episode.objects.filter(brand=brand).order_by("-aired_at").first()
+
+        if request.method == "POST":
+            max_episodes = int(request.POST.get("max_episodes", 100))
+            since_date = request.POST.get("since_date", "2024-01-01")
+            extract = request.POST.get("extract") == "on"
+
+            from .tasks import backfill_brand_task
+
+            backfill_brand_task.delay(
+                brand_id=brand.id,
+                max_episodes=max_episodes,
+                since_date=since_date,
+                extract=extract,
+            )
+
+            extract_msg = " + AI extraction" if extract else ""
+            messages.success(
+                request,
+                f"Backfill queued for {brand.name}: up to {max_episodes} episodes "
+                f"since {since_date}{extract_msg}",
+            )
+            return redirect(reverse("admin:stations_brand_change", args=[brand_id]))
+
+        context = {
+            **self.admin_site.each_context(request),
+            "brand": brand,
+            "episode_count": episode_count,
+            "oldest_episode": oldest,
+            "newest_episode": newest,
+            "title": f"Backfill: {brand.name}",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/stations/brand/backfill.html", context)
+
+    def change_view(self, request, object_id, form_url="", extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["show_backfill_button"] = True
+        return super().change_view(request, object_id, form_url, extra_context)
+
+
 # Register remaining models with default admin
-admin.site.register([Station, Brand, Phrase])
+admin.site.register([Station, Phrase])
 
 
 def extraction_evaluation_view(request):

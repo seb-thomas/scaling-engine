@@ -107,6 +107,69 @@ def scrape_all_brands(max_episodes_per_brand=50):
         return {"status": "error", "error": str(e)}
 
 
+@shared_task(name="stations.tasks.backfill_brand_task")
+def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=False):
+    """
+    Backfill historical episodes for a brand.
+
+    Runs the spider with a higher max_episodes and optional date floor.
+    Optionally triggers AI extraction on newly scraped episodes.
+    """
+    logger.info(
+        f"Starting backfill for brand {brand_id}: "
+        f"max_episodes={max_episodes}, since={since_date}, extract={extract}"
+    )
+
+    brand = Brand.objects.get(pk=brand_id)
+
+    # Count episodes before scraping
+    before_count = Episode.objects.filter(brand=brand).count()
+
+    from scrapy.crawler import CrawlerProcess
+    from scrapy.utils.project import get_project_settings
+    from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
+
+    settings = get_project_settings()
+    settings["LOG_LEVEL"] = "INFO"
+
+    process = CrawlerProcess(settings)
+    spider_kwargs = {"brand_id": brand_id, "max_episodes": max_episodes}
+    if since_date:
+        spider_kwargs["since"] = since_date
+
+    process.crawl(BbcEpisodeSpider, **spider_kwargs)
+
+    try:
+        process.start()
+    except Exception as e:
+        logger.error(f"Error during backfill scrape: {e}")
+        return {"status": "error", "error": str(e)}
+
+    after_count = Episode.objects.filter(brand=brand).count()
+    new_episodes = after_count - before_count
+
+    logger.info(f"Backfill complete for {brand.name}: {new_episodes} new episodes")
+
+    # Optionally trigger extraction on newly scraped episodes
+    if extract and new_episodes > 0:
+        scraped = Episode.objects.filter(brand=brand, status=Episode.STATUS_SCRAPED)
+        queued = 0
+        for episode in scraped:
+            episode.status = Episode.STATUS_QUEUED
+            episode.last_error = None
+            episode.save(update_fields=["status", "last_error"])
+            ai_extract_books_task.delay(episode.id)
+            queued += 1
+        logger.info(f"Queued AI extraction for {queued} episodes")
+
+    return {
+        "status": "complete",
+        "brand": brand.name,
+        "new_episodes": new_episodes,
+        "total_episodes": after_count,
+    }
+
+
 @shared_task(name="stations.tasks.extract_books_from_new_episodes")
 def extract_books_from_new_episodes():
     """

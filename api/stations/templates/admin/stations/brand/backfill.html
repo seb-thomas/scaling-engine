@@ -1,0 +1,75 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Backfill: {{ brand.name }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:stations_brand_changelist' %}">Brands</a>
+    &rsaquo; <a href="{% url 'admin:stations_brand_change' brand.pk %}">{{ brand.name }}</a>
+    &rsaquo; Backfill
+</div>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px;">
+    <h2>Backfill historical episodes for {{ brand.name }}</h2>
+
+    <div style="background: #f8f8f8; padding: 12px 16px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+        <strong>Current coverage:</strong>
+        {% if episode_count > 0 %}
+            {{ episode_count }} episodes
+            {% if oldest_episode and oldest_episode.aired_at %}
+                ({{ oldest_episode.aired_at|date:"j M Y" }} &ndash;
+                {% if newest_episode and newest_episode.aired_at %}{{ newest_episode.aired_at|date:"j M Y" }}{% endif %})
+            {% endif %}
+        {% else %}
+            No episodes yet
+        {% endif %}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+
+        <div style="margin-bottom: 16px;">
+            <label for="max_episodes" style="display: block; font-weight: bold; margin-bottom: 4px;">
+                Max episodes to scrape
+            </label>
+            <input type="number" name="max_episodes" id="max_episodes" value="100" min="1" max="1000"
+                   style="padding: 6px 10px; width: 120px;">
+            <p style="color: #666; font-size: 12px; margin-top: 4px;">
+                Episodes already in the database will be skipped (not counted).
+            </p>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+            <label for="since_date" style="display: block; font-weight: bold; margin-bottom: 4px;">
+                Don't go further back than
+            </label>
+            <input type="date" name="since_date" id="since_date" value="2024-01-01"
+                   style="padding: 6px 10px;">
+            <p style="color: #666; font-size: 12px; margin-top: 4px;">
+                Stops scraping when it reaches episodes older than this date.
+            </p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                <input type="checkbox" name="extract">
+                <span>Also run AI extraction on new episodes</span>
+            </label>
+            <p style="color: #666; font-size: 12px; margin-top: 4px; margin-left: 26px;">
+                Otherwise they'll be picked up by the scheduled 30-minute extraction task.
+            </p>
+        </div>
+
+        <div>
+            <input type="submit" value="Start backfill" class="default"
+                   style="padding: 10px 20px; cursor: pointer;">
+            <a href="{% url 'admin:stations_brand_change' brand.pk %}"
+               style="margin-left: 12px; color: #666;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

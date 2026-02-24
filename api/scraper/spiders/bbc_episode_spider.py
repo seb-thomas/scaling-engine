@@ -1,4 +1,5 @@
 import scrapy
+from datetime import datetime
 from scraper.items import EpisodeItem
 from stations.models import Brand
 
@@ -6,11 +7,19 @@ from stations.models import Brand
 class BbcEpisodeSpider(scrapy.Spider):
     name = "bbc_episodes"
 
-    def __init__(self, brand_id=None, max_episodes=50, *args, **kwargs):
+    def __init__(self, brand_id=None, max_episodes=50, since=None, *args, **kwargs):
         super(BbcEpisodeSpider, self).__init__(*args, **kwargs)
         self.max_episodes = int(max_episodes) if max_episodes else 50
         self.episodes_scraped = 0
         self._raw_data_cache = {}  # Initialize cache for raw data
+        self._hit_date_floor = False
+
+        # Parse since date floor (e.g. "2024-01-01")
+        if since:
+            self.since_date = datetime.strptime(str(since), "%Y-%m-%d").date()
+            self.logger.info(f"Date floor set: will stop at episodes before {self.since_date}")
+        else:
+            self.since_date = None
 
         if brand_id:
             self.brand = Brand.objects.get(pk=brand_id)
@@ -79,6 +88,20 @@ class BbcEpisodeSpider(scrapy.Spider):
             else:
                 continue
 
+            # Check date floor from aria-label (contains "release date: 24 Nov 2025")
+            if self.since_date and aria_label and "release date:" in aria_label:
+                try:
+                    date_part = aria_label.split("release date:")[1].split(",")[0].strip()
+                    episode_date = datetime.strptime(date_part, "%d %b %Y").date()
+                    if episode_date < self.since_date:
+                        self.logger.info(
+                            f"Hit date floor: {item['title']} ({episode_date}) is before {self.since_date}. Stopping."
+                        )
+                        self._hit_date_floor = True
+                        break
+                except (ValueError, IndexError):
+                    pass  # Can't parse date — continue scraping
+
             # Clean up the URL
             item["url"] = url.strip() if url else ""
 
@@ -103,7 +126,11 @@ class BbcEpisodeSpider(scrapy.Spider):
             f"Scraped {episodes_found} episodes from this page. Total: {self.episodes_scraped}/{self.max_episodes}"
         )
 
-        # Follow pagination only if we haven't reached the limit
+        # Follow pagination only if we haven't reached the limit or date floor
+        if self._hit_date_floor:
+            self.logger.info("Date floor reached. Stopping pagination.")
+            return
+
         if self.episodes_scraped < self.max_episodes:
             # Look for next page button
             next_page = response.css("a:contains('Next')::attr(href)").get()
