@@ -1,6 +1,6 @@
 from django.http import Http404, JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Count
+from django.db.models import Count, F
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -45,7 +45,7 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
         books = (
             Book.objects.filter(episode__brand=brand)
             .select_related("episode", "episode__brand", "episode__brand__station")
-            .order_by("-episode__aired_at", "-episode__id")
+            .order_by(F("episode__aired_at").desc(nulls_last=True), "-episode__id")
         )
 
         page = int(request.query_params.get("page", 1))
@@ -72,13 +72,14 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         "episode", "episode__brand", "episode__brand__station"
     ).prefetch_related("categories").all()
     lookup_field = "slug"
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter]
     search_fields = ["title", "author", "categories__name"]
-    ordering_fields = ["episode__aired_at", "episode__id"]
-    ordering = ["-episode__aired_at", "-episode__id"]
 
     def get_queryset(self):
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().order_by(
+            F("episode__aired_at").desc(nulls_last=True),
+            "-episode__id",
+        )
         brand_id = self.request.query_params.get("brand", None)
         if brand_id:
             queryset = queryset.filter(episode__brand__id=brand_id)

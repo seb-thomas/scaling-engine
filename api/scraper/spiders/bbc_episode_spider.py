@@ -111,6 +111,11 @@ class BbcEpisodeSpider(scrapy.Spider):
             if item["url"] and not item["url"].startswith("http"):
                 item["url"] = response.urljoin(item["url"])
 
+            # Extract date from the list page link text (e.g. "19 Feb 2026")
+            date_text = link.css("::text").re_first(
+                r"\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}"
+            )
+
             # Skip if episode already exists in database
             from stations.models import Episode
             if Episode.objects.filter(url=item["url"]).exists():
@@ -121,7 +126,8 @@ class BbcEpisodeSpider(scrapy.Spider):
             self.episodes_scraped += 1
             episodes_found += 1
             yield response.follow(
-                item["url"], callback=self.parse_episode_detail, meta={"item": item}
+                item["url"], callback=self.parse_episode_detail,
+                meta={"item": item, "date_text": date_text},
             )
 
         self.logger.info(
@@ -164,50 +170,18 @@ class BbcEpisodeSpider(scrapy.Spider):
         """Parse individual episode detail page to extract full data"""
         item = response.meta.get("item", EpisodeItem())
 
-        # Extract date from episode page
-        # BBC format: "Radio 4,·10 Nov 2025,·29 mins" or similar
-        date_text = None
-        date_selectors = [
-            "time[datetime]::attr(datetime)",
-            "time::text",
-            'span:contains("Nov")::text',
-            'span:contains("Dec")::text',
-            'span:contains("Jan")::text',
-            'span:contains("Feb")::text',
-            'span:contains("Mar")::text',
-            'span:contains("Apr")::text',
-            'span:contains("May")::text',
-            'span:contains("Jun")::text',
-            'span:contains("Jul")::text',
-            'span:contains("Aug")::text',
-            'span:contains("Sep")::text',
-            'span:contains("Oct")::text',
-        ]
+        # Primary: date extracted from list page link text (passed via meta)
+        date_text = response.meta.get("date_text")
 
-        for selector in date_selectors:
-            date_elements = response.css(selector).getall()
-            for date_elem in date_elements:
-                if date_elem and any(
-                    month in date_elem
-                    for month in [
-                        "Nov",
-                        "Dec",
-                        "Jan",
-                        "Feb",
-                        "Mar",
-                        "Apr",
-                        "May",
-                        "Jun",
-                        "Jul",
-                        "Aug",
-                        "Sep",
-                        "Oct",
-                    ]
-                ):
-                    date_text = date_elem.strip()
-                    break
-            if date_text:
-                break
+        # Fallback: regex for a date anywhere on the detail page
+        if not date_text:
+            page_text = " ".join(response.css("::text").getall())
+            match = re.search(
+                r"\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}",
+                page_text,
+            )
+            if match:
+                date_text = match.group(0)
 
         # Extract description - look for the episode description paragraph
         description = None
