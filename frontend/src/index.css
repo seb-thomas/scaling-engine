@@ -33,12 +33,3 @@ body {
   animation: fadeInUp 0.35s ease-out both;
 }
 
-/* Image load fade-in */
-.img-loading {
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.img-loaded {
-  opacity: 1;
-}
