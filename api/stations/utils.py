@@ -85,9 +85,9 @@ def verify_book_exists(title: str, author: str = "") -> dict:
         if not items:
             return not_found
 
-        # Step 2: Among the results, find the one with the highest-res cover.
-        # Size preference: extraLarge > large > medium > small > thumbnail.
-        _SIZE_RANK = {"extraLarge": 5, "large": 4, "medium": 3, "small": 2, "thumbnail": 1, "smallThumbnail": 0}
+        # Step 2: Among the results, find the one with the best cover.
+        # Cap at large (~800px) — extraLarge is overkill for rendered sizes.
+        _SIZE_RANK = {"large": 4, "medium": 3, "small": 2, "thumbnail": 1, "smallThumbnail": 0}
 
         # Use first result for metadata (most relevant match)
         info = items[0].get("volumeInfo", {})
@@ -105,7 +105,7 @@ def verify_book_exists(title: str, author: str = "") -> dict:
                     vol_data = _gb_request(vol_url)
                     vol_links = vol_data.get("volumeInfo", {}).get("imageLinks", {})
                     # Score this volume by its best available size
-                    for size_name in ("extraLarge", "large", "medium", "small", "thumbnail"):
+                    for size_name in ("large", "medium", "small", "thumbnail"):
                         if size_name in vol_links:
                             score = _SIZE_RANK[size_name]
                             if score > best_cover_score:
