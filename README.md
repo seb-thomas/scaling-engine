@@ -59,3 +59,29 @@ flowchart LR
 The verification approach uses three layers: **AI propose → API verify → human review**. False positives (non-books in the database) are worse than false negatives (missing a very new book), so Google Books acts as a gate rather than just enrichment.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for the full system design, domain models, and detailed pipeline diagrams.
+
+## Scheduling & operations
+
+- **Celery + Redis** handle async work: scraping runs daily at 2 AM, book extraction every 30 minutes, both via Celery Beat
+- **Health endpoint**: `GET /api/health/` checks DB, Redis, Celery workers, beat staleness, SSL cert expiry, and pipeline metrics — returns 503 if unhealthy
+- **Admin tools**: Django admin has single + bulk reprocess buttons, cover refetch, colour-coded AI confidence scores, and filterable review status
+- **Management commands**: `reprocess_all`, `categorize_books`, `populate_purchase_links`, `download_book_covers`, `regenerate_book_slugs`
+
+## Development
+
+```bash
+docker-compose -f docker-compose.dev.yml up --build
+```
+
+Services: nginx (8080), Django (8000), Astro (3000), PostgreSQL (5433), Redis, Celery worker + beat.
+
+Env files: `.env.dev`, `.env.dev.db`.
+
+```bash
+# Manual scrape
+docker-compose -f docker-compose.dev.yml exec web sh -c "scrapy crawl bbc_episodes -a brand_id=2"
+
+# Manual extraction (Django shell)
+from stations.tasks import extract_books_from_new_episodes
+extract_books_from_new_episodes()
+```
