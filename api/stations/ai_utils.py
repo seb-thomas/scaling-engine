@@ -243,7 +243,9 @@ def download_and_save_cover(book, cover_url: str, allow_fallback: bool = False) 
                 if ol_url:
                     logger.info(f"Google Books 403 for '{book.title}', trying Open Library")
                     return download_and_save_cover(book, ol_url)
-            msg = "Cover blocked from this server (Google Books 403)"
+                msg = "Google Books 403 + not found on Open Library"
+            else:
+                msg = "Cover blocked from this server (Google Books 403)"
         else:
             msg = str(e)[:500]
         logger.error(f"Failed to download cover for '{book.title}': {msg}")
