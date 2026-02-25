@@ -214,6 +214,13 @@ def download_and_save_cover(book, cover_url: str, allow_fallback: bool = False) 
         return False
 
     try:
+        # Google Books /books/content path 403s from datacenter IPs;
+        # /books/publisher/content serves the same images and works.
+        cover_url = cover_url.replace(
+            "books.google.com/books/content",
+            "books.google.com/books/publisher/content",
+        )
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp_file:
             request = urllib.request.Request(
                 cover_url,
