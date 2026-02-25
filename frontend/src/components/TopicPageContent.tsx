@@ -1,40 +1,46 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Breadcrumbs } from './Breadcrumbs'
 import { BookCard } from './BookCard'
 import { Pagination } from './Pagination'
-import type { Book, Show } from '../types'
+import type { Book, Topic } from '../types'
 
-interface ShowPageContentProps {
-  initialShow: Show
+interface TopicPageContentProps {
+  initialTopic: Topic
   initialBooks: { results: Book[]; count: number }
   initialPage?: number
 }
 
-export function ShowPageContent({ 
-  initialShow, 
-  initialBooks, 
-  initialPage = 1 
-}: ShowPageContentProps) {
+export function TopicPageContent({
+  initialTopic,
+  initialBooks,
+  initialPage = 1,
+}: TopicPageContentProps) {
   const [books, setBooks] = useState(initialBooks)
   const [currentPage, setCurrentPage] = useState(initialPage)
   const [isLoading, setIsLoading] = useState(false)
+  const isInitialMount = useRef(true)
   const booksPerPage = 10
 
-  // Fetch books when page changes
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+
     const fetchBooks = async () => {
       setIsLoading(true)
       try {
-        const response = await fetch(`/api/books/?brand_slug=${initialShow.slug}&page=${currentPage}&page_size=${booksPerPage}`)
-        if (!response.ok) throw new Error('Failed to fetch show books')
+        const response = await fetch(
+          `/api/books/?topic=${initialTopic.slug}&page=${currentPage}&page_size=${booksPerPage}`
+        )
+        if (!response.ok) throw new Error('Failed to fetch topic books')
         const data = await response.json()
         const booksData = data.results
           ? data
           : { count: data.length, results: data, next: null, previous: null }
         setBooks(booksData)
 
-        // Update URL without page reload
-        const newUrl = `/show/${initialShow.slug}?page=${currentPage}`
+        const newUrl = `/topic/${initialTopic.slug}?page=${currentPage}`
         window.history.replaceState({}, '', newUrl)
       } catch (error) {
         console.error('Error fetching books:', error)
@@ -44,38 +50,36 @@ export function ShowPageContent({
     }
 
     fetchBooks()
-  }, [currentPage, initialShow.slug])
+  }, [currentPage, initialTopic.slug])
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
 
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    { label: initialShow.station.name, href: `/station/${initialShow.station.station_id}` },
-    { label: initialShow.name }
-  ]
-
   const totalPages = Math.ceil(books.count / booksPerPage)
 
   return (
     <div className="container py-12">
-      <Breadcrumbs items={breadcrumbItems} />
+      <Breadcrumbs
+        items={[
+          { label: 'Home', href: '/' },
+          { label: 'Topics', href: '/topics' },
+          { label: initialTopic.name },
+        ]}
+      />
 
       <div className="mb-12">
-        <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
-          {initialShow.station.name}
-        </div>
         <h1 className="font-serif text-2xl font-medium mb-2">
-          {initialShow.name}
+          {initialTopic.name}
         </h1>
-        {initialShow.description && (
+        {initialTopic.description && (
           <p className="text-gray-600 dark:text-gray-400 mb-2">
-            {initialShow.description}
+            {initialTopic.description}
           </p>
         )}
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {initialShow.book_count.toLocaleString()} book{initialShow.book_count !== 1 ? 's' : ''} discovered
+          {initialTopic.book_count.toLocaleString()} book
+          {initialTopic.book_count !== 1 ? 's' : ''} discovered
         </p>
       </div>
 
@@ -86,11 +90,15 @@ export function ShowPageContent({
 
         <div className="max-w-4xl">
           {isLoading ? (
-            <p className="text-center py-12 text-gray-600 dark:text-gray-400">Loading...</p>
+            <p className="text-center py-12 text-gray-600 dark:text-gray-400">
+              Loading...
+            </p>
           ) : (
             <>
-              {books.results.map((book: Book) => (
-                <BookCard key={book.id} book={book} />
+              {books.results.map((book: Book, i: number) => (
+                <div key={book.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+                  <BookCard book={book} />
+                </div>
               ))}
 
               {totalPages > 1 && (
@@ -107,4 +115,3 @@ export function ShowPageContent({
     </div>
   )
 }
-

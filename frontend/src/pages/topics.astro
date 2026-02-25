@@ -1,0 +1,27 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { TopicsPageContent } from '../components/TopicsPageContent';
+import { fetchTopics, fetchStations } from '../api/client';
+import type { Topic, Station } from '../types';
+
+// Fetch data
+let topics: Topic[] = [];
+let stationNames: string[] = [];
+
+try {
+  const [topicsData, stationsData] = await Promise.all([
+    fetchTopics().catch(() => []),
+    fetchStations().catch(() => []),
+  ]);
+
+  topics = Array.isArray(topicsData) ? topicsData : [];
+  const stations: Station[] = Array.isArray(stationsData) ? stationsData : [];
+  stationNames = stations.map((s) => s.name);
+} catch (error) {
+  console.error('Error fetching topics:', error);
+}
+---
+
+<Layout pathname={Astro.url.pathname}>
+  <TopicsPageContent topics={topics} stationNames={stationNames} client:load />
+</Layout>

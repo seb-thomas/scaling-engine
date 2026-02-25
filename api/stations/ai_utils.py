@@ -123,11 +123,14 @@ Return JSON only:
         {{
             "title": "Book Title",
             "author": "Author Name",
-            "description": "A brief, engaging description of what the book is about"
+            "description": "A brief, engaging description of what the book is about",
+            "categories": ["fiction"]
         }}
     ],
     "reasoning": "Brief explanation of your decision"
 }}
+
+categories is a list of one or more from: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts. A book can belong to multiple categories (e.g. a debut novel = ["fiction", "debut"]).
 
 confidence is your overall confidence in the decision (0.0-1.0). 0.9+ = clear-cut, 0.7-0.9 = probable, <0.7 = uncertain. Return ONLY valid JSON, no additional text."""
 
@@ -300,7 +303,7 @@ def extract_books_from_episode(episode_id: int) -> Dict:
     """
     from django.utils import timezone
 
-    from .models import Book, Episode
+    from .models import Book, Category, Episode
 
     try:
         episode = Episode.objects.get(pk=episode_id)
@@ -396,6 +399,18 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 description=book_data.get("description", "").strip(),
                 google_books_verified=True,
             )
+
+            # Assign categories via M2M
+            raw_categories = book_data.get("categories", [])
+            if isinstance(raw_categories, str):
+                raw_categories = [raw_categories]
+            for raw_cat in raw_categories:
+                slug = raw_cat.strip().lower()
+                try:
+                    cat = Category.objects.get(slug=slug)
+                    book.categories.add(cat)
+                except Category.DoesNotExist:
+                    pass
             new_books.append(book)
             cover_url = book_info.get("cover_url") or ""
             if cover_url:

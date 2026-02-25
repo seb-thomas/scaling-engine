@@ -1,21 +1,51 @@
-import { Menu } from 'lucide-react'
+import { useState } from 'react'
+import { Menu, X } from 'lucide-react'
 import { Button } from './ui/button'
 
 interface HeaderProps {
   pathname: string
 }
 
+function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
+  return (
+    <a
+      href={href}
+      className={`relative pb-1 transition-colors ${
+        active
+          ? 'text-gray-900 dark:text-gray-100 after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-gray-900 dark:after:bg-gray-100'
+          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+      }`}
+    >
+      {children}
+    </a>
+  )
+}
+
 export function Header({ pathname }: HeaderProps) {
+  const [mobileOpen, setMobileOpen] = useState(false)
+
+  const links = [
+    { href: '/', label: 'Latest', active: pathname === '/' },
+    { href: '/books', label: 'All Books', active: pathname === '/books' },
+    { href: '/shows', label: 'Shows', active: pathname === '/shows' || pathname.startsWith('/show/') },
+    { href: '/topics', label: 'Topics', active: pathname === '/topics' || pathname.startsWith('/topic/') },
+  ]
+
   return (
     <header>
       <div className="container border-b md:border-b-0 border-gray-200 dark:border-gray-800">
         <div className="flex items-center justify-between h-16">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Menu className="w-5 h-5" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
           </div>
-          
+
           <a href="/" className="absolute left-1/2 -translate-x-1/2">
             <div className="flex items-center gap-2">
               <svg
@@ -44,38 +74,33 @@ export function Header({ pathname }: HeaderProps) {
                   fill="none"
                 />
               </svg>
-              <span
-                className="text-2xl italic"
-                style={{ fontFamily: "'EB Garamond', serif", letterSpacing: '-0.02em' }}
-              >
+              <span className="font-serif text-2xl italic tracking-tight">
                 Radio Reads
               </span>
             </div>
           </a>
         </div>
 
+        {/* Desktop nav */}
         <nav className="hidden md:flex items-center gap-6 py-4 border-t border-b border-gray-200 dark:border-gray-800">
-          <a
-            href="/"
-            className={`hover:opacity-70 transition-opacity ${pathname === '/' ? 'opacity-100' : 'opacity-70'}`}
-          >
-            Latest Books
-          </a>
-          <a
-            href="/books"
-            className={`hover:opacity-70 transition-opacity ${pathname === '/books' ? 'opacity-100' : 'opacity-70'}`}
-          >
-            All Books
-          </a>
-          <a
-            href="/shows"
-            className={`hover:opacity-70 transition-opacity ${pathname === '/shows' ? 'opacity-100' : 'opacity-70'}`}
-          >
-            All Shows
-          </a>
+          {links.map((link) => (
+            <NavLink key={link.href} href={link.href} active={link.active}>
+              {link.label}
+            </NavLink>
+          ))}
         </nav>
+
+        {/* Mobile nav */}
+        {mobileOpen && (
+          <nav className="md:hidden flex flex-col gap-4 py-4 border-t border-gray-200 dark:border-gray-800">
+            {links.map((link) => (
+              <NavLink key={link.href} href={link.href} active={link.active}>
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
+        )}
       </div>
     </header>
   )
 }
-

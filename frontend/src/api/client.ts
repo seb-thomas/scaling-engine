@@ -23,18 +23,22 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase()
 
+// Base URL without /api suffix, for endpoints mounted at project level
+const API_ROOT = API_BASE.replace(/\/api\/?$/, '')
+
 export async function fetchBooks(
   page: number = 1,
   pageSize: number = 10,
   search?: string,
   stationId?: string,
-  showId?: number
+  showId?: number,
+  topic?: string,
 ) {
   const params = new URLSearchParams({
     page: page.toString(),
     page_size: pageSize.toString(),
   })
-  
+
   if (search) {
     params.append('search', search)
   }
@@ -43,6 +47,9 @@ export async function fetchBooks(
   }
   if (stationId) {
     params.append('station_id', stationId)
+  }
+  if (topic) {
+    params.append('topic', topic)
   }
   
   const response = await fetch(`${API_BASE}/books/?${params.toString()}`)
@@ -105,6 +112,28 @@ export async function fetchStation(stationId: string) {
   if (!response.ok) throw new Error('Failed to fetch station');
   const data = await response.json();
   return data.results?.[0] || data;
+}
+
+export async function fetchTopics() {
+  const response = await fetch(`${API_ROOT}/api/topics/`);
+  if (!response.ok) throw new Error('Failed to fetch topics');
+  return response.json();
+}
+
+export async function fetchTopic(slug: string) {
+  const response = await fetch(`${API_ROOT}/api/topics/${slug}/`);
+  if (!response.ok) throw new Error('Failed to fetch topic');
+  return response.json();
+}
+
+export async function fetchTopicBooks(topicSlug: string, page: number = 1, pageSize: number = 10) {
+  const response = await fetch(`${API_BASE}/books/?topic=${topicSlug}&page=${page}&page_size=${pageSize}`);
+  if (!response.ok) throw new Error('Failed to fetch topic books');
+  const data = await response.json();
+  if (data.results) {
+    return data;
+  }
+  return { count: data.length, results: data, next: null, previous: null };
 }
 
 export async function fetchStationShows(stationId: string) {

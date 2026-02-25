@@ -17,3 +17,28 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Card entrance animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.35s ease-out both;
+}
+
+/* Image load fade-in */
+.img-loading {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.img-loaded {
+  opacity: 1;
+}

@@ -19,11 +19,10 @@ try {
 ---
 
 <Layout pathname={Astro.url.pathname}>
-  <BooksPageContent 
-    initialBooks={books} 
-    initialSearch={search || ''} 
+  <BooksPageContent
+    initialBooks={books}
+    initialSearch={search || ''}
     initialPage={page}
-    client:load 
+    client:load
   />
 </Layout>
-

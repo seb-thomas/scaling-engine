@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Station, Book, Episode, Brand
+from .models import Station, Book, Episode, Brand, Category
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -37,13 +37,20 @@ class EpisodeSerializer(serializers.ModelSerializer):
         fields = ('id', 'title', 'url', 'slug', 'aired_at', 'has_book', 'brand')
 
 
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('slug', 'name', 'description')
+
+
 class BookSerializer(serializers.ModelSerializer):
     episode = EpisodeSerializer(read_only=True)
     cover_image = serializers.SerializerMethodField()
+    categories = CategorySerializer(many=True, read_only=True)
 
     class Meta:
         model = Book
-        fields = ('id', 'title', 'slug', 'author', 'description', 'cover_image', 'purchase_link', 'episode')
+        fields = ('id', 'title', 'slug', 'author', 'categories', 'description', 'cover_image', 'purchase_link', 'episode')
 
     def get_cover_image(self, obj):
         """Return cover image URL if available"""

@@ -40,13 +40,25 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
                 {book.episode.brand.name}
               </div>
 
-              <h1 className="text-5xl mb-6" style={{ fontFamily: "'EB Garamond', serif" }}>
+              <h1 className="font-serif text-5xl mb-6">
                 {book.title}
               </h1>
 
               {book.author && (
                 <div className="text-xl text-gray-600 dark:text-gray-400 mb-8">
                   by {book.author}
+                </div>
+              )}
+              {book.categories && book.categories.length > 0 && (
+                <div className="text-sm tracking-wider uppercase text-gray-500 dark:text-gray-400 mb-8">
+                  {book.categories.map((c, i) => (
+                    <span key={c.slug}>
+                      {i > 0 && ', '}
+                      <a href={`/topic/${c.slug}`} className="hover:text-gray-900 dark:hover:text-gray-300 transition-colors">
+                        {c.name}
+                      </a>
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
@@ -59,7 +71,7 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
             <div className="mb-2">
               <a
                 href={`/show/${book.episode.brand.slug}`}
-                className="hover:opacity-70 transition-opacity"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
               >
                 {book.episode.brand.name}, {book.episode.brand.station.name}
               </a>
@@ -72,7 +84,7 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
             </h2>
             <p className="italic mb-2">{book.episode.title}</p>
             {book.episode.aired_at && (
-              <div className="text-sm text-gray-500 dark:text-gray-500 mb-3">
+              <div className="text-sm text-gray-500 dark:text-gray-400 mb-3">
                 {formatDateLong(book.episode.aired_at)}
               </div>
             )}

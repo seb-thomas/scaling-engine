@@ -60,10 +60,10 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
 ## Todo List
 
 Tracked in Claude memory (`memory/todos.md`). Key open items:
-- Improve confidence signal: make sortable, combine with GB verification status
-- Investigate Google Books `/books/content` vs `/books/publisher/content` URL paths
-- Review edge cases: Chronology of Water (#173), Heated Rivalry (#190)
-- Search and filter functionality for books (frontend)
+- Historical backfill feature (code written, not yet committed)
+- Add more shows (BBC + NPR)
+- Add book categories
+- System health visibility improvements
 
 ## Important Notes
 
@@ -153,6 +153,9 @@ python manage.py populate_purchase_links --limit 100
 2. **Missing authors**: Many books extracted without author names
    - Episode titles may not always include author information
    - Could enhance AI prompt to infer authors when possible
+
+## Resolved Issues
+- **Google Books cover 403s**: Google Books `/books/content` path 403s from datacenter IPs. Fixed by rewriting URLs to `/books/publisher/content` in `download_and_save_cover()` (`ai_utils.py`). Same images, works from server.
 
 ## Environment Variables
 

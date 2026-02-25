@@ -1,4 +1,4 @@
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Count
 from rest_framework import viewsets, filters
@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .serializers import StationSerializer, BookSerializer, BrandShowSerializer
-from .models import Station, Book, Brand
+from .models import Station, Book, Brand, Category
 
 
 class StationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -70,10 +70,10 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BookSerializer
     queryset = Book.objects.select_related(
         "episode", "episode__brand", "episode__brand__station"
-    ).all()
+    ).prefetch_related("categories").all()
     lookup_field = "slug"
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ["title", "author", "description"]
+    search_fields = ["title", "author", "categories__name"]
     ordering_fields = ["episode__aired_at", "episode__id"]
     ordering = ["-episode__aired_at", "-episode__id"]
 
@@ -88,7 +88,48 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         station_id = self.request.query_params.get("station_id", None)
         if station_id:
             queryset = queryset.filter(episode__brand__station__station_id=station_id)
+        topic = self.request.query_params.get("topic") or self.request.query_params.get("category")
+        if topic:
+            queryset = queryset.filter(categories__slug=topic)
+        # M2M join on categories__name (search) can produce duplicates
+        if self.request.query_params.get("search") or topic:
+            queryset = queryset.distinct()
         return queryset
+
+
+def topics_list(request):
+    """Return topics with book counts and descriptions."""
+    cats = (
+        Category.objects.annotate(book_count=Count("book"))
+        .filter(book_count__gt=0)
+        .order_by("-book_count")
+    )
+    result = [
+        {
+            "slug": c.slug,
+            "name": c.name,
+            "description": c.description,
+            "book_count": c.book_count,
+        }
+        for c in cats
+    ]
+    return JsonResponse(result, safe=False)
+
+
+def topic_detail(request, slug):
+    """Return a single topic by slug."""
+    try:
+        cat = Category.objects.annotate(book_count=Count("book")).get(slug=slug)
+    except Category.DoesNotExist:
+        raise Http404
+    return JsonResponse(
+        {
+            "slug": cat.slug,
+            "name": cat.name,
+            "description": cat.description,
+            "book_count": cat.book_count,
+        }
+    )
 
 
 def health_check(request):

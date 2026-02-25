@@ -42,7 +42,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
                 {book.episode.brand.name}
               </div>
-              <h2 className="text-3xl mb-3 group-hover:opacity-70 transition-opacity" style={{ fontFamily: "'EB Garamond', serif" }}>
+              <h2 className="font-serif text-3xl mb-3 group-hover:opacity-70 transition-opacity">
                 {book.title}
               </h2>
               {book.author && (
@@ -88,7 +88,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
           <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2">
             {book.episode.brand.name}
           </div>
-          <h3 className="mb-1 group-hover:opacity-70 transition-opacity" style={{ fontFamily: "'EB Garamond', serif" }}>
+          <h3 className="font-serif text-lg font-medium mb-1 group-hover:opacity-70 transition-opacity">
             {book.title}
           </h3>
           {book.author && (
@@ -96,7 +96,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               by {book.author}
             </div>
           )}
-          <div className="text-sm text-gray-500 dark:text-gray-500">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
             {book.episode.brand.station.name}
             {book.episode.title && (
               <> · {truncateAtWord(book.episode.title, 50)}</>

@@ -3,6 +3,7 @@ export type Book = {
   title: string;
   slug: string;
   author?: string;
+  categories?: { slug: string; name: string }[];
   description?: string;
   cover_image?: string;
   purchase_link?: string;
@@ -47,6 +48,13 @@ export type Station = {
   name: string;
   station_id: string;
   url: string;
+};
+
+export type Topic = {
+  slug: string;
+  name: string;
+  description?: string;
+  book_count: number;
 };
 
 export type PaginatedResponse<T> = {

@@ -12,6 +12,7 @@ interface ImageWithFallbackProps {
 
 export function ImageWithFallback({ src, alt, className, title, author, brandColor }: ImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false)
+  const [loaded, setLoaded] = useState(false)
 
   if (!src || hasError) {
     if (title) {
@@ -28,8 +29,9 @@ export function ImageWithFallback({ src, alt, className, title, author, brandCol
     <img
       src={src}
       alt={alt}
-      className={className}
+      className={`${className} ${loaded ? 'img-loaded' : 'img-loading'}`}
       onError={() => setHasError(true)}
+      onLoad={() => setLoaded(true)}
       loading="lazy"
     />
   )

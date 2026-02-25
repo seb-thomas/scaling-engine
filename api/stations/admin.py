@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.utils.safestring import mark_safe
 from django.conf import settings as django_settings
 
-from .models import Station, Brand, Episode, Book, Phrase
+from .models import Station, Brand, Episode, Book, Phrase, Category
 
 
 class BookInline(admin.TabularInline):
@@ -240,12 +240,13 @@ class EpisodeAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
-    list_filter = ("episode__brand", "google_books_verified")
+    list_display = ("title", "author", "category_list", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
+    list_filter = ("categories", "episode__brand", "google_books_verified")
+    filter_horizontal = ("categories",)
     search_fields = ("title", "author", "description")
     readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "google_books_verified", "cover_fetch_error")
     fieldsets = (
-        ("Book Information", {"fields": ("title", "author", "slug", "description", "google_books_verified")}),
+        ("Book Information", {"fields": ("title", "author", "categories", "slug", "description", "google_books_verified")}),
         (
             "Cover Image",
             {
@@ -255,6 +256,11 @@ class BookAdmin(admin.ModelAdmin):
         ("Links", {"fields": ("purchase_link",)}),
         ("Episode", {"fields": ("episode",)}),
     )
+
+    def category_list(self, obj):
+        return ", ".join(c.name for c in obj.categories.all()) or "-"
+
+    category_list.short_description = "Categories"
 
     def episode_brand(self, obj):
         if obj.episode and obj.episode.brand:
@@ -485,7 +491,7 @@ class BrandAdmin(admin.ModelAdmin):
 
 
 # Register remaining models with default admin
-admin.site.register([Station, Phrase])
+admin.site.register([Station, Phrase, Category])
 
 
 def system_health_view(request):

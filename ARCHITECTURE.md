@@ -127,7 +127,7 @@ flowchart TB
     CallAI["call Claude + parse JSON"]
     SaveResult["write extraction_result + ai_confidence"]
     VerifyGB["verify each book via Google Books API"]
-    ReplaceBooks["delete old Book rows create verified Book rows + download covers"]
+    ReplaceBooks["delete old Book rows create verified Book rows + download covers rewrite /books/content to /books/publisher/content"]
     UpdateEpisode["set has_book set aired_at if empty"]
     SetStatus["status PROCESSED or FAILED processed_at last_error"]
     AITask --> ReadSnap --> CallAI --> SaveResult --> VerifyGB --> ReplaceBooks --> UpdateEpisode --> SetStatus
@@ -214,7 +214,7 @@ Book extraction uses a three-layer approach: **AI propose → API verify → hum
 
 **Why verification is a gate, not just enrichment**: New books that aren't on Google Books yet are an acceptable false negative — they'll appear once indexed. But false positives (non-books in the database) are worse because they erode trust in the data. The gate trades a small risk of missing very new books for high data quality.
 
-**Cover image pipeline**: Google Books search returns untokenised image URLs that 403 from server/datacenter IPs. The system uses a two-step lookup: search → get volume ID → fetch volume detail with API key → use tokenised `medium`/`large` imageLink (contains `imgtk` parameter). Cover images are downloaded and stored locally via Django's `ImageField` + Pillow.
+**Cover image pipeline**: Google Books volume detail endpoint returns tokenised image URLs (with `imgtk` parameter), but these use the `/books/content` path which 403s from datacenter IPs. `download_and_save_cover()` rewrites URLs to `/books/publisher/content` before downloading — same images, no 403. Open Library is available as a manual fallback (admin refetch only). Cover images are stored locally via Django's `ImageField` + Pillow.
 
 ## Data wipe (migrations)
 

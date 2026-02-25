@@ -11,10 +11,10 @@ interface BooksPageContentProps {
   initialPage?: number;
 }
 
-export function BooksPageContent({ 
-  initialBooks, 
-  initialSearch = "", 
-  initialPage = 1 
+export function BooksPageContent({
+  initialBooks,
+  initialSearch = "",
+  initialPage = 1,
 }: BooksPageContentProps) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [debouncedSearch, setDebouncedSearch] = useState(initialSearch);
@@ -57,15 +57,14 @@ export function BooksPageContent({
         if (debouncedSearch) {
           params.append("search", debouncedSearch);
         }
-        
         const response = await fetch(`/api/books/?${params.toString()}`);
         if (!response.ok) throw new Error('Failed to fetch books');
         const data = await response.json();
-        const booksData = data.results 
-          ? data 
+        const booksData = data.results
+          ? data
           : { count: data.length, results: data, next: null, previous: null };
         setBooks(booksData);
-        
+
         // Update URL without page reload
         const newUrl = `/books?${params.toString()}`;
         window.history.replaceState({}, '', newUrl);
@@ -94,7 +93,7 @@ export function BooksPageContent({
         <h1 className="text-sm tracking-wider uppercase mb-4">All Books</h1>
       </div>
 
-      {/* Search Box */}
+      {/* Search */}
       <div className="max-w-4xl mb-12">
         <div className="relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
@@ -102,14 +101,15 @@ export function BooksPageContent({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search books by title, author, or description..."
+            placeholder="Search by title, author, or topic..."
             className="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 transition-colors"
           />
         </div>
         {searchQuery && (
           <p className="mt-4 text-sm text-gray-600 dark:text-gray-400">
             Found {books.count} book
-            {books.count !== 1 ? "s" : ""} matching "{searchQuery}"
+            {books.count !== 1 ? "s" : ""}
+            {" "}matching &ldquo;{searchQuery}&rdquo;
           </p>
         )}
       </div>

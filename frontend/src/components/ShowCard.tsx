@@ -53,7 +53,7 @@ export function ShowCard({ show }: ShowCardProps) {
           <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
             {show.station.name}
           </div>
-          <h3 className="text-xl mb-2 group-hover:text-orange-900 dark:group-hover:text-orange-100 transition-colors leading-tight" style={{ fontFamily: "'EB Garamond', serif" }}>
+          <h3 className="font-serif text-xl mb-2 group-hover:text-orange-900 dark:group-hover:text-orange-100 transition-colors leading-tight">
             {show.name}
           </h3>
           {show.description && (
@@ -65,7 +65,7 @@ export function ShowCard({ show }: ShowCardProps) {
             <div className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-orange-800 dark:group-hover:text-orange-300 transition-colors">
               {show.book_count.toLocaleString()} books
             </div>
-            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors group-hover:translate-x-1 transition-transform" />
+            <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 group-hover:translate-x-2 transition-all" />
           </div>
         </div>
       </a>

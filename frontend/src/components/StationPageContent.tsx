@@ -28,7 +28,7 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
             </a>
           </p>
         )}
-        <p className="text-sm text-gray-500 dark:text-gray-500">
+        <p className="text-sm text-gray-500 dark:text-gray-400">
           {shows.length} show{shows.length !== 1 ? 's' : ''}
         </p>
       </div>
