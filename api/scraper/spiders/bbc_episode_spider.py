@@ -1,3 +1,5 @@
+import re
+
 import scrapy
 from datetime import datetime
 from scraper.items import EpisodeItem
@@ -132,11 +134,22 @@ class BbcEpisodeSpider(scrapy.Spider):
             return
 
         if self.episodes_scraped < self.max_episodes:
-            # Look for next page button
-            next_page = response.css("a:contains('Next')::attr(href)").get()
+            # BBC Sounds pagination: <a aria-label="View the next page" href="?page=N">
+            next_page = response.css('a[aria-label="View the next page"]::attr(href)').get()
             if not next_page:
-                # Try alternative pagination selector
-                next_page = response.css("li.pagination__next a::attr(href)").get()
+                # Fallback: numbered page links (e.g. ?page=2)
+                next_page = response.css('a[href*="page="]::attr(href)').getall()
+                # Pick the page after current
+                current_page = 1
+                current_url = response.url
+                m = re.search(r'[?&]page=(\d+)', current_url)
+                if m:
+                    current_page = int(m.group(1))
+                target = str(current_page + 1)
+                next_page = next(
+                    (href for href in next_page if f'page={target}' in href),
+                    None
+                )
 
             if next_page:
                 yield response.follow(next_page, callback=self.parse)
