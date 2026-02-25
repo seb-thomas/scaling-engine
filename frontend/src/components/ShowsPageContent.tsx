@@ -41,10 +41,8 @@ export function ShowsPageContent({ shows, stations }: ShowsPageContentProps) {
             </a>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {stationShows.map((show: Show, i: number) => (
-              <div key={show.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
-                <ShowCard show={show} />
-              </div>
+            {stationShows.map((show: Show) => (
+              <ShowCard key={show.id} show={show} />
             ))}
           </div>
         </section>

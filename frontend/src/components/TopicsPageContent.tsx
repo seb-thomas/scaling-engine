@@ -32,10 +32,8 @@ export function TopicsPageContent({ topics, stationNames }: TopicsPageContentPro
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {topics.map((topic, i) => (
-          <div key={topic.slug} className="animate-fade-in-up" style={{ animationDelay: `${i * 60}ms` }}>
-            <TopicCard topic={topic} />
-          </div>
+        {topics.map((topic) => (
+          <TopicCard key={topic.slug} topic={topic} />
         ))}
       </div>
     </div>

@@ -95,10 +95,8 @@ export function TopicPageContent({
             </p>
           ) : (
             <>
-              {books.results.map((book: Book, i: number) => (
-                <div key={book.id} className="animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
-                  <BookCard book={book} />
-                </div>
+              {books.results.map((book: Book) => (
+                <BookCard key={book.id} book={book} />
               ))}
 
               {totalPages > 1 && (
