@@ -173,6 +173,55 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
     }
 
 
+@shared_task(name="stations.tasks.backfill_all_brands")
+def backfill_all_brands(max_episodes_per_brand=25):
+    """
+    Incremental backfill: scrape older episodes for all brands.
+
+    The spider skips already-scraped episodes, so each run paginates
+    deeper into history, picking up where the last run left off.
+    Extraction is triggered automatically by post_save signal.
+    """
+    logger.info(f"Starting incremental backfill (max {max_episodes_per_brand} per brand)")
+
+    brands = Brand.objects.all()
+    if not brands.exists():
+        logger.warning("No brands found")
+        return {"status": "no_brands"}
+
+    from scrapy.crawler import CrawlerProcess
+    from scrapy.utils.project import get_project_settings
+    from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
+
+    settings = get_project_settings()
+    settings["LOG_LEVEL"] = "INFO"
+
+    before_counts = {b.id: Episode.objects.filter(brand=b).count() for b in brands}
+
+    process = CrawlerProcess(settings)
+    for brand in brands:
+        logger.info(f"Queueing backfill for {brand.name}")
+        process.crawl(BbcEpisodeSpider, brand_id=brand.id, max_episodes=max_episodes_per_brand)
+
+    try:
+        process.start()
+    except Exception as e:
+        logger.error(f"Error during backfill: {e}")
+        return {"status": "error", "error": str(e)}
+
+    results = {}
+    for brand in brands:
+        after = Episode.objects.filter(brand=brand).count()
+        new = after - before_counts[brand.id]
+        results[brand.name] = {"new_episodes": new, "total": after}
+        if new > 0:
+            logger.info(f"Backfill {brand.name}: {new} new episodes")
+        else:
+            logger.info(f"Backfill {brand.name}: no new episodes (may have reached end of archive)")
+
+    return {"status": "complete", "results": results}
+
+
 @shared_task(name="stations.tasks.extract_books_from_new_episodes")
 def extract_books_from_new_episodes():
     """

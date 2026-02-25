@@ -242,6 +242,11 @@ if not PAUSE_SCRAPING:
             "task": "stations.tasks.extract_books_from_new_episodes",
             "schedule": crontab(minute="*/30"),  # Every 30 minutes
         },
+        "backfill-every-12-hours": {
+            "task": "stations.tasks.backfill_all_brands",
+            "schedule": crontab(hour="0,12", minute=0),  # Midnight and noon
+            "kwargs": {"max_episodes_per_brand": 25},
+        },
     }
 
 # AI / BOOK EXTRACTION
