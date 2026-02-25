@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { PlaceholderCover } from './PlaceholderCover'
 
 interface ImageWithFallbackProps {
@@ -13,6 +13,12 @@ interface ImageWithFallbackProps {
 export function ImageWithFallback({ src, alt, className, title, author, brandColor }: ImageWithFallbackProps) {
   const [hasError, setHasError] = useState(false)
   const [loaded, setLoaded] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  // Handle images already loaded before hydration
+  useEffect(() => {
+    if (imgRef.current?.complete) setLoaded(true)
+  }, [])
 
   if (!src || hasError) {
     if (title) {
@@ -27,6 +33,7 @@ export function ImageWithFallback({ src, alt, className, title, author, brandCol
 
   return (
     <img
+      ref={imgRef}
       src={src}
       alt={alt}
       className={`${className} ${loaded ? 'img-loaded' : 'img-loading'}`}
