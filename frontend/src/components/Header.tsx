@@ -10,9 +10,9 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
   return (
     <a
       href={href}
-      className={`relative pb-1 transition-colors ${
+      className={`pb-1 transition-colors ${
         active
-          ? 'text-gray-900 dark:text-gray-100 after:absolute after:bottom-0 after:left-0 after:w-full after:h-px after:bg-gray-900 dark:after:bg-gray-100'
+          ? 'text-gray-900 dark:text-gray-100'
           : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
       }`}
     >
@@ -74,7 +74,7 @@ export function Header({ pathname }: HeaderProps) {
                   fill="none"
                 />
               </svg>
-              <span className="font-serif text-2xl italic tracking-tight">
+              <span className="font-serif text-[1.8rem] italic tracking-tight">
                 Radio Reads
               </span>
             </div>
