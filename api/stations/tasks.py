@@ -157,18 +157,13 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
 
     logger.info(f"Backfill complete for {brand.name}: {new_episodes} new episodes")
 
-    # Optionally trigger extraction on newly scraped episodes
+    # Note: extraction is triggered automatically by the Episode post_save signal
+    # when extract=True, we just log that extraction will happen via the signal.
+    # No need to explicitly queue tasks here — the signal fires on episode creation.
     if extract and new_episodes > 0:
-        scraped = Episode.objects.filter(brand=brand, status=Episode.STATUS_SCRAPED)
-        queued = 0
-        for episode in scraped:
-            episode.status = Episode.STATUS_QUEUED
-            episode.last_error = None
-            episode.status_changed_at = timezone.now()
-            episode.save(update_fields=["status", "last_error", "status_changed_at"])
-            ai_extract_books_task.delay(episode.id)
-            queued += 1
-        logger.info(f"Queued AI extraction for {queued} episodes")
+        logger.info(
+            f"AI extraction will run for {new_episodes} episodes via post_save signal"
+        )
 
     return {
         "status": "complete",

@@ -7,15 +7,21 @@ from .tasks import contains_keywords_task, ai_extract_books_task
 
 
 @receiver(post_save, sender=Episode)
-def episode_post_save(sender, instance, **kwargs):
+def episode_post_save(sender, instance, created, **kwargs):
     """
-    Trigger book extraction when an episode is saved.
+    Trigger book extraction when a NEW episode is created.
+
+    Only fires on creation (not every save) to prevent duplicate tasks
+    during backfill and status updates.
 
     Supports three modes via BOOK_EXTRACTION_MODE setting:
     - 'keyword': Legacy keyword matching (default)
     - 'ai': AI-powered extraction using Claude
     - 'both': Run both methods
     """
+    if not created:
+        return
+
     if not instance.has_book:
         mode = getattr(settings, "BOOK_EXTRACTION_MODE", "keyword")
 
