@@ -49,18 +49,6 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
                   by {book.author}
                 </div>
               )}
-              {book.categories && book.categories.length > 0 && (
-                <div className="text-sm tracking-wider uppercase text-gray-500 dark:text-gray-400 mb-8">
-                  {book.categories.map((c, i) => (
-                    <span key={c.slug}>
-                      {i > 0 && ', '}
-                      <a href={`/topic/${c.slug}`} className="hover:text-gray-900 dark:hover:text-gray-300 transition-colors">
-                        {c.name}
-                      </a>
-                    </span>
-                  ))}
-                </div>
-              )}
             </div>
           </div>
 
@@ -71,11 +59,26 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
             <div className="mb-2">
               <a
                 href={`/show/${book.episode.brand.slug}`}
-                className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                className="hover:opacity-70 transition-opacity"
               >
                 {book.episode.brand.name}, {book.episode.brand.station.name}
               </a>
             </div>
+            {book.categories && book.categories.length > 0 && (
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+                {book.categories.map((c, i) => (
+                  <span key={c.slug}>
+                    {i > 0 && ' · '}
+                    <a
+                      href={`/topic/${c.slug}`}
+                      className="hover:text-[#c1573a] dark:hover:text-[#c1573a] transition-colors"
+                    >
+                      {c.name}
+                    </a>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="mb-8">
