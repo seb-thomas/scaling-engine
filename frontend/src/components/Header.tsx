@@ -31,6 +31,8 @@ export function Header({ pathname }: HeaderProps) {
     { href: '/topics', label: 'Topics', active: pathname === '/topics' || pathname.startsWith('/topic/') },
   ]
 
+  const aboutActive = pathname === '/about'
+
   return (
     <header>
       <div className="container border-b md:border-b-0 border-gray-200 dark:border-gray-800">
@@ -88,6 +90,9 @@ export function Header({ pathname }: HeaderProps) {
               {link.label}
             </NavLink>
           ))}
+          <div className="ml-auto">
+            <NavLink href="/about" active={aboutActive}>About</NavLink>
+          </div>
         </nav>
 
         {/* Mobile nav */}
@@ -98,6 +103,7 @@ export function Header({ pathname }: HeaderProps) {
                 {link.label}
               </NavLink>
             ))}
+            <NavLink href="/about" active={aboutActive}>About</NavLink>
           </nav>
         )}
       </div>

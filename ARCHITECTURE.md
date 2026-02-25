@@ -89,7 +89,7 @@ flowchart TB
   subgraph django [Django serve + operate]
     Nginx[Nginx]
     Web[Django Gunicorn]
-    Frontend[React SSR]
+    Frontend[Astro SSR]
     API[REST API]
     Admin[Django Admin]
     Nginx --> Web
@@ -100,8 +100,10 @@ flowchart TB
   subgraph models [Domain models merged]
     Episode[(Episode brand title url slug scraped_data status processed_at last_error task_id extraction_result aired_at has_book ai_confidence)]
     Book[(Book episode-scoped google_books_verified cover_image purchase_link)]
+    Topic[(Topic name slug)]
     Brand -->|1:N| Episode
     Episode -->|1:N| Book
+    Book -->|M:N| Topic
   end
 
   subgraph storage [Storage]
@@ -126,8 +128,8 @@ flowchart TB
     ReadSnap["read Episode.scraped_data.description"]
     CallAI["call Claude + parse JSON"]
     SaveResult["write extraction_result + ai_confidence"]
-    VerifyGB["verify each book via Google Books API"]
-    ReplaceBooks["delete old Book rows create verified Book rows + download covers rewrite /books/content to /books/publisher/content"]
+    VerifyGB["verify each book via Google Books API search up to 5 editions"]
+    ReplaceBooks["delete old Book rows create verified Book rows + download best cover capped at large"]
     UpdateEpisode["set has_book set aired_at if empty"]
     SetStatus["status PROCESSED or FAILED processed_at last_error"]
     AITask --> ReadSnap --> CallAI --> SaveResult --> VerifyGB --> ReplaceBooks --> UpdateEpisode --> SetStatus
@@ -198,7 +200,8 @@ Public REST API **must not** expose pipeline/debug fields. Episode serializer us
 | Scraping | `api/scraper/spiders/bbc_episode_spider.py` | Discovers episode URLs from Brand page; fills `_raw_data_cache` for pipeline. |
 | Tasks | `api/stations/tasks.py` | Status transitions; selector by `status=SCRAPED`; enqueue with `QUEUED`. |
 | Extraction | `api/stations/ai_utils.py` | Reads `scraped_data`; calls Claude; verifies via Google Books; replaces Books; sets `extraction_result`, `ai_confidence`, `PROCESSED`/`FAILED`. |
-| Verification | `api/stations/utils.py` | Google Books API: `intitle:`/`inauthor:` search, two-step cover lookup (search → volume detail for tokenised URLs), ISBN extraction. |
+| Verification | `api/stations/utils.py` | Google Books API: `intitle:`/`inauthor:` search across multiple editions, two-step cover lookup (search → volume detail for tokenised URLs), ISBN extraction. |
+| Frontend | `frontend/` | Astro SSR with React components, Tailwind CSS. Pages: latest, all books, shows, topics, about. |
 | Admin | `api/stations/admin.py` | Episode list/change: status, confidence (colour-coded), previews, reprocess single/bulk. Book list/change: cover error column, refetch cover button (single + bulk). Extraction evaluation view. |
 | Config | `api/paperwaves/settings.py` | `FLOWER_URL` (optional) for admin “Open Flower” link. |
 
@@ -214,7 +217,7 @@ Book extraction uses a three-layer approach: **AI propose → API verify → hum
 
 **Why verification is a gate, not just enrichment**: New books that aren't on Google Books yet are an acceptable false negative — they'll appear once indexed. But false positives (non-books in the database) are worse because they erode trust in the data. The gate trades a small risk of missing very new books for high data quality.
 
-**Cover image pipeline**: Google Books volume detail endpoint returns tokenised image URLs (with `imgtk` parameter), but these use the `/books/content` path which 403s from datacenter IPs. `download_and_save_cover()` rewrites URLs to `/books/publisher/content` before downloading — same images, no 403. Open Library is available as a manual fallback (admin refetch only). Cover images are stored locally via Django's `ImageField` + Pillow.
+**Cover image pipeline**: The lookup fetches up to 5 Google Books search results and picks the edition with the highest-resolution cover (capped at `large`, ~800px — `extraLarge` is overkill for rendered sizes). Google Books volume detail endpoint returns tokenised image URLs (with `imgtk` parameter), but these use the `/books/content` path which 403s from datacenter IPs. `download_and_save_cover()` rewrites URLs to `/books/publisher/content` before downloading — same images, no 403. Open Library is available as a manual fallback (admin refetch only). Cover images are stored locally via Django's `ImageField` + Pillow.
 
 ## Data wipe (migrations)
 
