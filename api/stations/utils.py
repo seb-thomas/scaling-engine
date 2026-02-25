@@ -74,7 +74,8 @@ def verify_book_exists(title: str, author: str = "") -> dict:
             query = f"intitle:{title} inauthor:{author}"
         else:
             query = title
-        params = {"q": query, "maxResults": 1}
+        # Fetch several results so we can pick the edition with the best cover
+        params = {"q": query, "maxResults": 5}
         if api_key:
             params["key"] = api_key
         search_url = f"https://www.googleapis.com/books/v1/volumes?{urllib.parse.urlencode(params)}"
@@ -84,7 +85,35 @@ def verify_book_exists(title: str, author: str = "") -> dict:
         if not items:
             return not_found
 
+        # Step 2: Among the results, find the one with the highest-res cover.
+        # Size preference: extraLarge > large > medium > small > thumbnail.
+        _SIZE_RANK = {"extraLarge": 5, "large": 4, "medium": 3, "small": 2, "thumbnail": 1, "smallThumbnail": 0}
+
+        # Use first result for metadata (most relevant match)
         info = items[0].get("volumeInfo", {})
+
+        best_cover_url = None
+        best_cover_score = -1
+
+        if api_key:
+            for item in items:
+                vol_id = item.get("id")
+                if not vol_id:
+                    continue
+                try:
+                    vol_url = f"https://www.googleapis.com/books/v1/volumes/{vol_id}?key={api_key}"
+                    vol_data = _gb_request(vol_url)
+                    vol_links = vol_data.get("volumeInfo", {}).get("imageLinks", {})
+                    # Score this volume by its best available size
+                    for size_name in ("extraLarge", "large", "medium", "small", "thumbnail"):
+                        if size_name in vol_links:
+                            score = _SIZE_RANK[size_name]
+                            if score > best_cover_score:
+                                best_cover_score = score
+                                best_cover_url = vol_links[size_name]
+                            break  # only care about the best size this volume offers
+                except Exception as e:
+                    logger.debug(f"Volume detail fetch failed for {vol_id}: {e}")
         gb_title = info.get("title", "")
         gb_authors = info.get("authors", [])
         gb_author = gb_authors[0] if gb_authors else ""
@@ -99,37 +128,18 @@ def verify_book_exists(title: str, author: str = "") -> dict:
                 isbn_10 = ident.get("identifier")
         isbn = isbn or isbn_10
 
-        # Step 2: Get cover URL via volume detail endpoint (tokenised URLs
-        # that work from server IPs). Falls back to search thumbnails.
-        cover_url = None
-        vol_id = items[0].get("id")
-        if api_key and vol_id:
-            try:
-                vol_url = f"https://www.googleapis.com/books/v1/volumes/{vol_id}?key={api_key}"
-                vol_data = _gb_request(vol_url)
-                vol_links = vol_data.get("volumeInfo", {}).get("imageLinks", {})
-                # Prefer medium (~575px wide), fall back through sizes
-                cover_url = (
-                    vol_links.get("medium")
-                    or vol_links.get("large")
-                    or vol_links.get("small")
-                    or vol_links.get("thumbnail")
-                )
-            except Exception as e:
-                logger.debug(f"Volume detail fetch failed for {vol_id}: {e}")
-
         # Fallback: use search thumbnail only without API key.
         # With an API key, volume detail returns tokenised URLs; search
         # thumbnails are untokenised and 403 from server/datacenter IPs.
-        if not cover_url and not api_key:
+        if not best_cover_url and not api_key:
             image_links = info.get("imageLinks", {})
-            cover_url = image_links.get("thumbnail")
+            best_cover_url = image_links.get("thumbnail")
 
         return {
             "exists": True,
             "title": gb_title,
             "author": gb_author,
-            "cover_url": cover_url,
+            "cover_url": best_cover_url,
             "isbn": isbn,
         }
     except Exception as e:
