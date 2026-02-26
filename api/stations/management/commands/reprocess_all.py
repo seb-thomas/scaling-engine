@@ -58,7 +58,7 @@ class Command(BaseCommand):
 
         if options["dry_run"]:
             for ep in episodes:
-                book_count = Book.objects.filter(episode=ep).count()
+                book_count = ep.books.count()
                 self.stdout.write(
                     f"  [{ep.status:10}] #{ep.id} {ep.title[:60]}"
                     f"  ({book_count} books)"
@@ -81,7 +81,7 @@ class Command(BaseCommand):
 
         for i, ep in enumerate(episodes, 1):
             old_books = set(
-                Book.objects.filter(episode=ep).values_list("title", flat=True)
+                ep.books.values_list("title", flat=True)
             )
             stats["books_before"] += len(old_books)
 
@@ -98,7 +98,7 @@ class Command(BaseCommand):
 
             ep.refresh_from_db()
             new_books = set(
-                Book.objects.filter(episode=ep).values_list("title", flat=True)
+                ep.books.values_list("title", flat=True)
             )
             stats["books_after"] += len(new_books)
 

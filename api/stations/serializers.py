@@ -44,13 +44,13 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class BookSerializer(serializers.ModelSerializer):
-    episode = EpisodeSerializer(read_only=True)
+    episodes = EpisodeSerializer(many=True, read_only=True)
     cover_image = serializers.SerializerMethodField()
     categories = CategorySerializer(many=True, read_only=True)
 
     class Meta:
         model = Book
-        fields = ('id', 'title', 'slug', 'author', 'categories', 'description', 'cover_image', 'purchase_link', 'episode')
+        fields = ('id', 'title', 'slug', 'author', 'categories', 'description', 'cover_image', 'purchase_link', 'episodes')
 
     def get_cover_image(self, obj):
         """Return cover image URL if available"""

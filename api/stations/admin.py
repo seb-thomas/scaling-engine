@@ -2,6 +2,7 @@ import json
 
 from django import forms
 from django.contrib import admin
+from django.db import models as db_models
 from django.utils.html import format_html, escape
 from django.urls import reverse, path
 from django.shortcuts import redirect, render
@@ -15,15 +16,27 @@ from .models import Station, Brand, Episode, Book, Phrase, Category
 class BookInline(admin.TabularInline):
     """Inline display of books for an episode"""
 
-    model = Book
+    model = Book.episodes.through
     extra = 0
-    fields = ("title", "author", "description", "view_link")
-    readonly_fields = ("title", "author", "description", "view_link")
+    readonly_fields = ("book_title", "book_author", "view_link")
+    fields = ("book_title", "book_author", "view_link")
+    verbose_name = "Book"
+    verbose_name_plural = "Books"
     can_delete = False
 
+    def book_title(self, obj):
+        return obj.book.title
+
+    book_title.short_description = "Title"
+
+    def book_author(self, obj):
+        return obj.book.author
+
+    book_author.short_description = "Author"
+
     def view_link(self, obj):
-        if obj.pk:
-            url = reverse("admin:stations_book_change", args=[obj.pk])
+        if obj.book_id:
+            url = reverse("admin:stations_book_change", args=[obj.book_id])
             return format_html('<a href="{}">View</a>', url)
         return "-"
 
@@ -103,7 +116,7 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     def book_count(self, obj):
         """Display count of books"""
-        count = obj.book_set.count()
+        count = obj.books.count()
         return f"{count} book{'s' if count != 1 else ''}" if count > 0 else "-"
 
     book_count.short_description = "Books"
@@ -113,7 +126,7 @@ class EpisodeAdmin(admin.ModelAdmin):
             reasons = []
             if obj.ai_confidence is not None and obj.ai_confidence < 0.9:
                 reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
-            if obj.book_set.filter(google_books_verified=False).exists():
+            if obj.books.filter(google_books_verified=False).exists():
                 reasons.append("unverified book")
             hint = ", ".join(reasons) or "flagged"
             return format_html(
@@ -241,8 +254,8 @@ class EpisodeAdmin(admin.ModelAdmin):
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
     list_display = ("title", "author", "category_list", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
-    list_filter = ("categories", "episode__brand", "google_books_verified")
-    filter_horizontal = ("categories",)
+    list_filter = ("categories", "episodes__brand", "google_books_verified")
+    filter_horizontal = ("categories", "episodes")
     search_fields = ("title", "author", "description")
     readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "google_books_verified", "cover_fetch_error")
     fieldsets = (
@@ -254,7 +267,7 @@ class BookAdmin(admin.ModelAdmin):
             },
         ),
         ("Links", {"fields": ("purchase_link",)}),
-        ("Episode", {"fields": ("episode",)}),
+        ("Episodes", {"fields": ("episodes",)}),
     )
 
     def category_list(self, obj):
@@ -263,8 +276,9 @@ class BookAdmin(admin.ModelAdmin):
     category_list.short_description = "Categories"
 
     def episode_brand(self, obj):
-        if obj.episode and obj.episode.brand:
-            return obj.episode.brand.name
+        episode = obj.episodes.select_related("brand").first()
+        if episode and episode.brand:
+            return episode.brand.name
         return "-"
 
     episode_brand.short_description = "Show"
@@ -415,7 +429,7 @@ class BrandAdmin(admin.ModelAdmin):
         newest = Episode.objects.filter(brand=obj).order_by("-aired_at").first()
         oldest_str = oldest.aired_at.strftime("%-d %b %Y") if oldest and oldest.aired_at else "?"
         newest_str = newest.aired_at.strftime("%-d %b %Y") if newest and newest.aired_at else "?"
-        book_count = Book.objects.filter(episode__brand=obj).count()
+        book_count = Book.objects.filter(episodes__brand=obj).distinct().count()
         return format_html(
             "<strong>{}</strong> episodes ({} – {})<br>"
             "<strong>{}</strong> books extracted",
@@ -553,13 +567,16 @@ def extraction_evaluation_view(request):
         return redirect(default_admin_site.login_url)
 
     books = (
-        Book.objects.select_related("episode", "episode__brand")
-        .order_by("-episode__aired_at", "-episode__id")[:200]
+        Book.objects.prefetch_related("episodes", "episodes__brand")
+        .annotate(latest_aired=db_models.Max("episodes__aired_at"))
+        .order_by("-latest_aired", "-id")[:200]
     )
 
     rows = []
     for book in books:
-        episode = book.episode
+        episode = book.episodes.first()
+        if not episode:
+            continue
         if episode.scraped_data:
             input_text = (
                 (episode.scraped_data.get("title") or "")

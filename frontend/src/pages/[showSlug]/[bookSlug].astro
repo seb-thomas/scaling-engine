@@ -23,9 +23,10 @@ if (!book) {
 }
 
 // Verify the book belongs to the correct show (by slug)
-if (book.episode?.brand?.slug !== showSlug) {
+const primaryBrandSlug = book.episodes?.[0]?.brand?.slug;
+if (primaryBrandSlug !== showSlug) {
   // Redirect to correct URL if show slug doesn't match
-  return Astro.redirect(`/${book.episode.brand.slug}/${book.slug}`);
+  return Astro.redirect(`/${primaryBrandSlug ?? 'unknown'}/${book.slug}`);
 }
 ---
 

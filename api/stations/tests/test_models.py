@@ -109,7 +109,7 @@ class TestBookModel:
     def test_create_book(self, book, episode):
         """Test creating a book."""
         assert book.title == 'Test Book Title'
-        assert book.episode == episode
+        assert episode in book.episodes.all()
 
     def test_book_str(self, book):
         """Test book string representation."""

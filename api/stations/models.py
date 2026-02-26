@@ -26,7 +26,7 @@ class Brand(models.Model):
     @property
     def book_count(self):
         """Count of books associated with this brand"""
-        return Book.objects.filter(episode__brand=self).count()
+        return Book.objects.filter(episodes__brand=self).distinct().count()
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from name if not provided
@@ -115,7 +115,7 @@ class Episode(models.Model):
             return ""
         if self.ai_confidence < 0.9:
             return self.REVIEW_REQUIRED
-        if self.book_set.filter(google_books_verified=False).exists():
+        if self.books.filter(google_books_verified=False).exists():
             return self.REVIEW_REQUIRED
         return self.REVIEW_NOT_REQUIRED
 
@@ -144,9 +144,10 @@ def book_cover_path(instance, filename):
     import os
 
     ext = os.path.splitext(filename)[1] or ".jpg"
+    first_episode = instance.episodes.select_related("brand").first() if instance.pk else None
     brand_slug = (
-        instance.episode.brand.slug
-        if instance.episode and instance.episode.brand
+        first_episode.brand.slug
+        if first_episode and first_episode.brand
         else "unknown"
     )
     return f"covers/{brand_slug}/{instance.slug}{ext}"
@@ -166,7 +167,7 @@ class Category(models.Model):
 
 
 class Book(models.Model):
-    episode = models.ForeignKey(Episode, on_delete=models.CASCADE)
+    episodes = models.ManyToManyField(Episode, related_name="books", blank=True)
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     author = models.CharField(max_length=255, blank=True, default="")

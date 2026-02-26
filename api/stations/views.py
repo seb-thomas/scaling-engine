@@ -1,6 +1,6 @@
 from django.http import Http404, JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Count, F
+from django.db.models import Count, F, Max
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -32,7 +32,7 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = Brand.objects.select_related("station").annotate(
-            annotated_book_count=Count("episode__book")
+            annotated_book_count=Count("episode__books", distinct=True)
         )
         station_id = self.request.query_params.get("station_id", None)
         if station_id:
@@ -43,9 +43,11 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     def books(self, request, pk=None):
         brand = self.get_object()
         books = (
-            Book.objects.filter(episode__brand=brand)
-            .select_related("episode", "episode__brand", "episode__brand__station")
-            .order_by(F("episode__aired_at").desc(nulls_last=True), "-episode__id")
+            Book.objects.filter(episodes__brand=brand)
+            .prefetch_related("episodes", "episodes__brand", "episodes__brand__station")
+            .annotate(latest_aired=Max("episodes__aired_at"))
+            .order_by(F("latest_aired").desc(nulls_last=True), "-id")
+            .distinct()
         )
 
         page = int(request.query_params.get("page", 1))
@@ -68,33 +70,34 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BookSerializer
-    queryset = Book.objects.select_related(
-        "episode", "episode__brand", "episode__brand__station"
-    ).prefetch_related("categories").all()
+    queryset = Book.objects.prefetch_related(
+        "episodes", "episodes__brand", "episodes__brand__station", "categories"
+    ).all()
     lookup_field = "slug"
     filter_backends = [filters.SearchFilter]
     search_fields = ["title", "author", "categories__name"]
 
     def get_queryset(self):
-        queryset = super().get_queryset().order_by(
-            F("episode__aired_at").desc(nulls_last=True),
-            "-episode__id",
+        queryset = super().get_queryset().annotate(
+            latest_aired=Max("episodes__aired_at"),
+        ).order_by(
+            F("latest_aired").desc(nulls_last=True),
+            "-id",
         )
         brand_id = self.request.query_params.get("brand", None)
         if brand_id:
-            queryset = queryset.filter(episode__brand__id=brand_id)
+            queryset = queryset.filter(episodes__brand__id=brand_id)
         brand_slug = self.request.query_params.get("brand_slug", None)
         if brand_slug:
-            queryset = queryset.filter(episode__brand__slug=brand_slug)
+            queryset = queryset.filter(episodes__brand__slug=brand_slug)
         station_id = self.request.query_params.get("station_id", None)
         if station_id:
-            queryset = queryset.filter(episode__brand__station__station_id=station_id)
+            queryset = queryset.filter(episodes__brand__station__station_id=station_id)
         topic = self.request.query_params.get("topic") or self.request.query_params.get("category")
         if topic:
             queryset = queryset.filter(categories__slug=topic)
-        # M2M join on categories__name (search) can produce duplicates
-        if self.request.query_params.get("search") or topic:
-            queryset = queryset.distinct()
+        # M2M joins can produce duplicates
+        queryset = queryset.distinct()
         return queryset
 
 

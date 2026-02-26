@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
+from django.db.models import Count, Max
 from stations.models import Book
-from django.db.models import Count
 
 
 class Command(BaseCommand):
@@ -34,7 +34,7 @@ class Command(BaseCommand):
             return
         
         # Keep the most recent books (by episode ID, which should correlate with recency)
-        books_to_keep = Book.objects.select_related('episode').order_by('-episode__id')[:keep_count]
+        books_to_keep = Book.objects.annotate(latest_ep_id=Max('episodes__id')).order_by('-latest_ep_id')[:keep_count]
         keep_ids = set(books_to_keep.values_list('id', flat=True))
         
         # Delete the rest

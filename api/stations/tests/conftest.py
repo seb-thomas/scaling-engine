@@ -56,7 +56,8 @@ def phrases():
 @pytest.fixture
 def book(episode):
     """Create a test book."""
-    return Book.objects.create(
-        episode=episode,
+    book = Book.objects.create(
         title='Test Book Title'
     )
+    book.episodes.add(episode)
+    return book

@@ -342,8 +342,11 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         }
         episode.ai_confidence = result.get("confidence")
 
-        # Replace books: delete all for this episode, then create from result
-        Book.objects.filter(episode=episode).delete()
+        # Unlink this episode's books (not delete — other episodes may reference them)
+        for book in episode.books.all():
+            book.episodes.remove(episode)
+            if not book.episodes.exists():
+                book.delete()
 
         from .utils import (
             generate_bookshop_affiliate_url,
@@ -392,13 +395,24 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             use_title = book_info.get("title") or book_title
             use_author = book_info.get("author") or book_author
 
+            # Match existing book by canonical title+author, or create new
+            existing = Book.objects.filter(
+                title__iexact=use_title,
+                author__iexact=use_author,
+            ).first()
+
+            if existing:
+                existing.episodes.add(episode)
+                new_books.append(existing)
+                continue
+
             book = Book.objects.create(
-                episode=episode,
                 title=use_title,
                 author=use_author,
                 description=book_data.get("description", "").strip(),
                 google_books_verified=True,
             )
+            book.episodes.add(episode)
 
             # Assign categories via M2M
             raw_categories = book_data.get("categories", [])

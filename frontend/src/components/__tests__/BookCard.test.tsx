@@ -10,7 +10,7 @@ const mockBook: Book = {
   description: 'A test book description',
   cover_image: 'https://example.com/cover.jpg',
   purchase_link: 'https://example.com/buy',
-  episode: {
+  episodes: [{
     id: 1,
     title: 'Test Episode',
     url: 'https://example.com/episode',
@@ -19,13 +19,14 @@ const mockBook: Book = {
     brand: {
       id: 1,
       name: 'Test Show',
+      slug: 'test-show',
       station: {
         id: 1,
         name: 'Test Station',
         station_id: 'test',
       },
     },
-  },
+  }],
 }
 
 describe('BookCard', () => {

@@ -1,3 +1,23 @@
+export type BookEpisode = {
+  id: number;
+  title: string;
+  slug: string;
+  url?: string;
+  aired_at?: string;
+  description?: string;
+  brand: {
+    id: number;
+    name: string;
+    slug: string;
+    brand_color?: string;
+    station: {
+      id: number;
+      name: string;
+      station_id: string;
+    };
+  };
+};
+
 export type Book = {
   id: number;
   title: string;
@@ -7,25 +27,7 @@ export type Book = {
   description?: string;
   cover_image?: string;
   purchase_link?: string;
-  episode: {
-    id: number;
-    title: string;
-    slug: string;
-    url?: string;
-    aired_at?: string;
-    description?: string;
-    brand: {
-      id: number;
-      name: string;
-      slug: string;
-      brand_color?: string;
-      station: {
-        id: number;
-        name: string;
-        station_id: string;
-      };
-    };
-  };
+  episodes: BookEpisode[];
 };
 
 export type Show = {

@@ -38,7 +38,7 @@ class Command(BaseCommand):
         overwrite = options["overwrite"]
 
         # Get books that need blurbs
-        books = Book.objects.select_related("episode", "episode__brand").all()
+        books = Book.objects.prefetch_related("episodes", "episodes__brand").all()
 
         if not overwrite:
             books = books.filter(blurb="")
@@ -89,7 +89,8 @@ class Command(BaseCommand):
 
     def _generate_blurb(self, client: Anthropic, book: Book) -> str:
         """Generate a short, engaging blurb for a book."""
-        show_name = book.episode.brand.name if book.episode and book.episode.brand else "a radio show"
+        first_ep = book.episodes.select_related("brand").first()
+        show_name = first_ep.brand.name if first_ep and first_ep.brand else "a radio show"
 
         prompt = f"""Generate a very short, engaging blurb (max 120 characters) for this book that was featured on {show_name}.
 The blurb should be intriguing and make someone want to learn more.

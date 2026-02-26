@@ -20,10 +20,13 @@ type BookCardProps = {
 }
 
 export function BookCard({ book, featured = false }: BookCardProps) {
+  const ep = book.episodes?.[0]
+  const brand = ep?.brand
+
   if (featured) {
     return (
       <a
-        href={`/${book.episode.brand.slug}/${book.slug}`}
+        href={`/${brand?.slug ?? 'unknown'}/${book.slug}`}
         className="group block"
       >
         <article className="border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
@@ -35,12 +38,12 @@ export function BookCard({ book, featured = false }: BookCardProps) {
                   className="w-full h-auto shadow-lg"
                   title={book.title}
                   author={book.author}
-                  brandColor={book.episode.brand.brand_color}
+                  brandColor={brand?.brand_color}
                 />
               </div>
             <div className="flex-1">
               <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
-                {book.episode.brand.name}
+                {brand?.name}
               </div>
               <h2 className="font-serif text-3xl mb-3 group-hover:opacity-70 transition-opacity">
                 {book.title}
@@ -58,9 +61,9 @@ export function BookCard({ book, featured = false }: BookCardProps) {
             </p>
           )}
           <div className="text-sm text-gray-600 dark:text-gray-400">
-            {book.episode.brand.station.name}
-            {book.episode.aired_at && (
-              <> · {formatDateLong(book.episode.aired_at)}</>
+            {brand?.station?.name}
+            {ep?.aired_at && (
+              <> · {formatDateLong(ep.aired_at)}</>
             )}
           </div>
         </article>
@@ -70,7 +73,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
 
   return (
     <a
-      href={`/${book.episode.brand.slug}/${book.slug}`}
+      href={`/${brand?.slug ?? 'unknown'}/${book.slug}`}
       className="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4"
     >
       <article className="flex gap-4">
@@ -81,12 +84,12 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               className="w-full h-auto shadow"
               title={book.title}
               author={book.author}
-              brandColor={book.episode.brand.brand_color}
+              brandColor={brand?.brand_color}
             />
           </div>
         <div className="flex-1">
           <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2">
-            {book.episode.brand.name}
+            {brand?.name}
           </div>
           <h3 className="font-serif text-lg font-medium mb-1 group-hover:opacity-70 transition-opacity">
             {book.title}
@@ -97,12 +100,12 @@ export function BookCard({ book, featured = false }: BookCardProps) {
             </div>
           )}
           <div className="text-sm text-gray-500 dark:text-gray-400">
-            {book.episode.brand.station.name}
-            {book.episode.title && (
-              <> · {truncateAtWord(book.episode.title, 50)}</>
+            {brand?.station?.name}
+            {ep?.title && (
+              <> · {truncateAtWord(ep.title, 50)}</>
             )}
-            {book.episode.aired_at && (
-              <> · {formatDateShort(book.episode.aired_at)}</>
+            {ep?.aired_at && (
+              <> · {formatDateShort(ep.aired_at)}</>
             )}
           </div>
         </div>
