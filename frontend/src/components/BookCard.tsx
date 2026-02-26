@@ -45,14 +45,12 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               {book.description}
             </p>
           )}
-          {book.episodes?.length === 1 && (
-            <div className="text-sm text-gray-600 dark:text-gray-400">
-              {brand?.station?.name}
-              {ep?.aired_at && (
-                <> · {formatDateLong(ep.aired_at)}</>
-              )}
-            </div>
-          )}
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            {brand?.station?.name}
+            {ep?.aired_at && (
+              <> · {formatDateLong(ep.aired_at)}</>
+            )}
+          </div>
         </article>
       </a>
     )

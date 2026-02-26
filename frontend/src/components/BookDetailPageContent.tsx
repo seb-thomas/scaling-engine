@@ -86,7 +86,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
               )}
 
               {book.categories && book.categories.length > 0 && (
-                <div className="text-sm text-gray-500 dark:text-gray-400">
+                <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
                   {book.categories.map((c, i) => (
                     <span key={c.slug}>
                       {i > 0 && ' · '}
