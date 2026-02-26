@@ -1,27 +1,61 @@
+import { useMemo } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { ImageWithFallback } from './ImageWithFallback'
 import { Breadcrumbs } from './Breadcrumbs'
 import { Button } from './ui/button'
 import { AffiliateDisclosure } from './AffiliateDisclosure'
 import { formatDateLong } from '../lib/utils'
-import type { Book } from '../types'
+import type { Book, BookEpisode } from '../types'
 
 interface BookDetailPageContentProps {
   book: Book
+  showSlug?: string
 }
 
-export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
-  const ep = book.episodes?.[0]
-  const brand = ep?.brand
+function sortEpisodesByAiredAt(episodes: BookEpisode[]): BookEpisode[] {
+  return [...episodes].sort((a, b) => {
+    const aAt = a.aired_at ? new Date(a.aired_at).getTime() : 0
+    const bAt = b.aired_at ? new Date(b.aired_at).getTime() : 0
+    return bAt - aAt
+  })
+}
 
-  const breadcrumbItems = [
-    { label: 'Home', href: '/' },
-    ...(brand ? [
-      { label: brand.station.name, href: `/station/${brand.station.station_id}` },
-      { label: brand.name, href: `/show/${brand.slug}` },
-    ] : []),
-    { label: book.title }
-  ]
+export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentProps) {
+  const sortedEpisodes = useMemo(() => sortEpisodesByAiredAt(book.episodes ?? []), [book.episodes])
+
+  const contextBrand = useMemo(() => {
+    if (showSlug && book.episodes?.length) {
+      const match = book.episodes.find((ep) => ep.brand.slug === showSlug)
+      return match?.brand
+    }
+    return book.episodes?.[0]?.brand
+  }, [showSlug, book.episodes])
+
+  const uniqueBrands = useMemo(() => {
+    const seen = new Set<string>()
+    return (book.episodes ?? [])
+      .map((ep) => ep.brand)
+      .filter((b) => {
+        if (seen.has(b.slug)) return false
+        seen.add(b.slug)
+        return true
+      })
+  }, [book.episodes])
+
+  const breadcrumbItems = uniqueBrands.length > 1
+    ? [
+        { label: 'Home', href: '/' },
+        { label: 'Books', href: '/' },
+        { label: book.title }
+      ]
+    : [
+        { label: 'Home', href: '/' },
+        ...(contextBrand ? [
+          { label: contextBrand.station.name, href: `/station/${contextBrand.station.station_id}` },
+          { label: contextBrand.name, href: `/show/${contextBrand.slug}` },
+        ] : []),
+        { label: book.title }
+      ]
 
   return (
     <div className="container py-12">
@@ -37,23 +71,33 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
                   className="w-full h-auto shadow-xl"
                   title={book.title}
                   author={book.author}
-                  brandColor={brand?.brand_color}
+                  brandColor={contextBrand?.brand_color}
                 />
               </div>
             <div className="flex-1">
-              {brand && (
-                <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4">
-                  {brand.name}
-                </div>
-              )}
-
               <h1 className="font-serif text-5xl mb-6">
                 {book.title}
               </h1>
 
               {book.author && (
-                <div className="text-xl text-gray-600 dark:text-gray-400 mb-8">
+                <div className="text-xl text-gray-600 dark:text-gray-400 mb-4">
                   by {book.author}
+                </div>
+              )}
+
+              {book.categories && book.categories.length > 0 && (
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {book.categories.map((c, i) => (
+                    <span key={c.slug}>
+                      {i > 0 && ' · '}
+                      <a
+                        href={`/topic/${c.slug}`}
+                        className="hover:text-[#c1573a] dark:hover:text-[#c1573a] transition-colors"
+                      >
+                        {c.name}
+                      </a>
+                    </span>
+                  ))}
                 </div>
               )}
             </div>
@@ -61,65 +105,38 @@ export function BookDetailPageContent({ book }: BookDetailPageContentProps) {
 
           <div className="border-y border-gray-200 dark:border-gray-800 py-6 mb-8">
             <h2 className="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
-              Featured On
+              Featured on
             </h2>
-            {book.episodes.map((episode) => (
-              <div key={episode.id} className="mb-2">
-                <a
-                  href={`/show/${episode.brand.slug}`}
-                  className="hover:opacity-70 transition-opacity"
-                >
-                  {episode.brand.name}, {episode.brand.station.name}
-                </a>
-                {episode.aired_at && (
-                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                    {' · '}{formatDateLong(episode.aired_at)}
-                  </span>
-                )}
-              </div>
-            ))}
-            {book.categories && book.categories.length > 0 && (
-              <div className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                {book.categories.map((c, i) => (
-                  <span key={c.slug}>
-                    {i > 0 && ' · '}
+            <div className="space-y-6">
+              {sortedEpisodes.map((episode) => (
+                <div key={episode.id}>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
                     <a
-                      href={`/topic/${c.slug}`}
-                      className="hover:text-[#c1573a] dark:hover:text-[#c1573a] transition-colors"
+                      href={`/show/${episode.brand.slug}`}
+                      className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
                     >
-                      {c.name}
+                      {episode.brand.name}
                     </a>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="mb-8">
-            <h2 className="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
-              {book.episodes.length > 1 ? 'Episodes' : 'Episode'}
-            </h2>
-            {book.episodes.map((episode) => (
-              <div key={episode.id} className="mb-4">
-                <p className="italic mb-1">{episode.title}</p>
-                {episode.aired_at && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                    {formatDateLong(episode.aired_at)}
+                    , {episode.brand.station.name}
+                    {episode.aired_at && (
+                      <> · {formatDateLong(episode.aired_at)}</>
+                    )}
                   </div>
-                )}
-                {episode.url && (
-                  <a
-                    href={episode.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors underline"
-                  >
-                    Listen to episode
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                )}
-              </div>
-            ))}
+                  <p className="italic mt-1">{episode.title}</p>
+                  {episode.url && (
+                    <a
+                      href={episode.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors underline mt-1"
+                    >
+                      Listen to episode
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
           {book.description && (

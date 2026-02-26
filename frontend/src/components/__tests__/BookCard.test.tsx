@@ -13,6 +13,7 @@ const mockBook: Book = {
   episodes: [{
     id: 1,
     title: 'Test Episode',
+    slug: 'test-episode',
     url: 'https://example.com/episode',
     aired_at: '2024-01-01T00:00:00Z',
     description: 'Episode description',
@@ -40,9 +41,9 @@ describe('BookCard', () => {
     expect(screen.getByText(/by Test Author/)).toBeInTheDocument()
   })
 
-  it('renders show name', () => {
+  it('renders show name in metadata', () => {
     render(<BookCard book={mockBook} />)
-    expect(screen.getByText('Test Show')).toBeInTheDocument()
+    expect(screen.getByText(/Test Show/)).toBeInTheDocument()
   })
 
   it('renders featured layout when featured prop is true', () => {

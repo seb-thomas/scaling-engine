@@ -2,18 +2,6 @@ import { ImageWithFallback } from './ImageWithFallback'
 import { formatDateLong, formatDateShort } from '@/lib/utils'
 import type { Book } from '@/types'
 
-/** Truncate text at word boundary, max length chars, avoiding trailing punctuation */
-function truncateAtWord(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
-  const truncated = text.slice(0, maxLength)
-  const lastSpace = truncated.lastIndexOf(' ')
-  // If no space found or it's too early, just use the truncated version
-  if (lastSpace < maxLength * 0.5) {
-    return truncated.trim().replace(/[,;:.\-–—]$/, '') + '…'
-  }
-  return truncated.slice(0, lastSpace).trim().replace(/[,;:.\-–—]$/, '') + '…'
-}
-
 type BookCardProps = {
   book: Book
   featured?: boolean
@@ -42,9 +30,6 @@ export function BookCard({ book, featured = false }: BookCardProps) {
                 />
               </div>
             <div className="flex-1">
-              <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
-                {brand?.name}
-              </div>
               <h2 className="font-serif text-3xl mb-3 group-hover:opacity-70 transition-opacity">
                 {book.title}
               </h2>
@@ -60,12 +45,14 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               {book.description}
             </p>
           )}
-          <div className="text-sm text-gray-600 dark:text-gray-400">
-            {brand?.station?.name}
-            {ep?.aired_at && (
-              <> · {formatDateLong(ep.aired_at)}</>
-            )}
-          </div>
+          {book.episodes?.length === 1 && (
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {brand?.station?.name}
+              {ep?.aired_at && (
+                <> · {formatDateLong(ep.aired_at)}</>
+              )}
+            </div>
+          )}
         </article>
       </a>
     )
@@ -87,10 +74,7 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               brandColor={brand?.brand_color}
             />
           </div>
-        <div className="flex-1">
-          <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2">
-            {brand?.name}
-          </div>
+        <div className="flex-1 flex flex-col">
           <h3 className="font-serif text-lg font-medium mb-1 group-hover:opacity-70 transition-opacity">
             {book.title}
           </h3>
@@ -99,10 +83,10 @@ export function BookCard({ book, featured = false }: BookCardProps) {
               by {book.author}
             </div>
           )}
-          <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="text-sm text-gray-500 dark:text-gray-400 mt-auto">
             {brand?.station?.name}
-            {ep?.title && (
-              <> · {truncateAtWord(ep.title, 50)}</>
+            {brand?.name && (
+              <> · {brand.name}</>
             )}
             {ep?.aired_at && (
               <> · {formatDateShort(ep.aired_at)}</>
