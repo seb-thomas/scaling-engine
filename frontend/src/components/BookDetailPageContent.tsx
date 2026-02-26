@@ -103,32 +103,36 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
             </div>
           </div>
 
-          <div className="border-y border-gray-200 dark:border-gray-800 py-6 mb-8">
-            <h2 className="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
-              Featured on
+          <div className="border-y border-gray-200 dark:border-gray-800 py-6">
+            <h2 className="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4">
+              Featured On
             </h2>
             <div className="space-y-6">
               {sortedEpisodes.map((episode) => (
                 <div key={episode.id}>
-                  <div className="text-sm text-gray-600 dark:text-gray-400">
+                  <div className="text-gray-300 dark:text-gray-300 mb-2">
                     <a
                       href={`/show/${episode.brand.slug}`}
-                      className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+                      className="hover:opacity-70 transition-opacity"
                     >
-                      {episode.brand.name}
+                      {episode.brand.name}, {episode.brand.station.name}
                     </a>
-                    , {episode.brand.station.name}
                     {episode.aired_at && (
-                      <> · {formatDateLong(episode.aired_at)}</>
+                      <>
+                        <span className="text-gray-500 dark:text-gray-500"> · </span>
+                        <span className="text-gray-500 dark:text-gray-500 text-sm">
+                          {formatDateLong(episode.aired_at)}
+                        </span>
+                      </>
                     )}
                   </div>
-                  <p className="italic mt-1">{episode.title}</p>
+                  <p className="italic mb-2 text-gray-400 dark:text-gray-400">{episode.title}</p>
                   {episode.url && (
                     <a
                       href={episode.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors underline mt-1"
+                      className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors underline"
                     >
                       Listen to episode
                       <ExternalLink className="w-4 h-4" />
@@ -140,11 +144,9 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
           </div>
 
           {book.description && (
-            <div className="mb-8">
-              <p className="text-xl leading-relaxed text-gray-700 dark:text-gray-300">
-                {book.description}
-              </p>
-            </div>
+            <p className="text-xl leading-relaxed text-gray-400 dark:text-gray-400">
+              {book.description}
+            </p>
           )}
 
           {book.purchase_link && (
