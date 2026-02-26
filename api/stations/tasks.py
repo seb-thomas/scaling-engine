@@ -100,7 +100,7 @@ def scrape_brand(brand_id, max_episodes=50):
 
 
 @shared_task(name="stations.tasks.scrape_all_brands")
-def scrape_all_brands(max_episodes_per_brand=50, stagger_seconds=120):
+def scrape_all_brands(max_episodes_per_brand=50, stagger_seconds=600):
     """
     Dispatch per-brand scrape tasks staggered over time.
 
@@ -188,7 +188,7 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
 
 
 @shared_task(name="stations.tasks.backfill_all_brands")
-def backfill_all_brands(max_episodes_per_brand=25, stagger_seconds=120):
+def backfill_all_brands(max_episodes_per_brand=25, stagger_seconds=600):
     """
     Incremental backfill: dispatch per-brand backfill tasks staggered over time.
 

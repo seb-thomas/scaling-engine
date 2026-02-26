@@ -50,7 +50,18 @@
       "Bash(tail:*)",
       "Bash(set -a && source /Users/sebastian/Code/poc/scaling-engine/.env.dev && set +a && cd /Users/sebastian/Code/poc/scaling-engine/api && python manage.py makemigrations stations --name add_review_status 2>&1)",
       "Bash(set -a && source /Users/sebastian/Code/poc/scaling-engine/.env.dev && set +a && python manage.py makemigrations stations --empty --name backfill_review_status 2>&1)",
-      "WebSearch"
+      "WebSearch",
+      "Bash(cd:*)",
+      "Bash(head:*)",
+      "WebFetch(domain:developers.cloudflare.com)",
+      "WebFetch(domain:alistairshepherd.uk)",
+      "mcp__figma-desktop__get_metadata",
+      "Bash(git status:*)",
+      "Bash(npm test:*)",
+      "WebFetch(domain:www.figma.com)",
+      "WebFetch(domain:muz.li)",
+      "WebFetch(domain:help.figma.com)",
+      "mcp__figma-remote-mcp__generate_figma_design"
     ],
     "deny": [],
     "ask": []

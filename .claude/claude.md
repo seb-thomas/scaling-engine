@@ -9,8 +9,15 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
 - **Task Queue**: Celery + Redis
 - **Scraping**: Scrapy 2.11.2
 - **AI**: Anthropic Claude API
-- **Frontend**: Django templates with custom CSS
+- **Frontend**: Astro (SSR) + React components, Tailwind CSS
 - **Deployment**: Docker Compose, Nginx, Gunicorn
+
+## Frontend Design Principles
+- **No loading states**: The frontend is Astro SSR — pages are server-rendered and arrive complete. Do not add loading animations, skeleton screens, spinners, fade-in transitions, or shimmer effects. Content is already there when the page loads.
+- **Minimal client-side fetching**: Only fetch on the client for pagination and search. Initial page data comes from SSR props.
+- **Typography**: EB Garamond (serif, display) + Inter (sans, body). Use Tailwind `font-serif` class, not inline styles.
+- **Hover states**: Use color shifts and underlines, not opacity changes.
+- **Tone**: Editorial, minimal, NY Times-inspired. No flashy effects.
 
 ## Key Components
 

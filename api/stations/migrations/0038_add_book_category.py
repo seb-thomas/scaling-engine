@@ -8,7 +8,7 @@ def seed_categories(apps, schema_editor):
         ("Classics", "classics"),
         ("Prize Winners", "prize-winners"),
         ("Debut", "debut"),
-        ("History", "history"),
+        ("Historical", "history"),
         ("Biography", "biography"),
         ("Cookbooks", "cookbooks"),
         ("Politics", "politics"),
