@@ -144,7 +144,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
           </div>
 
           {book.description && (
-            <p className="text-xl leading-relaxed text-gray-400 dark:text-gray-400">
+            <p className="text-xl leading-relaxed text-gray-400 dark:text-gray-400 my-8">
               {book.description}
             </p>
           )}
