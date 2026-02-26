@@ -70,48 +70,62 @@ def ai_extract_books_task(self, episode_id):
         raise
 
 
-@shared_task(name="stations.tasks.scrape_all_brands")
-def scrape_all_brands(max_episodes_per_brand=50):
-    """
-    Scrape episodes from all active brands (radio shows).
+@shared_task(name="stations.tasks.scrape_brand")
+def scrape_brand(brand_id, max_episodes=50):
+    """Scrape recent episodes for a single brand."""
+    brand = Brand.objects.get(pk=brand_id)
+    logger.info(f"Scraping {brand.name} (max {max_episodes} episodes)")
 
-    This task runs the BBC episode spider for each brand in the database,
-    discovering new episodes and triggering AI extraction for book mentions.
-    """
-    logger.info("Starting scrape for all brands")
-
-    brands = Brand.objects.all()
-    if not brands.exists():
-        logger.warning("No brands found in database. Please add brands first.")
-        return {"status": "no_brands", "scraped": 0}
-
-    # Import Scrapy modules
     from scrapy.crawler import CrawlerProcess
     from scrapy.utils.project import get_project_settings
     from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
 
-    # Create a single crawler process for all brands
-    # (CrawlerProcess can only be started once)
+    before_count = Episode.objects.filter(brand=brand).count()
+
     settings = get_project_settings()
     settings["LOG_LEVEL"] = "INFO"
-
     process = CrawlerProcess(settings)
+    process.crawl(BbcEpisodeSpider, brand_id=brand_id, max_episodes=max_episodes)
 
-    # Queue all brands to be crawled
-    for brand in brands:
-        logger.info(f"Queueing brand for scraping: {brand.name} (ID: {brand.id})")
-        process.crawl(
-            BbcEpisodeSpider, brand_id=brand.id, max_episodes=max_episodes_per_brand
-        )
-
-    # Start crawling all brands
     try:
-        process.start()  # This blocks until all spiders finish
-        logger.info("All brands scraped successfully")
-        return {"status": "complete", "brands_queued": brands.count()}
+        process.start()
     except Exception as e:
-        logger.error(f"Error during scraping: {e}")
+        logger.error(f"Error scraping {brand.name}: {e}")
         return {"status": "error", "error": str(e)}
+
+    after_count = Episode.objects.filter(brand=brand).count()
+    new = after_count - before_count
+    logger.info(f"Scraped {brand.name}: {new} new episodes")
+    return {"status": "complete", "brand": brand.name, "new_episodes": new}
+
+
+@shared_task(name="stations.tasks.scrape_all_brands")
+def scrape_all_brands(max_episodes_per_brand=50, stagger_seconds=120):
+    """
+    Dispatch per-brand scrape tasks staggered over time.
+
+    Each brand gets its own scrape_brand task, offset by stagger_seconds
+    so that many brands don't all hit BBC Sounds simultaneously.
+    """
+    brands = list(Brand.objects.all())
+    if not brands:
+        logger.warning("No brands found in database. Please add brands first.")
+        return {"status": "no_brands", "scraped": 0}
+
+    logger.info(
+        f"Dispatching staggered scrape for {len(brands)} brands "
+        f"({stagger_seconds}s apart, max {max_episodes_per_brand} eps each)"
+    )
+
+    for i, brand in enumerate(brands):
+        delay = i * stagger_seconds
+        scrape_brand.apply_async(
+            kwargs={"brand_id": brand.id, "max_episodes": max_episodes_per_brand},
+            countdown=delay,
+        )
+        logger.info(f"Queued scrape for {brand.name} (delay={delay}s)")
+
+    return {"status": "dispatched", "brands": len(brands)}
 
 
 @shared_task(name="stations.tasks.backfill_brand_task")
@@ -174,52 +188,37 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
 
 
 @shared_task(name="stations.tasks.backfill_all_brands")
-def backfill_all_brands(max_episodes_per_brand=25):
+def backfill_all_brands(max_episodes_per_brand=25, stagger_seconds=120):
     """
-    Incremental backfill: scrape older episodes for all brands.
+    Incremental backfill: dispatch per-brand backfill tasks staggered over time.
 
-    The spider skips already-scraped episodes, so each run paginates
-    deeper into history, picking up where the last run left off.
+    Each brand gets its own backfill_brand_task, offset by stagger_seconds
+    so that 10 brands don't all hit BBC Sounds simultaneously.
     Extraction is triggered automatically by post_save signal.
     """
-    logger.info(f"Starting incremental backfill (max {max_episodes_per_brand} per brand)")
-
-    brands = Brand.objects.all()
-    if not brands.exists():
+    brands = list(Brand.objects.all())
+    if not brands:
         logger.warning("No brands found")
         return {"status": "no_brands"}
 
-    from scrapy.crawler import CrawlerProcess
-    from scrapy.utils.project import get_project_settings
-    from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
+    logger.info(
+        f"Dispatching staggered backfill for {len(brands)} brands "
+        f"({stagger_seconds}s apart, max {max_episodes_per_brand} eps each)"
+    )
 
-    settings = get_project_settings()
-    settings["LOG_LEVEL"] = "INFO"
+    for i, brand in enumerate(brands):
+        delay = i * stagger_seconds
+        backfill_brand_task.apply_async(
+            kwargs={
+                "brand_id": brand.id,
+                "max_episodes": max_episodes_per_brand,
+                "extract": False,  # signal handles extraction on create
+            },
+            countdown=delay,
+        )
+        logger.info(f"Queued backfill for {brand.name} (delay={delay}s)")
 
-    before_counts = {b.id: Episode.objects.filter(brand=b).count() for b in brands}
-
-    process = CrawlerProcess(settings)
-    for brand in brands:
-        logger.info(f"Queueing backfill for {brand.name}")
-        process.crawl(BbcEpisodeSpider, brand_id=brand.id, max_episodes=max_episodes_per_brand)
-
-    try:
-        process.start()
-    except Exception as e:
-        logger.error(f"Error during backfill: {e}")
-        return {"status": "error", "error": str(e)}
-
-    results = {}
-    for brand in brands:
-        after = Episode.objects.filter(brand=brand).count()
-        new = after - before_counts[brand.id]
-        results[brand.name] = {"new_episodes": new, "total": after}
-        if new > 0:
-            logger.info(f"Backfill {brand.name}: {new} new episodes")
-        else:
-            logger.info(f"Backfill {brand.name}: no new episodes (may have reached end of archive)")
-
-    return {"status": "complete", "results": results}
+    return {"status": "dispatched", "brands": len(brands)}
 
 
 @shared_task(name="stations.tasks.extract_books_from_new_episodes")
