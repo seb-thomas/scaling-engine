@@ -27,17 +27,7 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
           </p>
         )}
         <div className="flex items-center gap-4">
-          {station.url && (
-            <a
-              href={station.url}
-              target="_blank"
-              rel="noopener"
-              className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
-            >
-              Visit {station.name} &rarr;
-            </a>
-          )}
-          {station.station_id === 'npr' && (
+          {station.station_id === 'npr' ? (
             <a
               href="https://www.npr.org/support"
               target="_blank"
@@ -45,6 +35,15 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
               className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
             >
               Support NPR &rarr;
+            </a>
+          ) : station.url && (
+            <a
+              href={station.url}
+              target="_blank"
+              rel="noopener"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
+            >
+              Visit {station.name} &rarr;
             </a>
           )}
         </div>

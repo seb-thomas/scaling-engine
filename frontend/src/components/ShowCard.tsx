@@ -61,24 +61,6 @@ export function ShowCard({ show }: ShowCardProps) {
               {show.description}
             </p>
           )}
-          {show.producer_name && (
-            <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">
-              From{' '}
-              {show.producer_url ? (
-                <a
-                  href={show.producer_url}
-                  target="_blank"
-                  rel="noopener"
-                  className="underline hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {show.producer_name}
-                </a>
-              ) : (
-                show.producer_name
-              )}
-            </p>
-          )}
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-orange-800 dark:group-hover:text-orange-300 transition-colors">
               {show.book_count.toLocaleString('en-GB')} books

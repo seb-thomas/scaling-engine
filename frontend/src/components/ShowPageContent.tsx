@@ -74,6 +74,23 @@ export function ShowPageContent({
             {initialShow.description}
           </p>
         )}
+        {initialShow.producer_name && (
+          <p className="text-sm text-gray-500 dark:text-gray-500 mb-2">
+            From{' '}
+            {initialShow.producer_url ? (
+              <a
+                href={initialShow.producer_url}
+                target="_blank"
+                rel="noopener"
+                className="underline hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
+              >
+                {initialShow.producer_name}
+              </a>
+            ) : (
+              initialShow.producer_name
+            )}
+          </p>
+        )}
         <p className="text-sm text-gray-500 dark:text-gray-400">
           {initialShow.book_count.toLocaleString('en-GB')} book{initialShow.book_count !== 1 ? 's' : ''}
         </p>
