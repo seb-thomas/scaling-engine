@@ -53,7 +53,7 @@ export function TopicCard({ topic }: TopicCardProps) {
           )}
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-orange-800 dark:group-hover:text-orange-300 transition-colors">
-              {topic.book_count.toLocaleString()} {topic.book_count === 1 ? 'book' : 'books'}
+              {topic.book_count.toLocaleString('en-GB')} {topic.book_count === 1 ? 'book' : 'books'}
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 group-hover:translate-x-2 transition-all" />
           </div>

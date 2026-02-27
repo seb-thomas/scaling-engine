@@ -38,3 +38,14 @@ logs/
 
 # Docker
 *.pid
+
+# Claude Code local config
+.claude/settings.local.json
+.claude/skills/
+
+# Astro cache
+frontend/.astro/
+
+# Agent skills (local tooling)
+.agents/
+skills-lock.json

@@ -78,7 +78,7 @@ export function TopicPageContent({
           </p>
         )}
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {initialTopic.book_count.toLocaleString()} book
+          {initialTopic.book_count.toLocaleString('en-GB')} book
           {initialTopic.book_count !== 1 ? 's' : ''}
         </p>
       </div>

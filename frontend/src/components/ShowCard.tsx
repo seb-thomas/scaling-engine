@@ -81,7 +81,7 @@ export function ShowCard({ show }: ShowCardProps) {
           )}
           <div className="flex items-center justify-between">
             <div className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-orange-800 dark:group-hover:text-orange-300 transition-colors">
-              {show.book_count.toLocaleString()} books
+              {show.book_count.toLocaleString('en-GB')} books
             </div>
             <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 group-hover:translate-x-2 transition-all" />
           </div>
