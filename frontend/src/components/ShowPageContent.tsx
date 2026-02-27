@@ -66,7 +66,7 @@ export function ShowPageContent({
         <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-3">
           {initialShow.station.name}
         </div>
-        <h1 className="font-serif text-2xl font-medium mb-2">
+        <h1 className="font-serif text-3xl font-medium mb-4">
           {initialShow.name}
         </h1>
         {initialShow.description && (

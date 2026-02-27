@@ -43,6 +43,8 @@ export type Show = {
   };
   book_count: number;
   brand_color?: string;
+  producer_name?: string;
+  producer_url?: string;
 };
 
 export type Station = {
@@ -50,6 +52,7 @@ export type Station = {
   name: string;
   station_id: string;
   url: string;
+  description?: string;
 };
 
 export type Topic = {

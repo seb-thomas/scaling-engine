@@ -24,7 +24,7 @@ export function TopicsPageContent({ topics, stationNames }: TopicsPageContentPro
       />
 
       <div className="mb-12">
-        <h1 className="text-2xl font-medium mb-4">Browse by Topic</h1>
+        <h1 className="font-serif text-3xl font-medium mb-4">Browse by Topic</h1>
         <p className="text-gray-700 dark:text-gray-400">
           Explore books discussed on radio by genre and theme. Each topic brings together
           thoughtfully curated conversations from {stationsText} programs.

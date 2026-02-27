@@ -69,7 +69,7 @@ export function TopicPageContent({
       />
 
       <div className="mb-12">
-        <h1 className="font-serif text-2xl font-medium mb-2">
+        <h1 className="font-serif text-3xl font-medium mb-4">
           {initialTopic.name}
         </h1>
         {initialTopic.description && (

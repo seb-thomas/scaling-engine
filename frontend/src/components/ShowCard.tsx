@@ -57,8 +57,26 @@ export function ShowCard({ show }: ShowCardProps) {
             {show.name}
           </h3>
           {show.description && (
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3 line-clamp-2">
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">
               {show.description}
+            </p>
+          )}
+          {show.producer_name && (
+            <p className="text-xs text-gray-500 dark:text-gray-500 mb-3">
+              From{' '}
+              {show.producer_url ? (
+                <a
+                  href={show.producer_url}
+                  target="_blank"
+                  rel="noopener"
+                  className="underline hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {show.producer_name}
+                </a>
+              ) : (
+                show.producer_name
+              )}
             </p>
           )}
           <div className="flex items-center justify-between">

@@ -5,7 +5,7 @@ from .models import Station, Book, Episode, Brand, Category
 class StationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Station
-        fields = ('id', 'name', 'station_id', 'url', 'created')
+        fields = ('id', 'name', 'station_id', 'url', 'description', 'created')
 
 
 class BrandShowSerializer(serializers.ModelSerializer):
@@ -14,7 +14,7 @@ class BrandShowSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Brand
-        fields = ('id', 'name', 'slug', 'description', 'url', 'station', 'book_count', 'brand_color')
+        fields = ('id', 'name', 'slug', 'description', 'url', 'station', 'book_count', 'brand_color', 'producer_name', 'producer_url')
     
     def get_book_count(self, obj):
         # Use annotated_book_count if available (from queryset annotation)

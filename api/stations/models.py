@@ -8,6 +8,7 @@ class Station(models.Model):
     name = models.CharField(max_length=120)
     station_id = models.CharField(max_length=120, default="")
     url = models.URLField()
+    description = models.TextField(blank=True, default="")
     created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -21,6 +22,8 @@ class Brand(models.Model):
     url = models.URLField()
     description = models.TextField(blank=True, default="")
     brand_color = models.CharField(max_length=7, blank=True, default="")
+    producer_name = models.CharField(max_length=120, blank=True, default="")
+    producer_url = models.URLField(blank=True, default="")
     spider_name = models.CharField(max_length=120, blank=True, default="bbc_episodes")
     created = models.DateTimeField(auto_now_add=True)
 

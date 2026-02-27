@@ -18,17 +18,37 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
       <Breadcrumbs items={breadcrumbItems} />
 
       <div className="mb-12">
-        <h1 className="text-4xl mb-4" style={{ fontFamily: "'EB Garamond', serif" }}>
+        <h1 className="font-serif text-4xl mb-4">
           {station.name}
         </h1>
-        {station.url && (
-          <p className="text-xl text-gray-600 dark:text-gray-400 mb-2">
-            <a href={station.url} target="_blank" rel="noopener" className="hover:opacity-70 transition-opacity">
-              Visit {station.name}
-            </a>
+        {station.description && (
+          <p className="text-gray-700 dark:text-gray-400 mb-4 max-w-2xl">
+            {station.description}
           </p>
         )}
-        <p className="text-sm text-gray-500 dark:text-gray-400">
+        <div className="flex items-center gap-4">
+          {station.url && (
+            <a
+              href={station.url}
+              target="_blank"
+              rel="noopener"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
+            >
+              Visit {station.name} &rarr;
+            </a>
+          )}
+          {station.station_id === 'npr' && (
+            <a
+              href="https://www.npr.org/support"
+              target="_blank"
+              rel="noopener"
+              className="text-sm text-gray-600 dark:text-gray-400 hover:text-orange-700 dark:hover:text-orange-400 transition-colors"
+            >
+              Support NPR &rarr;
+            </a>
+          )}
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
           {shows.length} show{shows.length !== 1 ? 's' : ''}
         </p>
       </div>
@@ -38,7 +58,7 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
           <h2 className="text-sm tracking-wider uppercase mb-4">Shows</h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {shows.map((show: Show) => (
             <ShowCard key={show.id} show={show} />
           ))}
@@ -47,4 +67,3 @@ export function StationPageContent({ station, shows }: StationPageContentProps) 
     </div>
   )
 }
-
