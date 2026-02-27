@@ -25,7 +25,7 @@ export function ShowsPageContent({ shows, stations }: ShowsPageContentProps) {
 
       <div className="mb-12">
         <h1 className="text-2xl font-medium mb-4">Shows</h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p className="text-gray-700 dark:text-gray-400">
           Explore all radio shows from {stations.map((s: Station) => s.name).join(' and ')}
         </p>
       </div>

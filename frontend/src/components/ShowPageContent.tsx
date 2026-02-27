@@ -70,7 +70,7 @@ export function ShowPageContent({
           {initialShow.name}
         </h1>
         {initialShow.description && (
-          <p className="text-gray-600 dark:text-gray-400 mb-2">
+          <p className="text-gray-700 dark:text-gray-400 mb-2">
             {initialShow.description}
           </p>
         )}

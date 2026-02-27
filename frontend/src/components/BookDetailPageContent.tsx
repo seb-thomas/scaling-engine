@@ -110,10 +110,10 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
             <div className="space-y-6">
               {sortedEpisodes.map((episode) => (
                 <div key={episode.id}>
-                  <div className="text-gray-300 dark:text-gray-300 mb-2">
+                  <div className="text-gray-900 dark:text-gray-100 mb-2">
                     <a
                       href={`/show/${episode.brand.slug}`}
-                      className="hover:opacity-70 transition-opacity"
+                      className="hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                     >
                       {episode.brand.name}, {episode.brand.station.name}
                     </a>
@@ -126,7 +126,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
                       </>
                     )}
                   </div>
-                  <p className="italic mb-2 text-gray-400 dark:text-gray-400">{episode.title}</p>
+                  <p className="italic mb-2 text-gray-700 dark:text-gray-300">{episode.title}</p>
                   {episode.url && (
                     <a
                       href={episode.url}
@@ -144,7 +144,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
           </div>
 
           {book.description && (
-            <p className="text-xl leading-relaxed text-gray-400 dark:text-gray-400 my-8">
+            <p className="text-xl leading-relaxed text-gray-900 dark:text-gray-200 my-8">
               {book.description}
             </p>
           )}

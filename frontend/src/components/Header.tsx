@@ -13,7 +13,7 @@ function NavLink({ href, active, children }: { href: string; active: boolean; ch
       className={`pb-1 transition-colors ${
         active
           ? 'text-gray-900 dark:text-gray-100'
-          : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
       }`}
     >
       {children}
