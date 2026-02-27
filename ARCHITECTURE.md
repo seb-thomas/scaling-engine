@@ -4,9 +4,9 @@ This document describes the current system design after merging **RawEpisodeData
 
 ## Truths / guarantees
 
-- **Scrape source**: The system knows what to scrape from `Brand.url` (BBC show page listing).
-- **Discovery**: Episodes are discovered from the listing HTML on each run.
-- **Immutability**: An episode is scraped once and never refreshed; BBC descriptions are immutable.
+- **Scrape source**: The system knows what to scrape from `Brand.url`. For BBC shows this is the programme page listing; for RSS-based shows (e.g. NPR Fresh Air) it is the podcast feed URL.
+- **Discovery**: Episodes are discovered from listing HTML (BBC) or RSS entries (podcast feeds) on each run. `Brand.spider_name` controls the dispatch: `"bbc_episodes"` (default) uses Scrapy, `"rss"` uses the lightweight `rss_utils.scrape_rss_brand()` function.
+- **Immutability**: An episode is scraped once and never refreshed; descriptions are immutable.
 - **Idempotency**: `Episode.url` is unique at DB level; the spider skips when `Episode.objects.filter(url=...).exists()`, so duplicate URLs are never stored.
 - **Single unit of work**: Episode holds the scraped snapshot, pipeline status, and derived output (books). There is no separate raw-data table.
 - **Reprocessing**: Reprocessing an episode regenerates derived Books deterministically via **replace semantics** (delete all books for the episode, then create new ones from the latest extraction).
@@ -39,15 +39,16 @@ This document describes the current system design after merging **RawEpisodeData
 
 ## Domain models (merged)
 
-- **Station** → **Brand** (1:N): Brand has `url` = BBC brand/show page.
+- **Station** → **Brand** (1:N): Brand has `url` (BBC brand page or RSS feed URL), `spider_name` (`"bbc_episodes"` or `"rss"`), `brand_color` (hex).
 - **Brand** → **Episode** (1:N): Episode has `url` (unique), `title`, `slug`, `aired_at`, `has_book`, plus:
   - **Snapshot**: `scraped_data` (JSON: url, title, date_text, description, meta_tags, html_title, etc.)
   - **Pipeline**: `status` (SCRAPED | QUEUED | PROCESSING | PROCESSED | FAILED), `processed_at`, `last_error`, `task_id`, `extraction_result`
   - **Confidence**: `ai_confidence` (float 0.0–1.0) — AI's overall confidence in the extraction decision. Colour-coded in admin: green ≥90%, amber ≥70%, red <70%.
-- **Episode** → **Book** (1:N): Books are derived from extraction; reprocess replaces all books for that episode. Only books verified by Google Books API are created.
+- **Episode** ↔ **Book** (M:N): Books are derived from extraction; reprocess replaces all books for that episode. Only books verified by Google Books API are created. A book can appear on multiple episodes across shows.
   - **Verification**: `google_books_verified` (bool) — always `True` for created books (unverified candidates are skipped).
   - **Cover**: `cover_image` (ImageField) — downloaded from Google Books volume detail endpoint (tokenised URLs). `cover_fetch_error` (text) — stores last download error or "No cover available on Google Books"; empty when cover is present. Admin shows error in list + detail view, with a "Refetch cover" button (single book) and bulk action.
   - **Purchase**: `purchase_link` — Bookshop.org affiliate link.
+  - **Category tracking**: `unmatched_categories` (text) — stores comma-separated category slugs the AI suggested that don't match existing Category records. Aggregated on the Category admin changelist as a banner showing suggestion counts.
 
 Station, Brand, and Phrase are configuration/content; Episode and Book are the scraped and derived data.
 
@@ -67,23 +68,28 @@ flowchart TB
 
   subgraph external [External]
     BBC[BBC Sounds]
+    NPR[NPR RSS Feeds]
     Claude[Claude API]
     GoogleBooks[Google Books API]
   end
 
   subgraph config [Configuration]
-    Station[(Station)]
-    Brand[(Brand url = BBC brand page)]
+    Station[(Station BBC / NPR)]
+    Brand[(Brand url + spider_name)]
     Station -->|1:N| Brand
   end
 
   subgraph scraping [Scraping discovery + snapshot]
-    Spider[Scrapy Spider BbcEpisodeSpider]
+    Spider[Scrapy BbcEpisodeSpider]
+    RSSUtil[rss_utils.scrape_rss_brand]
     Pipeline[SaveToDbPipeline]
-    Brand -->|start url| Spider
+    Brand -->|"spider_name=bbc_episodes"| Spider
+    Brand -->|"spider_name=rss"| RSSUtil
     BBC --> Spider
+    NPR --> RSSUtil
     Spider -->|discover episode urls skip if exists| Pipeline
     Spider -->|follow new episode urls to detail| Pipeline
+    RSSUtil -->|"create Episode from feed entries skip if exists"| Episode
   end
 
   subgraph django [Django serve + operate]
@@ -99,10 +105,10 @@ flowchart TB
 
   subgraph models [Domain models merged]
     Episode[(Episode brand title url slug scraped_data status processed_at last_error task_id extraction_result aired_at has_book ai_confidence)]
-    Book[(Book episode-scoped google_books_verified cover_image purchase_link)]
-    Topic[(Topic name slug)]
+    Book[(Book google_books_verified cover_image purchase_link unmatched_categories)]
+    Topic[(Category name slug)]
     Brand -->|1:N| Episode
-    Episode -->|1:N| Book
+    Episode -->|M:N| Book
     Book -->|M:N| Topic
   end
 
@@ -162,9 +168,11 @@ flowchart TB
 flowchart LR
   subgraph scrape [Scraping]
     Spider[BbcEpisodeSpider]
+    RSS[scrape_rss_brand]
     Pipeline[SaveToDbPipeline]
     Spider -->|new URL only| Pipeline
     Pipeline -->|scraped_data status=SCRAPED| Episode[Episode]
+    RSS -->|new URL only scraped_data status=SCRAPED| Episode
   end
   subgraph process [Processing]
     Scheduler[extract_books_from_new_episodes]
@@ -172,10 +180,10 @@ flowchart LR
     Scheduler -->|status=SCRAPED to QUEUED| AITask
     AITask -->|PROCESSING then PROCESSED or FAILED| Episode
   end
-  Episode -->|1:N| Book[Book]
+  Episode -->|M:N| Book[Book]
 ```
 
-- **Scraping**: Spider discovers episode URLs from Brand page; for new URLs, pipeline creates Episode and sets `scraped_data` and `status=SCRAPED`.
+- **Scraping**: `scrape_brand()` checks `brand.spider_name` — BBC brands use Scrapy (`BbcEpisodeSpider` via `SaveToDbPipeline`), RSS brands use `scrape_rss_brand()` (simple `feedparser` fetch). Both create Episodes with `scraped_data` and `status=SCRAPED`, skipping existing URLs.
 - **Scheduler**: Picks `status=SCRAPED`, sets `QUEUED`, enqueues `ai_extract_books_task`.
 - **Extraction**: Task sets `PROCESSING`; reads from `scraped_data`; calls Claude; replaces Books; sets `PROCESSED` or `FAILED` and timestamps/errors on Episode.
 
@@ -183,7 +191,8 @@ flowchart LR
 
 | Task | Schedule / trigger | Role |
 |------|--------------------|------|
-| `scrape_all_brands` | Celery Beat (e.g. daily) | Runs Scrapy for each Brand; new episodes get `scraped_data` and `status=SCRAPED`. |
+| `scrape_all_brands` | Celery Beat (e.g. daily) | Dispatches `scrape_brand` per brand (staggered). Each brand uses Scrapy or RSS based on `spider_name`. |
+| `scrape_brand(brand_id)` | Dispatched by `scrape_all_brands` | Checks `brand.spider_name`: `"rss"` → `scrape_rss_brand()`, else → Scrapy `BbcEpisodeSpider`. |
 | `extract_books_from_new_episodes` | Celery Beat (e.g. every 30 min) | Selects `Episode.status=SCRAPED`, sets `QUEUED`, enqueues `ai_extract_books_task` per episode. |
 | `ai_extract_books_task(episode_id)` | Enqueued by scheduler or admin reprocess | Sets `PROCESSING`, runs extraction, replaces Books, sets `PROCESSED` or `FAILED`. |
 
@@ -195,14 +204,15 @@ Public REST API **must not** expose pipeline/debug fields. Episode serializer us
 
 | Area | File | Purpose |
 |------|------|---------|
-| Models | `api/stations/models.py` | Episode (with scraped_data, status, extraction_result, etc.), Book, Brand, Station. |
-| Scraping | `api/scraper/pipelines.py` | SaveToDbPipeline: writes `scraped_data` and `status=SCRAPED` to Episode. |
-| Scraping | `api/scraper/spiders/bbc_episode_spider.py` | Discovers episode URLs from Brand page; fills `_raw_data_cache` for pipeline. |
-| Tasks | `api/stations/tasks.py` | Status transitions; selector by `status=SCRAPED`; enqueue with `QUEUED`. |
-| Extraction | `api/stations/ai_utils.py` | Reads `scraped_data`; calls Claude; verifies via Google Books; replaces Books; sets `extraction_result`, `ai_confidence`, `PROCESSED`/`FAILED`. |
+| Models | `api/stations/models.py` | Episode (with scraped_data, status, extraction_result, etc.), Book (with unmatched_categories), Brand (with spider_name), Station, Category. |
+| Scraping (BBC) | `api/scraper/spiders/bbc_episode_spider.py` | Discovers episode URLs from Brand page; fills `_raw_data_cache` for pipeline. |
+| Scraping (BBC) | `api/scraper/pipelines.py` | SaveToDbPipeline: writes `scraped_data` and `status=SCRAPED` to Episode. |
+| Scraping (RSS) | `api/stations/rss_utils.py` | Generic RSS scraper via `feedparser`. Works for any brand with `spider_name=”rss”`. |
+| Tasks | `api/stations/tasks.py` | Spider-agnostic dispatch (`scrape_brand` checks `brand.spider_name`); status transitions; extraction scheduling. |
+| Extraction | `api/stations/ai_utils.py` | Reads `scraped_data`; calls Claude; verifies via Google Books; replaces Books; tracks unmatched categories; parses dates (BBC + RFC 2822). |
 | Verification | `api/stations/utils.py` | Google Books API: `intitle:`/`inauthor:` search across multiple editions, two-step cover lookup (search → volume detail for tokenised URLs), ISBN extraction. |
 | Frontend | `frontend/` | Astro SSR with React components, Tailwind CSS. Pages: latest, all books, shows, topics, about. |
-| Admin | `api/stations/admin.py` | Episode list/change: status, confidence (colour-coded), previews, reprocess single/bulk. Book list/change: cover error column, refetch cover button (single + bulk). Extraction evaluation view. |
+| Admin | `api/stations/admin.py` | Episode list/change: status, confidence (colour-coded), previews, reprocess single/bulk. Book list/change: cover error column, refetch cover button (single + bulk). Category list: unmatched AI suggestions banner. Extraction evaluation view. |
 | Config | `api/paperwaves/settings.py` | `FLOWER_URL` (optional) for admin “Open Flower” link. |
 
 ## Verification philosophy

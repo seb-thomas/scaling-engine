@@ -1,13 +1,13 @@
 # Radio Reads - Project Context
 
 ## Project Overview
-A Django web application that scrapes BBC Radio episodes, uses AI to extract book mentions, and displays them in a clean NY Times-inspired interface.
+A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses AI to extract book mentions, and displays them in a clean NY Times-inspired interface. Supports both HTML scraping (Scrapy, for BBC) and RSS feed parsing (feedparser, for podcast-based shows like NPR Fresh Air).
 
 ## Tech Stack
 - **Backend**: Django 5.1.4, Django REST Framework
 - **Database**: PostgreSQL 16
 - **Task Queue**: Celery + Redis
-- **Scraping**: Scrapy 2.11.2
+- **Scraping**: Scrapy 2.11.2 (BBC), feedparser (RSS/podcast feeds)
 - **AI**: Anthropic Claude API
 - **Frontend**: Astro (SSR) + React components, Tailwind CSS
 - **Deployment**: Docker Compose, Nginx, Gunicorn
@@ -22,23 +22,25 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
 ## Key Components
 
 ### AI Book Extraction (`api/stations/ai_utils.py`)
-- Uses Claude API to intelligently detect book mentions in episode titles
+- Uses Claude API to intelligently detect book mentions in episode descriptions
 - Extracts book titles and authors with confidence scoring
 - Saves results to database automatically
+- Tracks unmatched category suggestions on Book for admin visibility
 
-### Scraping (`api/scraper/spiders/bbc_episode_spider.py`)
-- Scrapes BBC Radio programme pages for episode listings
-- **robots.txt disabled** to access real data
-- Follows pagination to get all episodes
+### Scraping
+- **BBC** (`api/scraper/spiders/bbc_episode_spider.py`): Scrapy spider for BBC Radio programme pages. **robots.txt disabled** to access real data. Follows pagination.
+- **RSS** (`api/stations/rss_utils.py`): Generic `feedparser`-based scraper for podcast feeds. Works for any brand with `spider_name="rss"` — no new code needed to add another RSS show.
+- **Dispatch**: `Brand.spider_name` controls which method is used (`"bbc_episodes"` or `"rss"`).
 
 ### Scheduled Tasks (`api/stations/tasks.py`)
-- `scrape_all_brands`: Runs daily at 2 AM (scrapes all BBC shows)
+- `scrape_all_brands`: Runs daily at 2 AM (dispatches per-brand scrape, staggered)
 - `extract_books_from_new_episodes`: Runs every 30 minutes (AI extraction)
 
 ### Database Models (`api/stations/models.py`)
-- Station → Brand → Episode → Book hierarchy
+- Station → Brand → Episode ↔ Book hierarchy (Episode↔Book is M:N)
+- Brand has `spider_name` field for scrape dispatch (`"bbc_episodes"` or `"rss"`)
 - Episodes track `has_book` flag and `aired_at` date
-- Books store `title` and `author`
+- Books store `title`, `author`, and `unmatched_categories` (AI-suggested slugs that don't exist yet)
 
 ## Deployment
 - **Production**: docker-compose.prod.yml (immutable containers)
@@ -55,22 +57,22 @@ A Django web application that scrapes BBC Radio episodes, uses AI to extract boo
 - **Access production safely**: Use SSH tunnel (see DATABASE.md)
 - Django settings enforce PostgreSQL - will fail if misconfigured
 
-## Current Status (Dec 8, 2025)
-- ✅ Database standardized to PostgreSQL only (dev + prod)
-- ✅ Development environment uses separate database
-- ✅ 3,910 real BBC episodes scraped (production)
-- ✅ 82 books extracted from 72 episodes (1.8% detection rate)
-- ✅ Automated scraping and extraction working
-- ✅ NY Times-inspired frontend live
-- ⚠️ Low book detection rate needs investigation
+## Current Status (Feb 2026)
+- ✅ 5 shows live: Front Row, Free Thinking, Bookclub, A Good Read (BBC), Fresh Air (NPR)
+- ✅ ~4,500+ episodes scraped across all shows
+- ✅ ~295 books extracted with covers, categories, and purchase links
+- ✅ RSS scraping for podcast-based shows (generic, reusable)
+- ✅ Automated scraping + extraction running daily
+- ✅ NY Times-inspired frontend live at radioreads.fun
+- ✅ Category admin shows unmatched AI category suggestions
 
 ## Todo List
 
 Tracked in Claude memory (`memory/todos.md`). Key open items:
-- Historical backfill feature (code written, not yet committed)
-- Add more shows (BBC + NPR)
-- Add book categories
-- System health visibility improvements
+- Historical backfill (BBC shows — code deployed, not yet run at scale)
+- WNYC backfill for Fresh Air (full archive back to 2015, needs HTML spider)
+- Improve affiliate / support indie bookshops
+- Add more shows (NPR Book of the Day, etc.)
 
 ## Important Notes
 
@@ -153,16 +155,12 @@ python manage.py populate_purchase_links --limit 100
 - Disclosure text: "As an affiliate of Bookshop.org, we earn from qualifying purchases. This helps support independent bookstores."
 
 ## Known Issues
-1. **Low book detection rate**: Only 1.8% of episodes flagged as book-related
-   - May need to tune AI prompt or check what titles look like
-   - Could be legitimate if Front Row covers many non-book topics
-
-2. **Missing authors**: Many books extracted without author names
-   - Episode titles may not always include author information
-   - Could enhance AI prompt to infer authors when possible
+1. **RSS feed is a rolling window**: NPR Fresh Air RSS has ~300 episodes (~1 year). Full archive (back to 2015) is on WNYC and would need an HTML spider.
 
 ## Resolved Issues
-- **Google Books cover 403s**: Google Books `/books/content` path 403s from datacenter IPs. Fixed by rewriting URLs to `/books/publisher/content` in `download_and_save_cover()` (`ai_utils.py`). Same images, works from server.
+- **Google Books cover 403s**: Fixed by rewriting URLs to `/books/publisher/content` in `download_and_save_cover()`.
+- **Low book detection rate**: Was 1.8% for Front Row — legitimate, most Front Row episodes cover non-book topics. Shows like Fresh Air and Bookclub have much higher rates.
+- **Missing authors**: AI prompt now requires real author name or skips the book.
 
 ## Environment Variables
 
@@ -190,15 +188,17 @@ BOOKSHOP_AFFILIATE_ID=16640
 ├── api/
 │   ├── paperwaves/          # Django project settings
 │   ├── stations/            # Main Django app
-│   │   ├── models.py       # Database models
+│   │   ├── models.py       # Database models (Brand.spider_name, Book.unmatched_categories)
 │   │   ├── views.py        # Views for book listing/detail
-│   │   ├── tasks.py        # Celery tasks
-│   │   ├── ai_utils.py     # Claude AI integration
-│   │   └── templates/      # Frontend templates
-│   ├── scraper/            # Scrapy project
+│   │   ├── tasks.py        # Celery tasks (spider-agnostic dispatch)
+│   │   ├── ai_utils.py     # Claude AI integration + date parsing (BBC + RFC 2822)
+│   │   ├── rss_utils.py    # Generic RSS scraper (feedparser)
+│   │   └── templates/      # Frontend + admin templates
+│   ├── scraper/            # Scrapy project (BBC only)
 │   │   ├── spiders/        # BBC episode spider
 │   │   └── pipelines.py    # Data processing
 │   └── requirements.txt    # Python dependencies
+├── frontend/                # Astro SSR + React + Tailwind
 ├── nginx/                   # Nginx config
 ├── docker-compose.dev.yml   # Development setup
 ├── docker-compose.prod.yml  # Production setup
