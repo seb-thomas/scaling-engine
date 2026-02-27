@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import urllib.request
 import urllib.parse
 from celery.utils.log import get_task_logger
@@ -7,6 +8,17 @@ from django.db import DatabaseError
 from .models import Episode, Phrase
 
 logger = get_task_logger(__name__)
+
+# Rate limiting for Google Books API
+_last_gb_request_time = 0.0
+_GB_MIN_INTERVAL = 1.0  # minimum seconds between requests
+_gb_cooldown_until = 0.0  # when set, skip GB calls until this monotonic time
+_GB_COOLDOWN_SECONDS = 43200  # 12-hour cooldown after a 429
+
+
+class GoogleBooksRateLimited(Exception):
+    """Raised when Google Books API returns 429 and retries are exhausted."""
+    pass
 
 
 def contains_keywords(episode_id):
@@ -42,12 +54,38 @@ def _gb_api_key():
 
 
 def _gb_request(url):
-    """Make a request to Google Books API."""
+    """Make a request to Google Books API with rate limiting and 429 cooldown."""
+    global _last_gb_request_time, _gb_cooldown_until
+
+    # If in cooldown after a recent 429 storm, skip immediately
+    now = time.monotonic()
+    if now < _gb_cooldown_until:
+        remaining = int(_gb_cooldown_until - now)
+        raise GoogleBooksRateLimited(
+            f"Google Books API in cooldown ({remaining}s remaining)"
+        )
+
+    # Enforce minimum interval between requests
+    elapsed = now - _last_gb_request_time
+    if elapsed < _GB_MIN_INTERVAL:
+        time.sleep(_GB_MIN_INTERVAL - elapsed)
+    _last_gb_request_time = time.monotonic()
+
     req = urllib.request.Request(
         url, headers={"User-Agent": "RadioReads/1.0 (https://radioreads.fun)"}
     )
-    with urllib.request.urlopen(req, timeout=10) as resp:
-        return json.loads(resp.read().decode())
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        if e.code == 429:
+            # Rate limited — stop immediately, enter 12-hour cooldown
+            _gb_cooldown_until = time.monotonic() + _GB_COOLDOWN_SECONDS
+            logger.warning(
+                f"Google Books 429 rate limited, entering {_GB_COOLDOWN_SECONDS // 3600}h cooldown"
+            )
+            raise GoogleBooksRateLimited(str(e)) from e
+        raise
 
 
 def verify_book_exists(title: str, author: str = "") -> dict:
@@ -142,6 +180,8 @@ def verify_book_exists(title: str, author: str = "") -> dict:
             "cover_url": best_cover_url,
             "isbn": isbn,
         }
+    except GoogleBooksRateLimited:
+        raise  # let caller handle rate limiting differently from other errors
     except Exception as e:
         logger.warning(f"Google Books lookup failed for '{title}': {e}")
         not_found["error"] = str(e)[:200]

@@ -378,10 +378,28 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 continue
 
             # Verify via Google Books — skip if not found (likely not a real book)
-            book_info = verify_book_exists(book_title, book_author)
+            from .utils import GoogleBooksRateLimited
+            try:
+                book_info = verify_book_exists(book_title, book_author)
+            except GoogleBooksRateLimited as e:
+                # Rate limited — put episode back to SCRAPED for retry later,
+                # don't mark as FAILED (which would require manual intervention)
+                logger.warning(
+                    f"Google Books rate limited for episode {episode_id}, "
+                    f"returning to SCRAPED for later retry"
+                )
+                episode.status = Episode.STATUS_SCRAPED
+                episode.last_error = f"Google Books rate limited, will retry: {e}"
+                episode.status_changed_at = timezone.now()
+                episode.save(update_fields=["status", "last_error", "status_changed_at"])
+                return {
+                    "has_book": result.get("has_book", False),
+                    "books": result.get("books", []),
+                    "reasoning": f"Rate limited, will retry: {e}",
+                }
             if not book_info["exists"]:
                 if book_info.get("error"):
-                    # API error (429, timeout, etc.) — fail the episode so it
+                    # API error (timeout, etc.) — fail the episode so it
                     # surfaces in admin and can be retried later.
                     error_msg = f"Google Books API error: {book_info['error']}"
                     logger.warning(
