@@ -425,13 +425,17 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             raw_categories = book_data.get("categories", [])
             if isinstance(raw_categories, str):
                 raw_categories = [raw_categories]
+            unmatched = []
             for raw_cat in raw_categories:
                 slug = raw_cat.strip().lower()
                 try:
                     cat = Category.objects.get(slug=slug)
                     book.categories.add(cat)
                 except Category.DoesNotExist:
-                    pass
+                    unmatched.append(slug)
+            if unmatched:
+                book.unmatched_categories = ",".join(unmatched)
+                book.save(update_fields=["unmatched_categories"])
             new_books.append(book)
             cover_url = book_info.get("cover_url") or ""
             if cover_url:

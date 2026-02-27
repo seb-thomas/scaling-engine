@@ -1,0 +1,17 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+{% if unmatched_categories %}
+<div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 12px 16px; margin-bottom: 20px;">
+    <strong>AI suggested categories that don't exist yet:</strong>
+    <div style="margin-top: 8px;">
+    {% for slug, count in unmatched_categories %}
+        <span style="display: inline-block; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 3px; padding: 2px 8px; margin: 2px 4px 2px 0; font-size: 13px;">
+            {{ slug }} <span style="color: #666;">({{ count }})</span>
+        </span>
+    {% endfor %}
+    </div>
+</div>
+{% endif %}
+{{ block.super }}
+{% endblock %}

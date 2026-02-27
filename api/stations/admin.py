@@ -504,8 +504,38 @@ class BrandAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
 
+@admin.register(Category)
+class CategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "slug", "book_count")
+
+    def book_count(self, obj):
+        return obj.book_set.count()
+
+    book_count.short_description = "Books"
+
+    def changelist_view(self, request, extra_context=None):
+        from collections import Counter
+
+        counts = Counter()
+        for val in (
+            Book.objects.exclude(unmatched_categories="")
+            .values_list("unmatched_categories", flat=True)
+        ):
+            for slug in val.split(","):
+                slug = slug.strip()
+                if slug:
+                    counts[slug] += 1
+
+        extra_context = extra_context or {}
+        # Sort by count descending
+        extra_context["unmatched_categories"] = sorted(
+            counts.items(), key=lambda x: -x[1]
+        )
+        return super().changelist_view(request, extra_context)
+
+
 # Register remaining models with default admin
-admin.site.register([Station, Phrase, Category])
+admin.site.register([Station, Phrase])
 
 
 def system_health_view(request):

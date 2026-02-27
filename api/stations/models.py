@@ -183,6 +183,7 @@ class Book(models.Model):
     cover_fetch_error = models.TextField(blank=True, default="")
     purchase_link = models.URLField(blank=True, default="")
     google_books_verified = models.BooleanField(default=False)
+    unmatched_categories = models.CharField(max_length=255, blank=True, default="")
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from author + title if not provided
