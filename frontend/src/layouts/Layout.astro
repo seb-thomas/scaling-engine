@@ -1,7 +1,6 @@
 ---
 import { ThemeProvider } from '../components/ThemeProvider';
 import { Header } from '../components/Header';
-import { Agentation } from 'agentation';
 import '../index.css';
 
 interface Props {
@@ -64,7 +63,6 @@ const canonicalURL = new URL(pathname, SITE_URL).href;
     <main class="pb-16">
       <slot />
     </main>
-    <Agentation client:only="react" />
   </body>
 </html>
 
