@@ -32,9 +32,19 @@ try {
 if (!show) {
   return Astro.redirect('/404');
 }
+
+const stationName = show.station?.name || '';
+const pageTitle = `${show.name} — Books from ${stationName} | Radio Reads`;
+const pageDescription = show.description
+  ? show.description.slice(0, 155) + (show.description.length > 155 ? '...' : '')
+  : `Books discussed and recommended on ${show.name} (${stationName}). ${show.book_count} books and counting.`;
 ---
 
-<Layout pathname={Astro.url.pathname}>
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  pathname={Astro.url.pathname}
+>
   <ShowPageContent
     initialShow={show}
     initialBooks={books}

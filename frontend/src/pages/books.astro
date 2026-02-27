@@ -18,7 +18,11 @@ try {
 }
 ---
 
-<Layout pathname={Astro.url.pathname}>
+<Layout
+  title="All Books — Radio Reads"
+  description="Browse all books discussed and recommended on BBC Radio 4 and NPR radio shows. Search by title, author or topic."
+  pathname={Astro.url.pathname}
+>
   <BooksPageContent
     initialBooks={books}
     initialSearch={search || ''}

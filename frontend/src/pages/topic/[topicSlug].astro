@@ -30,9 +30,18 @@ try {
 if (!topic) {
   return Astro.redirect('/404');
 }
+
+const pageTitle = `${topic.name} Books — Radio Reads`;
+const pageDescription = topic.description
+  ? topic.description.slice(0, 155) + (topic.description.length > 155 ? '...' : '')
+  : `${topic.name} books discussed on BBC Radio 4 and NPR. ${topic.book_count} books in this topic.`;
 ---
 
-<Layout pathname={Astro.url.pathname}>
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  pathname={Astro.url.pathname}
+>
   <TopicPageContent
     initialTopic={topic}
     initialBooks={books}

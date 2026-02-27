@@ -75,7 +75,7 @@ export function ShowPageContent({
           </p>
         )}
         <p className="text-sm text-gray-500 dark:text-gray-400">
-          {initialShow.book_count.toLocaleString()} book{initialShow.book_count !== 1 ? 's' : ''} discovered
+          {initialShow.book_count.toLocaleString()} book{initialShow.book_count !== 1 ? 's' : ''}
         </p>
       </div>
 

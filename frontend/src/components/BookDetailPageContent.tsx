@@ -152,7 +152,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
           {book.purchase_link && (
             <div className="bg-gray-100 dark:bg-gray-900 p-6 rounded">
               <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">
-                Interested in reading this book?
+                Get this book
               </p>
               <Button variant="outline" asChild>
                 <a

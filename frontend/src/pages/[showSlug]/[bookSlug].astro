@@ -28,8 +28,21 @@ if (primaryBrandSlug !== showSlug) {
   // Redirect to correct URL if show slug doesn't match
   return Astro.redirect(`/${primaryBrandSlug ?? 'unknown'}/${book.slug}`);
 }
+
+const brandName = book.episodes?.[0]?.brand?.name || '';
+const pageTitle = `${book.title} by ${book.author || 'Unknown'} — Radio Reads`;
+const pageDescription = book.description
+  ? book.description.slice(0, 155) + (book.description.length > 155 ? '...' : '')
+  : `${book.title} by ${book.author || 'Unknown'}, discussed on ${brandName}. Find out more about this book on Radio Reads.`;
+const pageImage = book.cover_image || undefined;
 ---
 
-<Layout pathname={Astro.url.pathname}>
-  <BookDetailPageContent book={book} client:load />
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  ogType="book"
+  ogImage={pageImage}
+  pathname={Astro.url.pathname}
+>
+  <BookDetailPageContent book={book} showSlug={showSlug} client:load />
 </Layout>

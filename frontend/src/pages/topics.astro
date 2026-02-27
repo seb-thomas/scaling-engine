@@ -22,6 +22,10 @@ try {
 }
 ---
 
-<Layout pathname={Astro.url.pathname}>
+<Layout
+  title="Topics — Radio Reads"
+  description="Browse books from radio shows by topic. Fiction, biography, history, poetry, politics and more — all discussed on BBC Radio 4 and NPR."
+  pathname={Astro.url.pathname}
+>
   <TopicsPageContent topics={topics} stationNames={stationNames} client:load />
 </Layout>

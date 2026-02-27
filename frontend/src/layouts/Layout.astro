@@ -1,14 +1,29 @@
 ---
 import { ThemeProvider } from '../components/ThemeProvider';
 import { Header } from '../components/Header';
+import { Agentation } from 'agentation';
 import '../index.css';
 
 interface Props {
   title?: string;
+  description?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article' | 'book';
   pathname?: string;
 }
 
-const { title = 'Radio Reads - Books from Radio Shows', pathname = Astro.url.pathname } = Astro.props;
+const SITE_URL = 'https://radioreads.fun';
+const DEFAULT_DESCRIPTION = 'Discover books discussed, reviewed and recommended on BBC Radio 4 and NPR. Author interviews, reviews and prize-winners from Front Row, Bookclub, Free Thinking, A Good Read and Fresh Air.';
+
+const {
+  title = 'Radio Reads — Books from Radio Shows',
+  description = DEFAULT_DESCRIPTION,
+  ogImage,
+  ogType = 'website',
+  pathname = Astro.url.pathname,
+} = Astro.props;
+
+const canonicalURL = new URL(pathname, SITE_URL).href;
 ---
 
 <!doctype html>
@@ -21,6 +36,17 @@ const { title = 'Radio Reads - Books from Radio Shows', pathname = Astro.url.pat
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalURL} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:site_name" content="Radio Reads" />
+    {ogImage && <meta property="og:image" content={ogImage} />}
+    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
     <script is:inline>
       // Set dark mode synchronously before React loads to prevent flash
       (function() {
@@ -38,6 +64,7 @@ const { title = 'Radio Reads - Books from Radio Shows', pathname = Astro.url.pat
     <main class="pb-16">
       <slot />
     </main>
+    <Agentation client:only="react" />
   </body>
 </html>
 

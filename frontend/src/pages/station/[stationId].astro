@@ -31,9 +31,18 @@ try {
 if (!station) {
   return Astro.redirect('/404');
 }
+
+const pageTitle = `${station.name} — Radio Reads`;
+const pageDescription = station.description
+  ? station.description.slice(0, 155) + (station.description.length > 155 ? '...' : '')
+  : `Books discussed on ${station.name} radio programmes. Browse shows and book recommendations.`;
 ---
 
-<Layout pathname={Astro.url.pathname}>
+<Layout
+  title={pageTitle}
+  description={pageDescription}
+  pathname={Astro.url.pathname}
+>
   <StationPageContent station={station} shows={shows} client:load />
 </Layout>
 

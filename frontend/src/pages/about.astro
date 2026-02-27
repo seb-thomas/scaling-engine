@@ -1,23 +1,72 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { fetchShows, fetchStations } from '../api/client';
+import type { Show, Station } from '../types';
+
+let shows: Show[] = [];
+let stations: Station[] = [];
+
+try {
+  const [showsData, stationsData] = await Promise.all([
+    fetchShows().catch(() => []),
+    fetchStations().catch(() => []),
+  ]);
+  shows = Array.isArray(showsData) ? showsData : (showsData as any).results || [];
+  stations = Array.isArray(stationsData) ? stationsData : [];
+} catch {}
+
+// Group shows by station: { "BBC Radio 4": ["Front Row", "Free Thinking", ...], "NPR": ["Fresh Air"] }
+const stationMap = new Map<string, string[]>();
+for (const show of shows) {
+  const stationName = show.station?.name || 'Radio';
+  if (!stationMap.has(stationName)) stationMap.set(stationName, []);
+  stationMap.get(stationName)!.push(show.name);
+}
+
+// Build prose: "Front Row, Free Thinking, Bookclub and A Good Read on BBC Radio 4, and Fresh Air on NPR"
+function listWithAnd(items: string[]) {
+  if (items.length <= 1) return items[0] || '';
+  return items.slice(0, -1).join(', ') + ' and ' + items[items.length - 1];
+}
+
+const stationPhrases = [...stationMap.entries()].map(
+  ([station, names]) => `${listWithAnd(names)} on ${station}`
+);
+const showsSentence = stationPhrases.length > 0
+  ? `We currently cover ${shows.length} show${shows.length !== 1 ? 's' : ''} across ${stationMap.size} network${stationMap.size !== 1 ? 's' : ''}: ${listWithAnd(stationPhrases)}.`
+  : '';
 ---
 
-<Layout title="About — Radio Reads" pathname="/about">
+<Layout
+  title="About — Radio Reads"
+  description="Radio Reads is an automated archive of books discussed on BBC Radio 4 and NPR. AI scans every episode for author interviews, reviews and prize-winners."
+  pathname="/about"
+>
   <div class="container pt-10 pb-16 max-w-2xl">
     <h1 class="font-serif text-3xl mb-8">About Radio Reads</h1>
 
     <div class="space-y-5 text-gray-600 dark:text-gray-400 leading-relaxed">
       <p>
-        Radio Reads tracks books discussed, reviewed and recommended on radio
-        programmes. Each episode is checked for books that are the subject of the
-        conversation — author interviews, reviews, prize announcements — and
-        added to a searchable archive.
+        Radio Reads is a searchable archive of books discussed, reviewed and
+        recommended on radio. If you caught an interview on Radio 4 but missed
+        the title, or you're looking for a gift and trust the taste of
+        a favourite show — this is the place.
       </p>
 
       <p>
-        The project currently covers BBC Radio 4 shows including Front Row,
-        Bookclub and Free Thinking.
+        The idea had been rattling around for a while, but it was the arrival
+        of large language models that made it practical. AI does the heavy
+        lifting: scanning each episode for book references, extracting titles
+        and authors, and verifying them against Google Books. The whole
+        pipeline — scraping, extraction, publishing — runs automatically.
       </p>
+
+      {showsSentence && (
+        <p>
+          {showsSentence} New episodes are checked daily and books appear on
+          the site within hours.
+        </p>
+      )}
 
       <p>
         Radio Reads is open source. View the code on <a
