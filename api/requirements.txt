@@ -60,6 +60,9 @@ pyhamcrest==2.1.0
 six==1.17.0
 future==1.0.0
 
+# RSS Parsing
+feedparser
+
 # AI / LLM
 anthropic==0.43.0
 

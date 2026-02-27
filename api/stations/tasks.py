@@ -76,6 +76,11 @@ def scrape_brand(brand_id, max_episodes=50):
     brand = Brand.objects.get(pk=brand_id)
     logger.info(f"Scraping {brand.name} (max {max_episodes} episodes)")
 
+    if brand.spider_name == "rss":
+        from .rss_utils import scrape_rss_brand
+        result = scrape_rss_brand(brand, max_episodes=max_episodes)
+        return {"status": "complete", "brand": brand.name, "new_episodes": result["new_episodes"]}
+
     from scrapy.crawler import CrawlerProcess
     from scrapy.utils.project import get_project_settings
     from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
@@ -146,28 +151,33 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
     # Count episodes before scraping
     before_count = Episode.objects.filter(brand=brand).count()
 
-    from scrapy.crawler import CrawlerProcess
-    from scrapy.utils.project import get_project_settings
-    from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
+    if brand.spider_name == "rss":
+        from .rss_utils import scrape_rss_brand
+        result = scrape_rss_brand(brand, max_episodes=max_episodes, since_date=since_date)
+        new_episodes = result["new_episodes"]
+    else:
+        from scrapy.crawler import CrawlerProcess
+        from scrapy.utils.project import get_project_settings
+        from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
 
-    settings = get_project_settings()
-    settings["LOG_LEVEL"] = "INFO"
+        settings = get_project_settings()
+        settings["LOG_LEVEL"] = "INFO"
 
-    process = CrawlerProcess(settings)
-    spider_kwargs = {"brand_id": brand_id, "max_episodes": max_episodes}
-    if since_date:
-        spider_kwargs["since"] = since_date
+        process = CrawlerProcess(settings)
+        spider_kwargs = {"brand_id": brand_id, "max_episodes": max_episodes}
+        if since_date:
+            spider_kwargs["since"] = since_date
 
-    process.crawl(BbcEpisodeSpider, **spider_kwargs)
+        process.crawl(BbcEpisodeSpider, **spider_kwargs)
 
-    try:
-        process.start()
-    except Exception as e:
-        logger.error(f"Error during backfill scrape: {e}")
-        return {"status": "error", "error": str(e)}
+        try:
+            process.start()
+        except Exception as e:
+            logger.error(f"Error during backfill scrape: {e}")
+            return {"status": "error", "error": str(e)}
 
-    after_count = Episode.objects.filter(brand=brand).count()
-    new_episodes = after_count - before_count
+        after_count = Episode.objects.filter(brand=brand).count()
+        new_episodes = after_count - before_count
 
     logger.info(f"Backfill complete for {brand.name}: {new_episodes} new episodes")
 

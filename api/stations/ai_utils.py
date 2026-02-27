@@ -31,6 +31,13 @@ def _parse_date(date_text: str) -> Optional[datetime]:
     if not date_text:
         return None
 
+    # Try RFC 2822 first (RSS pubDate: "Thu, 26 Feb 2026 20:46:15 +0000")
+    from email.utils import parsedate_to_datetime
+    try:
+        return parsedate_to_datetime(date_text)
+    except (ValueError, TypeError):
+        pass
+
     # Clean the date text
     clean_date = (
         date_text.split(",")[-1].strip() if "," in date_text else date_text.strip()
@@ -98,7 +105,7 @@ class BookExtractor:
 
         prompt = f"""We collect books discussed, reviewed, or interviewed about on radio. Not books mentioned only in adaptation context (film, theatre, TV, musical, play).
 
-Analyze this BBC radio episode text. Extract only books that are the subject of the segment.
+Analyze this radio episode text. Extract only books that are the subject of the segment.
 
 Episode text: "{text}"
 

@@ -21,6 +21,7 @@ class Brand(models.Model):
     url = models.URLField()
     description = models.TextField(blank=True, default="")
     brand_color = models.CharField(max_length=7, blank=True, default="")
+    spider_name = models.CharField(max_length=120, blank=True, default="bbc_episodes")
     created = models.DateTimeField(auto_now_add=True)
 
     @property
