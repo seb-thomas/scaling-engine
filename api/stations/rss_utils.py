@@ -40,7 +40,7 @@ def scrape_rss_brand(brand, max_episodes=50, since_date=None):
         if created >= max_episodes:
             break
 
-        url = entry.get("link", "")
+        url = entry.get("link") or entry.get("id", "")
         if not url:
             continue
 
