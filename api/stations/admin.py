@@ -10,7 +10,7 @@ from django.contrib import messages
 from django.utils.safestring import mark_safe
 from django.conf import settings as django_settings
 
-from .models import Station, Brand, Episode, Book, Phrase, Category
+from .models import Station, Brand, Episode, Book, Phrase, Topic
 
 
 class BookInline(admin.TabularInline):
@@ -253,13 +253,13 @@ class EpisodeAdmin(admin.ModelAdmin):
 
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
-    list_display = ("title", "author", "category_list", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
-    list_filter = ("categories", "episodes__brand", "google_books_verified")
-    filter_horizontal = ("categories", "episodes")
+    list_display = ("title", "author", "topic_list", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
+    list_filter = ("topics", "episodes__brand", "google_books_verified")
+    filter_horizontal = ("topics", "episodes")
     search_fields = ("title", "author", "description")
     readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "google_books_verified", "cover_fetch_error")
     fieldsets = (
-        ("Book Information", {"fields": ("title", "author", "categories", "slug", "description", "google_books_verified")}),
+        ("Book Information", {"fields": ("title", "author", "topics", "slug", "description", "google_books_verified")}),
         (
             "Cover Image",
             {
@@ -270,10 +270,10 @@ class BookAdmin(admin.ModelAdmin):
         ("Episodes", {"fields": ("episodes",)}),
     )
 
-    def category_list(self, obj):
-        return ", ".join(c.name for c in obj.categories.all()) or "-"
+    def topic_list(self, obj):
+        return ", ".join(t.name for t in obj.topics.all()) or "-"
 
-    category_list.short_description = "Categories"
+    topic_list.short_description = "Topics"
 
     def episode_brand(self, obj):
         episode = obj.episodes.select_related("brand").first()
@@ -504,8 +504,8 @@ class BrandAdmin(admin.ModelAdmin):
         return super().change_view(request, object_id, form_url, extra_context)
 
 
-@admin.register(Category)
-class CategoryAdmin(admin.ModelAdmin):
+@admin.register(Topic)
+class TopicAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "book_count")
 
     def book_count(self, obj):
@@ -518,8 +518,8 @@ class CategoryAdmin(admin.ModelAdmin):
 
         counts = Counter()
         for val in (
-            Book.objects.exclude(unmatched_categories="")
-            .values_list("unmatched_categories", flat=True)
+            Book.objects.exclude(unmatched_topics="")
+            .values_list("unmatched_topics", flat=True)
         ):
             for slug in val.split(","):
                 slug = slug.strip()
@@ -528,7 +528,7 @@ class CategoryAdmin(admin.ModelAdmin):
 
         extra_context = extra_context or {}
         # Sort by count descending
-        extra_context["unmatched_categories"] = sorted(
+        extra_context["unmatched_topics"] = sorted(
             counts.items(), key=lambda x: -x[1]
         )
         return super().changelist_view(request, extra_context)

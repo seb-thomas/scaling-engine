@@ -131,13 +131,17 @@ Return JSON only:
             "title": "Book Title",
             "author": "Author Name",
             "description": "A brief, engaging description of what the book is about",
-            "categories": ["fiction"]
+            "topics": ["fiction"]
         }}
     ],
     "reasoning": "Brief explanation of your decision"
 }}
 
-categories is a list of one or more from: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts. A book can belong to multiple categories (e.g. a debut novel = ["fiction", "debut"]).
+topics: assign one or more from the standard list: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts.
+
+- "science" = natural sciences, medicine, neuroscience, physics, biology, climate science. NOT technology, economics, sociology, or activism.
+- A book can belong to multiple topics (e.g. a debut novel = ["fiction", "debut"]).
+- You may also suggest up to 2 additional topic slugs if the book clearly belongs to a topic not in the standard list. Use lowercase slugs with hyphens (e.g. technology, health, environment, music, philosophy, true-crime, sport, food-and-drink, nature, memoir).
 
 confidence is your overall confidence in the decision (0.0-1.0). 0.9+ = clear-cut, 0.7-0.9 = probable, <0.7 = uncertain. Return ONLY valid JSON, no additional text."""
 
@@ -310,7 +314,7 @@ def extract_books_from_episode(episode_id: int) -> Dict:
     """
     from django.utils import timezone
 
-    from .models import Book, Category, Episode
+    from .models import Book, Topic, Episode
 
     try:
         episode = Episode.objects.get(pk=episode_id)
@@ -439,21 +443,21 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             )
             book.episodes.add(episode)
 
-            # Assign categories via M2M
-            raw_categories = book_data.get("categories", [])
-            if isinstance(raw_categories, str):
-                raw_categories = [raw_categories]
+            # Assign topics via M2M
+            raw_topics = book_data.get("topics", [])
+            if isinstance(raw_topics, str):
+                raw_topics = [raw_topics]
             unmatched = []
-            for raw_cat in raw_categories:
-                slug = raw_cat.strip().lower()
+            for raw_topic in raw_topics:
+                slug = raw_topic.strip().lower()
                 try:
-                    cat = Category.objects.get(slug=slug)
-                    book.categories.add(cat)
-                except Category.DoesNotExist:
+                    topic = Topic.objects.get(slug=slug)
+                    book.topics.add(topic)
+                except Topic.DoesNotExist:
                     unmatched.append(slug)
             if unmatched:
-                book.unmatched_categories = ",".join(unmatched)
-                book.save(update_fields=["unmatched_categories"])
+                book.unmatched_topics = ",".join(unmatched)
+                book.save(update_fields=["unmatched_topics"])
             new_books.append(book)
             cover_url = book_info.get("cover_url") or ""
             if cover_url:

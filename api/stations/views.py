@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .serializers import StationSerializer, BookSerializer, BrandShowSerializer
-from .models import Station, Book, Brand, Category
+from .models import Station, Book, Brand, Topic
 
 
 class StationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -71,11 +71,11 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BookSerializer
     queryset = Book.objects.prefetch_related(
-        "episodes", "episodes__brand", "episodes__brand__station", "categories"
+        "episodes", "episodes__brand", "episodes__brand__station", "topics"
     ).all()
     lookup_field = "slug"
     filter_backends = [filters.SearchFilter]
-    search_fields = ["title", "author", "categories__name"]
+    search_fields = ["title", "author", "topics__name"]
 
     def get_queryset(self):
         queryset = super().get_queryset().annotate(
@@ -95,7 +95,7 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
             queryset = queryset.filter(episodes__brand__station__station_id=station_id)
         topic = self.request.query_params.get("topic") or self.request.query_params.get("category")
         if topic:
-            queryset = queryset.filter(categories__slug=topic)
+            queryset = queryset.filter(topics__slug=topic)
         # M2M joins can produce duplicates
         queryset = queryset.distinct()
         return queryset
@@ -103,19 +103,19 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
 
 def topics_list(request):
     """Return topics with book counts and descriptions."""
-    cats = (
-        Category.objects.annotate(book_count=Count("book"))
+    topics = (
+        Topic.objects.annotate(book_count=Count("book"))
         .filter(book_count__gt=0)
         .order_by("-book_count")
     )
     result = [
         {
-            "slug": c.slug,
-            "name": c.name,
-            "description": c.description,
-            "book_count": c.book_count,
+            "slug": t.slug,
+            "name": t.name,
+            "description": t.description,
+            "book_count": t.book_count,
         }
-        for c in cats
+        for t in topics
     ]
     return JsonResponse(result, safe=False)
 
@@ -123,15 +123,15 @@ def topics_list(request):
 def topic_detail(request, slug):
     """Return a single topic by slug."""
     try:
-        cat = Category.objects.annotate(book_count=Count("book")).get(slug=slug)
-    except Category.DoesNotExist:
+        topic = Topic.objects.annotate(book_count=Count("book")).get(slug=slug)
+    except Topic.DoesNotExist:
         raise Http404
     return JsonResponse(
         {
-            "slug": cat.slug,
-            "name": cat.name,
-            "description": cat.description,
-            "book_count": cat.book_count,
+            "slug": topic.slug,
+            "name": topic.name,
+            "description": topic.description,
+            "book_count": topic.book_count,
         }
     )
 

@@ -85,9 +85,9 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
                 </div>
               )}
 
-              {book.categories && book.categories.length > 0 && (
+              {book.topics && book.topics.length > 0 && (
                 <div className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                  {book.categories.map((c, i) => (
+                  {book.topics.map((c, i) => (
                     <span key={c.slug}>
                       {i > 0 && ' · '}
                       <a

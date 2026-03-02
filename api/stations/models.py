@@ -157,13 +157,13 @@ def book_cover_path(instance, filename):
     return f"covers/{brand_slug}/{instance.slug}{ext}"
 
 
-class Category(models.Model):
+class Topic(models.Model):
     name = models.CharField(max_length=120)
     slug = models.SlugField(max_length=120, unique=True)
     description = models.TextField(blank=True, default="")
 
     class Meta:
-        verbose_name_plural = "categories"
+        verbose_name_plural = "topics"
         ordering = ["name"]
 
     def __str__(self):
@@ -175,7 +175,7 @@ class Book(models.Model):
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     author = models.CharField(max_length=255, blank=True, default="")
-    categories = models.ManyToManyField(Category, blank=True)
+    topics = models.ManyToManyField(Topic, blank=True)
     description = models.TextField(blank=True, default="")
     cover_image = models.ImageField(
         upload_to=book_cover_path,
@@ -186,7 +186,7 @@ class Book(models.Model):
     cover_fetch_error = models.TextField(blank=True, default="")
     purchase_link = models.URLField(blank=True, default="")
     google_books_verified = models.BooleanField(default=False)
-    unmatched_categories = models.CharField(max_length=255, blank=True, default="")
+    unmatched_topics = models.CharField(max_length=255, blank=True, default="")
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from author + title if not provided

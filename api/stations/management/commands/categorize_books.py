@@ -1,4 +1,4 @@
-"""Backfill book categories using Claude AI."""
+"""Backfill book topics using Claude AI."""
 
 import json
 import os
@@ -7,20 +7,20 @@ import logging
 from django.core.management.base import BaseCommand
 from anthropic import Anthropic
 
-from stations.models import Book, Category
+from stations.models import Book, Topic
 
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = "Categorize books that don't have categories set, using Claude AI."
+    help = "Categorize books that don't have topics set, using Claude AI."
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--limit", type=int, default=0, help="Max books to process (0 = all)"
         )
         parser.add_argument(
-            "--overwrite", action="store_true", help="Overwrite existing categories"
+            "--overwrite", action="store_true", help="Overwrite existing topics"
         )
         parser.add_argument(
             "--dry-run", action="store_true", help="Show what would be done"
@@ -33,11 +33,11 @@ class Command(BaseCommand):
             return
 
         client = Anthropic(api_key=api_key)
-        valid_slugs = set(Category.objects.values_list("slug", flat=True))
+        valid_slugs = set(Topic.objects.values_list("slug", flat=True))
 
         queryset = Book.objects.all().order_by("id")
         if not options["overwrite"]:
-            queryset = queryset.filter(categories__isnull=True)
+            queryset = queryset.filter(topics__isnull=True)
 
         if options["limit"]:
             queryset = queryset[: options["limit"]]
@@ -61,9 +61,12 @@ class Command(BaseCommand):
                 for b in batch
             )
 
-            prompt = f"""Categorize each book. Return JSON only — an array of objects with "id" and "categories" (a list of slugs).
+            prompt = f"""Categorize each book. Return JSON only — an array of objects with "id" and "topics" (a list of slugs).
 
-A book can have multiple categories. Available categories: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts
+A book can have multiple topics. Standard topics: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts.
+
+- "science" = natural sciences, medicine, neuroscience, physics, biology, climate science. NOT technology, economics, sociology, or activism.
+- You may also suggest up to 2 additional topic slugs if the book clearly belongs to a topic not in the standard list. Use lowercase slugs with hyphens (e.g. technology, health, environment, music, philosophy, true-crime, sport, food-and-drink, nature, memoir).
 
 Books:
 {book_list}
@@ -82,26 +85,30 @@ Return ONLY valid JSON array, no other text."""
                     response_text = response_text.rsplit("```", 1)[0].strip()
 
                 results = json.loads(response_text)
-                id_to_cats = {
-                    r["id"]: [c.strip().lower() for c in r["categories"]]
+                id_to_topics = {
+                    r["id"]: [t.strip().lower() for t in r["topics"]]
                     for r in results
                 }
 
                 for book in batch:
-                    cat_slugs = id_to_cats.get(book.id, [])
-                    valid = [s for s in cat_slugs if s in valid_slugs]
-                    if valid:
+                    topic_slugs = id_to_topics.get(book.id, [])
+                    matched = [s for s in topic_slugs if s in valid_slugs]
+                    unmatched = [s for s in topic_slugs if s not in valid_slugs]
+                    if matched:
                         if options["dry_run"]:
                             self.stdout.write(
-                                f"  {book.title} → {', '.join(valid)}"
+                                f"  {book.title} → {', '.join(matched)}"
                             )
                         else:
-                            cats = Category.objects.filter(slug__in=valid)
-                            book.categories.set(cats)
+                            topics = Topic.objects.filter(slug__in=matched)
+                            book.topics.set(topics)
+                            if unmatched:
+                                book.unmatched_topics = ",".join(unmatched)
+                                book.save(update_fields=["unmatched_topics"])
                             updated += 1
                     else:
                         self.stderr.write(
-                            f"  Skipping {book.title}: no valid categories"
+                            f"  Skipping {book.title}: no valid topics"
                         )
 
             except Exception as e:

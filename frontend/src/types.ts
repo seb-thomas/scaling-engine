@@ -23,7 +23,7 @@ export type Book = {
   title: string;
   slug: string;
   author?: string;
-  categories?: { slug: string; name: string }[];
+  topics?: { slug: string; name: string }[];
   description?: string;
   cover_image?: string;
   purchase_link?: string;
