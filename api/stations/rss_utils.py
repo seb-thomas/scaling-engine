@@ -40,9 +40,14 @@ def scrape_rss_brand(brand, max_episodes=50, since_date=None):
         if created >= max_episodes:
             break
 
-        url = entry.get("link") or entry.get("id", "")
+        url = entry.get("link") or ""
         if not url:
-            continue
+            # No link element — use GUID as unique identifier, but prefix it
+            # so it's clearly not a real URL (prevents broken frontend links).
+            guid = entry.get("id", "")
+            if not guid:
+                continue
+            url = f"guid:{guid}"
 
         if Episode.objects.filter(url=url).exists():
             continue

@@ -127,7 +127,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
                     )}
                   </div>
                   <p className="italic mb-2 text-gray-700 dark:text-gray-300">{episode.title}</p>
-                  {episode.url && (
+                  {episode.url?.startsWith('http') && (
                     <a
                       href={episode.url}
                       target="_blank"

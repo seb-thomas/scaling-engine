@@ -348,11 +348,16 @@ class BookAdmin(admin.ModelAdmin):
 
     def refetch_cover(self, request, book_id):
         """Refetch cover for a single book via Google Books."""
-        from .utils import verify_book_exists
+        from .utils import verify_book_exists, GoogleBooksRateLimited
         from .ai_utils import download_and_save_cover
 
         book = Book.objects.get(pk=book_id)
-        book_info = verify_book_exists(book.title, book.author)
+        try:
+            book_info = verify_book_exists(book.title, book.author)
+        except GoogleBooksRateLimited:
+            messages.error(request, "Google Books rate limit hit. Try again in a few minutes.")
+            return redirect(reverse("admin:stations_book_change", args=[book_id]))
+
         cover_url = book_info.get("cover_url") or ""
 
         if cover_url:
