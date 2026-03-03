@@ -246,4 +246,4 @@ def generate_bookshop_affiliate_url(title: str, author: str = "") -> str:
     affiliate_id = getattr(settings, 'BOOKSHOP_AFFILIATE_ID', '16640')
     
     # Bookshop.org UK search URL with affiliate tracking
-    return f"https://uk.bookshop.org/search?q={encoded_query}&aid={affiliate_id}"
+    return f"https://uk.bookshop.org/beta-search?keywords={encoded_query}&aid={affiliate_id}"
