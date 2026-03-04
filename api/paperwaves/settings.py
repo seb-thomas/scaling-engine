@@ -237,6 +237,7 @@ if not PAUSE_SCRAPING:
         "scrape-all-brands-daily": {
             "task": "stations.tasks.scrape_all_brands",
             "schedule": crontab(hour=2, minute=0),  # Daily at 2 AM London time
+            "kwargs": {"max_episodes_per_brand": 5},
         },
         "extract-books-every-30-minutes": {
             "task": "stations.tasks.extract_books_from_new_episodes",

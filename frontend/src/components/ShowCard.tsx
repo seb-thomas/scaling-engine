@@ -51,7 +51,7 @@ export function ShowCard({ show }: ShowCardProps) {
         {/* Content */}
         <div>
           <div className="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
-            {show.station.name}
+            {show.station.name}{show.producer_name && ` · ${show.producer_name}`}
           </div>
           <h3 className="font-serif text-xl mb-2 group-hover:text-orange-900 dark:group-hover:text-orange-100 transition-colors leading-tight">
             {show.name}
