@@ -29,8 +29,11 @@ class Brand(models.Model):
 
     @property
     def book_count(self):
-        """Count of books associated with this brand"""
-        return Book.objects.filter(episodes__brand=self).distinct().count()
+        """Count of verified books associated with this brand"""
+        return Book.objects.filter(
+            episodes__brand=self,
+            verification_status=Book.VERIFICATION_VERIFIED,
+        ).distinct().count()
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from name if not provided
@@ -119,7 +122,7 @@ class Episode(models.Model):
             return ""
         if self.ai_confidence < 0.9:
             return self.REVIEW_REQUIRED
-        if self.books.filter(google_books_verified=False).exists():
+        if self.books.exclude(verification_status='verified').exists():
             return self.REVIEW_REQUIRED
         return self.REVIEW_NOT_REQUIRED
 
@@ -171,6 +174,15 @@ class Topic(models.Model):
 
 
 class Book(models.Model):
+    VERIFICATION_PENDING = "pending"
+    VERIFICATION_VERIFIED = "verified"
+    VERIFICATION_NOT_FOUND = "not_found"
+    VERIFICATION_CHOICES = [
+        (VERIFICATION_PENDING, "Pending"),
+        (VERIFICATION_VERIFIED, "Verified"),
+        (VERIFICATION_NOT_FOUND, "Not found"),
+    ]
+
     episodes = models.ManyToManyField(Episode, related_name="books", blank=True)
     title = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True, blank=True)
@@ -185,7 +197,12 @@ class Book(models.Model):
     )
     cover_fetch_error = models.TextField(blank=True, default="")
     purchase_link = models.URLField(blank=True, default="")
-    google_books_verified = models.BooleanField(default=False)
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VERIFICATION_CHOICES,
+        default=VERIFICATION_PENDING,
+    )
+    verification_checked_at = models.DateTimeField(null=True, blank=True)
     unmatched_topics = models.CharField(max_length=255, blank=True, default="")
 
     def save(self, *args, **kwargs):

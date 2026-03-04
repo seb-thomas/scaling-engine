@@ -6,7 +6,7 @@ from django.utils import timezone
 from datetime import datetime
 from .utils import contains_keywords
 from .ai_utils import extract_books_from_episode, get_book_extractor
-from .models import Brand, Episode
+from .models import Brand, Episode, Book
 
 logger = get_task_logger(__name__)
 
@@ -280,3 +280,132 @@ def extract_books_from_new_episodes():
 
     logger.info(f"Triggered AI extraction for {processed} episodes")
     return {"status": "complete", "episodes_processed": processed}
+
+
+@shared_task(name="stations.tasks.verify_pending_books")
+def verify_pending_books(batch_size=20):
+    """
+    Verify pending books against Google Books API.
+
+    Runs hourly. For each pending book:
+    - Found → update canonical title/author, download cover, set verified
+    - Not found → set not_found + timestamp
+    - Rate limited → stop immediately
+    Also cleans up not_found books older than 7 days.
+    """
+    from datetime import timedelta
+    from django.db.models import Q
+    from .utils import verify_book_exists, GoogleBooksRateLimited, generate_bookshop_affiliate_url
+    from .ai_utils import download_and_save_cover
+
+    pending = Book.objects.filter(
+        verification_status=Book.VERIFICATION_PENDING
+    )[:batch_size]
+
+    verified_count = 0
+    not_found_count = 0
+
+    for book in pending:
+        try:
+            book_info = verify_book_exists(book.title, book.author)
+        except GoogleBooksRateLimited:
+            logger.warning("Google Books rate limited during verification, stopping batch")
+            break
+
+        if book_info["exists"]:
+            canonical_title = book_info.get("title") or book.title
+            canonical_author = book_info.get("author") or book.author
+
+            # Check if a verified book with the canonical title/author already exists
+            existing = Book.objects.filter(
+                title__iexact=canonical_title,
+                author__iexact=canonical_author,
+                verification_status=Book.VERIFICATION_VERIFIED,
+            ).exclude(pk=book.pk).first()
+
+            if existing:
+                # Merge: move episodes to existing book, delete this one
+                for episode in book.episodes.all():
+                    existing.episodes.add(episode)
+                logger.info(
+                    f"Merged duplicate '{book.title}' into verified '{existing.title}'"
+                )
+                book.delete()
+                verified_count += 1
+                continue
+
+            # Update with canonical info
+            book.title = canonical_title
+            book.author = canonical_author
+            book.verification_status = Book.VERIFICATION_VERIFIED
+            book.verification_checked_at = timezone.now()
+            book.save(update_fields=[
+                "title", "author", "verification_status", "verification_checked_at",
+            ])
+
+            # Download cover
+            cover_url = book_info.get("cover_url") or ""
+            if cover_url:
+                download_and_save_cover(book, cover_url)
+            else:
+                book.cover_fetch_error = "No cover available on Google Books"
+                book.save(update_fields=["cover_fetch_error"])
+
+            # Update purchase link with canonical info
+            purchase_url = generate_bookshop_affiliate_url(book.title, book.author)
+            if purchase_url:
+                book.purchase_link = purchase_url
+                book.save(update_fields=["purchase_link"])
+
+            # Update review status on linked episodes
+            for episode in book.episodes.all():
+                new_status = episode.compute_review_status()
+                if new_status != episode.review_status:
+                    episode.review_status = new_status
+                    episode.save(update_fields=["review_status"])
+
+            verified_count += 1
+            logger.info(f"Verified: '{book.title}' by {book.author}")
+
+        elif not book_info.get("error"):
+            # Genuinely not found (not an API error)
+            book.verification_status = Book.VERIFICATION_NOT_FOUND
+            book.verification_checked_at = timezone.now()
+            book.save(update_fields=["verification_status", "verification_checked_at"])
+            not_found_count += 1
+            logger.info(f"Not found on Google Books: '{book.title}' by {book.author}")
+        else:
+            # API error (timeout etc.) — skip, will retry next hour
+            logger.warning(
+                f"Skipping '{book.title}': API error {book_info['error']}"
+            )
+
+    # Cleanup: delete not_found books older than 7 days
+    cutoff = timezone.now() - timedelta(days=7)
+    stale_books = Book.objects.filter(
+        verification_status=Book.VERIFICATION_NOT_FOUND,
+        verification_checked_at__lt=cutoff,
+    )
+    deleted_count = 0
+    for book in stale_books:
+        # Capture linked episodes before deleting
+        episodes = list(book.episodes.all())
+        book_title = book.title
+        book.delete()
+        # Update has_book flag on orphaned episodes
+        for episode in episodes:
+            if not episode.books.exists():
+                episode.has_book = False
+                episode.save(update_fields=["has_book"])
+        deleted_count += 1
+        logger.info(f"Deleted stale not_found book: '{book_title}'")
+
+    logger.info(
+        f"Verification complete: {verified_count} verified, "
+        f"{not_found_count} not found, {deleted_count} stale deleted"
+    )
+    return {
+        "verified": verified_count,
+        "not_found": not_found_count,
+        "stale_deleted": deleted_count,
+    }

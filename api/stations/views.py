@@ -1,6 +1,6 @@
 from django.http import Http404, JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Max
+from django.db.models import Count, F, Max, Q
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -32,7 +32,11 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         queryset = Brand.objects.select_related("station").annotate(
-            annotated_book_count=Count("episode__books", distinct=True)
+            annotated_book_count=Count(
+                "episode__books",
+                filter=Q(episode__books__verification_status=Book.VERIFICATION_VERIFIED),
+                distinct=True,
+            )
         )
         station_id = self.request.query_params.get("station_id", None)
         if station_id:
@@ -43,7 +47,10 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
     def books(self, request, pk=None):
         brand = self.get_object()
         books = (
-            Book.objects.filter(episodes__brand=brand)
+            Book.objects.filter(
+                episodes__brand=brand,
+                verification_status=Book.VERIFICATION_VERIFIED,
+            )
             .prefetch_related("episodes", "episodes__brand", "episodes__brand__station")
             .annotate(latest_aired=Max("episodes__aired_at"))
             .order_by(F("latest_aired").desc(nulls_last=True), "-id")
@@ -78,7 +85,9 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ["title", "author", "topics__name"]
 
     def get_queryset(self):
-        queryset = super().get_queryset().annotate(
+        queryset = super().get_queryset().filter(
+            verification_status=Book.VERIFICATION_VERIFIED,
+        ).annotate(
             latest_aired=Max("episodes__aired_at"),
         ).order_by(
             F("latest_aired").desc(nulls_last=True),
@@ -104,7 +113,12 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
 def topics_list(request):
     """Return topics with book counts and descriptions."""
     topics = (
-        Topic.objects.annotate(book_count=Count("book"))
+        Topic.objects.annotate(
+            book_count=Count(
+                "book",
+                filter=Q(book__verification_status=Book.VERIFICATION_VERIFIED),
+            )
+        )
         .filter(book_count__gt=0)
         .order_by("-book_count")
     )
@@ -123,7 +137,12 @@ def topics_list(request):
 def topic_detail(request, slug):
     """Return a single topic by slug."""
     try:
-        topic = Topic.objects.annotate(book_count=Count("book")).get(slug=slug)
+        topic = Topic.objects.annotate(
+            book_count=Count(
+                "book",
+                filter=Q(book__verification_status=Book.VERIFICATION_VERIFIED),
+            )
+        ).get(slug=slug)
     except Topic.DoesNotExist:
         raise Http404
     return JsonResponse(

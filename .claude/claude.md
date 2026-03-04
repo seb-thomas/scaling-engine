@@ -30,7 +30,9 @@ A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses A
 ### Scraping
 - **BBC** (`api/scraper/spiders/bbc_episode_spider.py`): Scrapy spider for BBC Radio programme pages. **robots.txt disabled** to access real data. Follows pagination.
 - **RSS** (`api/stations/rss_utils.py`): Generic `feedparser`-based scraper for podcast feeds. Works for any brand with `spider_name="rss"` — no new code needed to add another RSS show.
-- **Dispatch**: `Brand.spider_name` controls which method is used (`"bbc_episodes"` or `"rss"`).
+- **WNYC API** (`api/stations/wnyc_utils.py`): JSON API scraper for WNYC-hosted shows. Works for any brand with `spider_name="wnyc_api"` — set `brand.url` to the WNYC show page (e.g. `https://www.wnyc.org/shows/splendid-table`).
+- **Dispatch**: `Brand.spider_name` controls which method is used (`"bbc_episodes"`, `"rss"`, or `"wnyc_api"`).
+- **Adding a new brand**: Always scrape only 10 episodes initially to verify data quality. Then let the scheduled backfill (25 eps every 12 hours) build up the archive gradually. Never bulk-scrape hundreds of episodes on first setup.
 
 ### Scheduled Tasks (`api/stations/tasks.py`)
 - `scrape_all_brands`: Runs daily at 2 AM (dispatches per-brand scrape, staggered)

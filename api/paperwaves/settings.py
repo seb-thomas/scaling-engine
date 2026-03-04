@@ -248,6 +248,11 @@ if not PAUSE_SCRAPING:
             "schedule": crontab(hour="0,12", minute=0),  # Midnight and noon
             "kwargs": {"max_episodes_per_brand": 25},
         },
+        "verify-pending-books-hourly": {
+            "task": "stations.tasks.verify_pending_books",
+            "schedule": crontab(minute=15),  # Every hour at :15
+            "kwargs": {"batch_size": 20},
+        },
     }
 
 # AI / BOOK EXTRACTION

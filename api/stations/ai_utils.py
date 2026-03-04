@@ -365,10 +365,7 @@ def extract_books_from_episode(episode_id: int) -> Dict:
             if not book.episodes.exists():
                 book.delete()
 
-        from .utils import (
-            generate_bookshop_affiliate_url,
-            verify_book_exists,
-        )
+        from .utils import generate_bookshop_affiliate_url
 
         new_books = []
         for book_data in result.get("books", []):
@@ -387,53 +384,10 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 )
                 continue
 
-            # Verify via Google Books — skip if not found (likely not a real book)
-            from .utils import GoogleBooksRateLimited
-            try:
-                book_info = verify_book_exists(book_title, book_author)
-            except GoogleBooksRateLimited as e:
-                # Rate limited — put episode back to SCRAPED for retry later,
-                # don't mark as FAILED (which would require manual intervention)
-                logger.warning(
-                    f"Google Books rate limited for episode {episode_id}, "
-                    f"returning to SCRAPED for later retry"
-                )
-                episode.status = Episode.STATUS_SCRAPED
-                episode.last_error = f"Google Books rate limited, will retry: {e}"
-                episode.status_changed_at = timezone.now()
-                episode.save(update_fields=["status", "last_error", "status_changed_at"])
-                return {
-                    "has_book": result.get("has_book", False),
-                    "books": result.get("books", []),
-                    "reasoning": f"Rate limited, will retry: {e}",
-                }
-            if not book_info["exists"]:
-                if book_info.get("error"):
-                    # API error (timeout, etc.) — fail the episode so it
-                    # surfaces in admin and can be retried later.
-                    error_msg = f"Google Books API error: {book_info['error']}"
-                    logger.warning(
-                        f"Failing episode {episode_id}: {error_msg}"
-                    )
-                    _set_episode_failed(episode, Exception(error_msg))
-                    return {
-                        "has_book": result.get("has_book", False),
-                        "books": result.get("books", []),
-                        "reasoning": error_msg,
-                    }
-                logger.info(
-                    f"Skipping '{book_title}' by {book_author}: "
-                    f"not found on Google Books"
-                )
-                continue
-
-            use_title = book_info.get("title") or book_title
-            use_author = book_info.get("author") or book_author
-
-            # Match existing book by canonical title+author, or create new
+            # Dedup on AI-provided title/author
             existing = Book.objects.filter(
-                title__iexact=use_title,
-                author__iexact=use_author,
+                title__iexact=book_title,
+                author__iexact=book_author,
             ).first()
 
             if existing:
@@ -441,11 +395,12 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 new_books.append(existing)
                 continue
 
+            # Create book as pending — verification happens in a separate task
             book = Book.objects.create(
-                title=use_title,
-                author=use_author,
+                title=book_title,
+                author=book_author,
                 description=book_data.get("description", "").strip(),
-                google_books_verified=True,
+                # verification_status defaults to 'pending'
             )
             book.episodes.add(episode)
 
@@ -465,12 +420,7 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 book.unmatched_topics = ",".join(unmatched)
                 book.save(update_fields=["unmatched_topics"])
             new_books.append(book)
-            cover_url = book_info.get("cover_url") or ""
-            if cover_url:
-                download_and_save_cover(book, cover_url)
-            else:
-                book.cover_fetch_error = "No cover available on Google Books"
-                book.save(update_fields=["cover_fetch_error"])
+
             purchase_url = generate_bookshop_affiliate_url(book.title, book.author)
             if purchase_url:
                 book.purchase_link = purchase_url

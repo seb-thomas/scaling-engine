@@ -126,7 +126,7 @@ class EpisodeAdmin(admin.ModelAdmin):
             reasons = []
             if obj.ai_confidence is not None and obj.ai_confidence < 0.9:
                 reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
-            if obj.books.filter(google_books_verified=False).exists():
+            if obj.books.exclude(verification_status=Book.VERIFICATION_VERIFIED).exists():
                 reasons.append("unverified book")
             hint = ", ".join(reasons) or "flagged"
             return format_html(
@@ -254,12 +254,12 @@ class EpisodeAdmin(admin.ModelAdmin):
 @admin.register(Book)
 class BookAdmin(admin.ModelAdmin):
     list_display = ("title", "author", "topic_list", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
-    list_filter = ("topics", "episodes__brand", "google_books_verified")
+    list_filter = ("topics", "episodes__brand", "verification_status")
     filter_horizontal = ("topics", "episodes")
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "google_books_verified", "cover_fetch_error")
+    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "verification_status", "verification_checked_at", "cover_fetch_error")
     fieldsets = (
-        ("Book Information", {"fields": ("title", "author", "topics", "slug", "description", "google_books_verified")}),
+        ("Book Information", {"fields": ("title", "author", "topics", "slug", "description", "verification_status", "verification_checked_at")}),
         (
             "Cover Image",
             {
@@ -284,9 +284,11 @@ class BookAdmin(admin.ModelAdmin):
     episode_brand.short_description = "Show"
 
     def gb_status(self, obj):
-        if obj.google_books_verified:
+        if obj.verification_status == Book.VERIFICATION_VERIFIED:
             return format_html('<span style="color: #28a745;">Verified</span>')
-        return format_html('<span style="color: #999;">-</span>')
+        if obj.verification_status == Book.VERIFICATION_NOT_FOUND:
+            return format_html('<span style="color: #dc3545;">Not found</span>')
+        return format_html('<span style="color: #d4a017;">Pending</span>')
 
     gb_status.short_description = "Google Books"
 
