@@ -255,9 +255,9 @@ class EpisodeAdmin(admin.ModelAdmin):
 class BookAdmin(admin.ModelAdmin):
     list_display = ("title", "author", "topic_list", "episode_brand", "gb_status", "cover_preview_small", "cover_error_short")
     list_filter = ("topics", "episodes__brand", "verification_status")
-    filter_horizontal = ("topics", "episodes")
+    filter_horizontal = ("topics",)
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "verification_status", "verification_checked_at", "cover_fetch_error")
+    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "verification_status", "verification_checked_at", "cover_fetch_error", "episode_list")
     fieldsets = (
         ("Book Information", {"fields": ("title", "author", "topics", "slug", "description", "verification_status", "verification_checked_at")}),
         (
@@ -267,7 +267,7 @@ class BookAdmin(admin.ModelAdmin):
             },
         ),
         ("Links", {"fields": ("purchase_link",)}),
-        ("Episodes", {"fields": ("episodes",)}),
+        ("Episodes", {"fields": ("episode_list",)}),
     )
 
     def topic_list(self, obj):
@@ -282,6 +282,29 @@ class BookAdmin(admin.ModelAdmin):
         return "-"
 
     episode_brand.short_description = "Show"
+
+    def episode_list(self, obj):
+        if not obj.pk:
+            return "-"
+        episodes = obj.episodes.select_related("brand").order_by("-aired_at")[:20]
+        if not episodes:
+            return format_html("<em>No episodes</em>")
+        links = []
+        for ep in episodes:
+            url = reverse("admin:stations_episode_change", args=[ep.pk])
+            brand = ep.brand.name if ep.brand else "?"
+            date = ep.aired_at.strftime("%-d %b %Y") if ep.aired_at else ""
+            links.append(format_html(
+                '<a href="{}">{}</a> <span style="color:#666">({}{})</span>',
+                url, ep.title[:80], brand, f", {date}" if date else "",
+            ))
+        html = "<br>".join(links)
+        total = obj.episodes.count()
+        if total > 20:
+            html += format_html("<br><em>… and {} more</em>", total - 20)
+        return mark_safe(html)
+
+    episode_list.short_description = "Episodes"
 
     def gb_status(self, obj):
         if obj.verification_status == Book.VERIFICATION_VERIFIED:
