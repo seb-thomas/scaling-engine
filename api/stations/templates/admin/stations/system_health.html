@@ -141,6 +141,25 @@
         {% endif %}
     </div>
 
+    <!-- Verification stats -->
+    <div class="section">
+        <h3>Verification</h3>
+        <div class="stats-row">
+            <div class="stat-box">
+                <div class="number">{{ health.pipeline.pending_books|default:"0" }}</div>
+                <div class="label">Pending</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ health.pipeline.verified_books|default:"0" }}</div>
+                <div class="label">Verified</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ health.pipeline.not_found_books|default:"0" }}</div>
+                <div class="label">Not found</div>
+            </div>
+        </div>
+    </div>
+
     <!-- Beat schedule -->
     {% if health.checks.beat_schedule.tasks %}
     <div class="section">
@@ -197,6 +216,10 @@
             <form method="post" action="{% url 'admin:stations_health_run_scrape' %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-primary">Run Scrape Now</button>
+            </form>
+            <form method="post" action="{% url 'admin:stations_health_run_verification' %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">Run Verification Now</button>
             </form>
             <a href="http://{{ request.META.HTTP_HOST|cut:':80'|cut:':443' }}:5555" target="_blank" class="btn">
                 Open Flower

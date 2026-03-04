@@ -257,9 +257,9 @@ class BookAdmin(admin.ModelAdmin):
     list_filter = ("topics", "episodes__brand", "verification_status")
     filter_horizontal = ("topics",)
     search_fields = ("title", "author", "description")
-    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "verification_status", "verification_checked_at", "cover_fetch_error", "episode_list")
+    readonly_fields = ("slug", "cover_preview_large", "refetch_cover_button", "verify_book_button", "verification_status", "verification_checked_at", "cover_fetch_error", "episode_list")
     fieldsets = (
-        ("Book Information", {"fields": ("title", "author", "topics", "slug", "description", "verification_status", "verification_checked_at")}),
+        ("Book Information", {"fields": ("title", "author", "topics", "slug", "description", "verification_status", "verification_checked_at", "verify_book_button")}),
         (
             "Cover Image",
             {
@@ -360,6 +360,17 @@ class BookAdmin(admin.ModelAdmin):
 
     refetch_cover_button.short_description = "Refetch"
 
+    def verify_book_button(self, obj):
+        if not obj.pk or obj.verification_status != Book.VERIFICATION_PENDING:
+            return "-"
+        url = reverse("admin:stations_book_verify", args=[obj.pk])
+        return format_html(
+            '<a href="{}" class="button" style="padding: 6px 12px;">Verify now</a>'
+            '<p style="margin-top: 6px; color: #666; font-size: 12px;">'
+            'Look up on Google Books and verify this book.</p>', url)
+
+    verify_book_button.short_description = "Verify"
+
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
@@ -367,6 +378,11 @@ class BookAdmin(admin.ModelAdmin):
                 "<int:book_id>/refetch-cover/",
                 self.admin_site.admin_view(self.refetch_cover),
                 name="stations_book_refetch_cover",
+            ),
+            path(
+                "<int:book_id>/verify/",
+                self.admin_site.admin_view(self.verify_book),
+                name="stations_book_verify",
             ),
         ]
         return custom_urls + urls
@@ -395,6 +411,39 @@ class BookAdmin(admin.ModelAdmin):
             book.cover_fetch_error = "No cover available on Google Books"
             book.save(update_fields=["cover_fetch_error"])
             messages.warning(request, "No cover available on Google Books.")
+
+        return redirect(reverse("admin:stations_book_change", args=[book_id]))
+
+    def verify_book(self, request, book_id):
+        """Verify a single book via Google Books."""
+        from .utils import verify_book_exists, generate_bookshop_affiliate_url, GoogleBooksRateLimited
+        from .ai_utils import download_and_save_cover
+        from django.utils import timezone as tz
+
+        book = Book.objects.get(pk=book_id)
+        try:
+            book_info = verify_book_exists(book.title, book.author)
+        except GoogleBooksRateLimited:
+            messages.error(request, "Google Books rate limit hit. Try again in a few minutes.")
+            return redirect(reverse("admin:stations_book_change", args=[book_id]))
+
+        book.verification_checked_at = tz.now()
+
+        if book_info.get("exists"):
+            book.verification_status = Book.VERIFICATION_VERIFIED
+            # Download cover if available and not already present
+            cover_url = book_info.get("cover_url") or ""
+            if cover_url and not book.cover_image:
+                download_and_save_cover(book, cover_url, allow_fallback=True)
+            # Set purchase link if not already present
+            if not book.purchase_link:
+                book.purchase_link = generate_bookshop_affiliate_url(book.title, book.author)
+            book.save(update_fields=["verification_status", "verification_checked_at", "purchase_link"])
+            messages.success(request, f"'{book.title}' verified on Google Books.")
+        else:
+            book.verification_status = Book.VERIFICATION_NOT_FOUND
+            book.save(update_fields=["verification_status", "verification_checked_at"])
+            messages.warning(request, f"'{book.title}' not found on Google Books.")
 
         return redirect(reverse("admin:stations_book_change", args=[book_id]))
 
@@ -619,6 +668,17 @@ def system_health_run_scrape(request):
     return redirect("admin:stations_system_health")
 
 
+def system_health_run_verification(request):
+    """Trigger verification task."""
+    if request.method != "POST" or not request.user.is_staff:
+        return redirect("admin:stations_system_health")
+
+    from .tasks import verify_pending_books
+    verify_pending_books.delay()
+    messages.success(request, "Verification task queued.")
+    return redirect("admin:stations_system_health")
+
+
 def extraction_evaluation_view(request):
     """Model evaluation dashboard: show books with input to AI, reasoning, and verify link."""
     from django.contrib.admin.sites import site as default_admin_site
@@ -695,6 +755,11 @@ def _admin_get_urls_with_extraction():
             "system-health/run-scrape/",
             admin.site.admin_view(system_health_run_scrape),
             name="stations_health_run_scrape",
+        ),
+        path(
+            "system-health/run-verification/",
+            admin.site.admin_view(system_health_run_verification),
+            name="stations_health_run_verification",
         ),
         path(
             "stations/extraction-evaluation/",

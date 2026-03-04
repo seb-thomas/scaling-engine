@@ -147,11 +147,14 @@ def _check_beat_schedule(result):
         scrape_task = PeriodicTask.objects.filter(
             task__icontains="scrape_all"
         ).first()
+        verification_task = PeriodicTask.objects.filter(
+            task__icontains="verify_pending"
+        ).first()
 
         tasks_info = []
         worst_status = "ok"
 
-        for task_name, task in [("extraction", extraction_task), ("scrape", scrape_task)]:
+        for task_name, task in [("extraction", extraction_task), ("scrape", scrape_task), ("verification", verification_task)]:
             if not task:
                 tasks_info.append({
                     "name": task_name,
@@ -175,8 +178,13 @@ def _check_beat_schedule(result):
             elif task.last_run_at:
                 age = timezone.now() - task.last_run_at
                 info["age_minutes"] = round(age.total_seconds() / 60)
-                # Extraction runs every 30min, scrape daily — use different thresholds
-                stale_minutes = 60 if "extract" in task.name.lower() else 1500  # 25h
+                # Extraction runs every 30min, verification hourly, scrape daily
+                if "extract" in task.name.lower():
+                    stale_minutes = 60
+                elif "verif" in task.name.lower():
+                    stale_minutes = 120
+                else:
+                    stale_minutes = 1500  # 25h
                 if age.total_seconds() > stale_minutes * 60:
                     info["status"] = "warning"
                     info["message"] = f"Last run {info['age_minutes']}min ago"
@@ -202,7 +210,7 @@ def _check_beat_schedule(result):
 
 
 def _check_pipeline(result):
-    from .models import Episode
+    from .models import Episode, Book
 
     try:
         now = timezone.now()
@@ -221,6 +229,11 @@ def _check_pipeline(result):
             status_changed_at__gte=last_24h,
         ).count()
         total = Episode.objects.count()
+
+        # Verification counts
+        pending_books = Book.objects.filter(verification_status=Book.VERIFICATION_PENDING).count()
+        verified_books = Book.objects.filter(verification_status=Book.VERIFICATION_VERIFIED).count()
+        not_found_books = Book.objects.filter(verification_status=Book.VERIFICATION_NOT_FOUND).count()
 
         # Stuck episodes
         stuck = Episode.stuck(threshold_minutes=60)
@@ -257,6 +270,9 @@ def _check_pipeline(result):
             "processed_24h": processed_24h,
             "failed_24h": failed_24h,
             "total_episodes": total,
+            "pending_books": pending_books,
+            "verified_books": verified_books,
+            "not_found_books": not_found_books,
             "stuck_count": stuck_count,
             "stuck_episodes": [
                 {
