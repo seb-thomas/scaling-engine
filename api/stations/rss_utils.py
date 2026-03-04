@@ -42,8 +42,7 @@ def scrape_rss_brand(brand, max_episodes=50, since_date=None):
 
         url = entry.get("link") or ""
         if not url:
-            # No link element — use GUID as unique identifier, but prefix it
-            # so it's clearly not a real URL (prevents broken frontend links).
+            # No <link> element — use prefixed GUID as unique identifier.
             guid = entry.get("id", "")
             if not guid:
                 continue

@@ -7,9 +7,6 @@ Usage:
 """
 from django.core.management.base import BaseCommand
 from stations.models import Brand, Episode
-from scrapy.crawler import CrawlerProcess
-from scrapy.utils.project import get_project_settings
-from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
 
 
 class Command(BaseCommand):
@@ -60,16 +57,27 @@ class Command(BaseCommand):
         self.stdout.write(f"  Current episodes: {before_count}")
         self.stdout.write("")
 
-        settings = get_project_settings()
-        settings["LOG_LEVEL"] = "INFO"
+        if brand.spider_name == "rss":
+            from stations.rss_utils import scrape_rss_brand
+            scrape_rss_brand(brand, max_episodes=max_episodes, since_date=since)
+        elif brand.spider_name == "wnyc_api":
+            from stations.wnyc_utils import scrape_wnyc_brand
+            scrape_wnyc_brand(brand, max_episodes=max_episodes, since_date=since)
+        else:
+            from scrapy.crawler import CrawlerProcess
+            from scrapy.utils.project import get_project_settings
+            from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
 
-        process = CrawlerProcess(settings)
-        spider_kwargs = {"brand_id": brand_id, "max_episodes": max_episodes}
-        if since:
-            spider_kwargs["since"] = since
+            settings = get_project_settings()
+            settings["LOG_LEVEL"] = "INFO"
 
-        process.crawl(BbcEpisodeSpider, **spider_kwargs)
-        process.start()
+            process = CrawlerProcess(settings)
+            spider_kwargs = {"brand_id": brand_id, "max_episodes": max_episodes}
+            if since:
+                spider_kwargs["since"] = since
+
+            process.crawl(BbcEpisodeSpider, **spider_kwargs)
+            process.start()
 
         after_count = Episode.objects.filter(brand=brand).count()
         new_episodes = after_count - before_count

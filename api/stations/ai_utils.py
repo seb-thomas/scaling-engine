@@ -31,7 +31,13 @@ def _parse_date(date_text: str) -> Optional[datetime]:
     if not date_text:
         return None
 
-    # Try RFC 2822 first (RSS pubDate: "Thu, 26 Feb 2026 20:46:15 +0000")
+    # Try ISO 8601 first (WNYC API: "2026-02-27T15:07:00-05:00")
+    try:
+        return datetime.fromisoformat(date_text)
+    except (ValueError, TypeError):
+        pass
+
+    # Try RFC 2822 (RSS pubDate: "Thu, 26 Feb 2026 20:46:15 +0000")
     from email.utils import parsedate_to_datetime
     try:
         return parsedate_to_datetime(date_text)

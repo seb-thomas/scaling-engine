@@ -81,6 +81,11 @@ def scrape_brand(brand_id, max_episodes=50):
         result = scrape_rss_brand(brand, max_episodes=max_episodes)
         return {"status": "complete", "brand": brand.name, "new_episodes": result["new_episodes"]}
 
+    if brand.spider_name == "wnyc_api":
+        from .wnyc_utils import scrape_wnyc_brand
+        result = scrape_wnyc_brand(brand, max_episodes=max_episodes)
+        return {"status": "complete", "brand": brand.name, "new_episodes": result["new_episodes"]}
+
     from scrapy.crawler import CrawlerProcess
     from scrapy.utils.project import get_project_settings
     from scraper.spiders.bbc_episode_spider import BbcEpisodeSpider
@@ -153,8 +158,10 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
 
     if brand.spider_name == "rss":
         from .rss_utils import scrape_rss_brand
-        result = scrape_rss_brand(brand, max_episodes=max_episodes, since_date=since_date)
-        new_episodes = result["new_episodes"]
+        scrape_rss_brand(brand, max_episodes=max_episodes, since_date=since_date)
+    elif brand.spider_name == "wnyc_api":
+        from .wnyc_utils import scrape_wnyc_brand
+        scrape_wnyc_brand(brand, max_episodes=max_episodes, since_date=since_date)
     else:
         from scrapy.crawler import CrawlerProcess
         from scrapy.utils.project import get_project_settings
@@ -176,14 +183,11 @@ def backfill_brand_task(brand_id, max_episodes=100, since_date=None, extract=Fal
             logger.error(f"Error during backfill scrape: {e}")
             return {"status": "error", "error": str(e)}
 
-        after_count = Episode.objects.filter(brand=brand).count()
-        new_episodes = after_count - before_count
+    after_count = Episode.objects.filter(brand=brand).count()
+    new_episodes = after_count - before_count
 
     logger.info(f"Backfill complete for {brand.name}: {new_episodes} new episodes")
 
-    # Note: extraction is triggered automatically by the Episode post_save signal
-    # when extract=True, we just log that extraction will happen via the signal.
-    # No need to explicitly queue tasks here — the signal fires on episode creation.
     if extract and new_episodes > 0:
         logger.info(
             f"AI extraction will run for {new_episodes} episodes via post_save signal"
