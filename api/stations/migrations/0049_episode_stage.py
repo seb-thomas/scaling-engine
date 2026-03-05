@@ -42,6 +42,15 @@ def migrate_status_to_stage(apps, schema_editor):
     # Remaining PROCESSED (review_status="" with has_book=True) → VERIFICATION_QUEUED
     Episode.objects.filter(status="PROCESSED").update(status="VERIFICATION_QUEUED")
 
+    # Fix-up: any episode marked COMPLETE but with pending books → VERIFICATION_QUEUED
+    # The old compute_review_status() didn't check verification_status=pending,
+    # so NOT_REQUIRED episodes may have unverified books.
+    Book = apps.get_model("stations", "Book")
+    Episode.objects.filter(
+        status="COMPLETE",
+        books__verification_status="pending",
+    ).distinct().update(status="VERIFICATION_QUEUED")
+
 
 def reverse_migration(apps, schema_editor):
     Episode = apps.get_model("stations", "Episode")
