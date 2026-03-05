@@ -122,7 +122,7 @@ class Episode(models.Model):
             return ""
         if self.ai_confidence < 0.9:
             return self.REVIEW_REQUIRED
-        if self.books.exclude(verification_status='verified').exists():
+        if self.books.filter(verification_status='not_found').exists():
             return self.REVIEW_REQUIRED
         return self.REVIEW_NOT_REQUIRED
 

@@ -126,8 +126,8 @@ class EpisodeAdmin(admin.ModelAdmin):
             reasons = []
             if obj.ai_confidence is not None and obj.ai_confidence < 0.9:
                 reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
-            if obj.books.exclude(verification_status=Book.VERIFICATION_VERIFIED).exists():
-                reasons.append("unverified book")
+            if obj.books.filter(verification_status=Book.VERIFICATION_NOT_FOUND).exists():
+                reasons.append("book not found on Google Books")
             hint = ", ".join(reasons) or "flagged"
             return format_html(
                 '<span style="color: #dc3545; font-weight: bold;" title="{}">Review</span>',
@@ -679,6 +679,67 @@ def system_health_run_verification(request):
     return redirect("admin:stations_system_health")
 
 
+def review_queue_view(request):
+    """Standalone page showing episodes that need human review."""
+    if not request.user.is_staff:
+        from django.contrib.admin.sites import site as default_admin_site
+        return redirect(default_admin_site.login_url)
+
+    episodes = (
+        Episode.objects.filter(review_status=Episode.REVIEW_REQUIRED)
+        .select_related("brand")
+        .prefetch_related("books")
+        .order_by("-aired_at")
+    )
+
+    rows = []
+    for ep in episodes:
+        reasons = []
+        if ep.ai_confidence is not None and ep.ai_confidence < 0.9:
+            reasons.append(f"Low confidence ({int(ep.ai_confidence * 100)}%)")
+        not_found_books = ep.books.filter(verification_status=Book.VERIFICATION_NOT_FOUND)
+        if not_found_books.exists():
+            reasons.append("Book not found on Google Books")
+
+        books_info = []
+        for book in ep.books.all():
+            books_info.append({
+                "title": book.title,
+                "author": book.author,
+                "status": book.verification_status,
+                "admin_url": reverse("admin:stations_book_change", args=[book.pk]),
+            })
+
+        rows.append({
+            "brand": ep.brand.name if ep.brand else "?",
+            "title": ep.title,
+            "aired_at": ep.aired_at,
+            "admin_url": reverse("admin:stations_episode_change", args=[ep.pk]),
+            "episode_url": ep.url or "",
+            "mark_reviewed_url": reverse("admin:stations_episode_mark_reviewed", args=[ep.pk]),
+            "books": books_info,
+            "reasons": reasons,
+        })
+
+    context = {
+        **admin.site.each_context(request),
+        "title": "Review Queue",
+        "rows": rows,
+    }
+    return render(request, "admin/stations/review_queue.html", context)
+
+
+def mark_episode_reviewed(request, episode_id):
+    """Mark an episode as reviewed from the review queue."""
+    if request.method != "POST" or not request.user.is_staff:
+        return redirect("admin:stations_review_queue")
+    episode = Episode.objects.get(pk=episode_id)
+    episode.review_status = Episode.REVIEW_REVIEWED
+    episode.save(update_fields=["review_status"])
+    messages.success(request, f"'{episode.title[:50]}' marked as reviewed.")
+    return redirect("admin:stations_review_queue")
+
+
 def extraction_evaluation_view(request):
     """Model evaluation dashboard: show books with input to AI, reasoning, and verify link."""
     from django.contrib.admin.sites import site as default_admin_site
@@ -760,6 +821,16 @@ def _admin_get_urls_with_extraction():
             "system-health/run-verification/",
             admin.site.admin_view(system_health_run_verification),
             name="stations_health_run_verification",
+        ),
+        path(
+            "review-queue/",
+            admin.site.admin_view(review_queue_view),
+            name="stations_review_queue",
+        ),
+        path(
+            "review-queue/<int:episode_id>/mark-reviewed/",
+            admin.site.admin_view(mark_episode_reviewed),
+            name="stations_episode_mark_reviewed",
         ),
         path(
             "stations/extraction-evaluation/",

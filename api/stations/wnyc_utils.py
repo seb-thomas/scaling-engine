@@ -113,6 +113,10 @@ def scrape_wnyc_brand(brand, max_episodes=50, since_date=None):
 
             if Episode.objects.filter(url=story_url).exists():
                 continue
+            # Also dedup by title — WNYC API can return both slug and GUID URLs
+            # for the same story
+            if title and Episode.objects.filter(brand=brand, title=title[:255]).exists():
+                continue
 
             title = attrs.get("title", "")
             # Prefer body (full HTML), fall back to tease (short text)

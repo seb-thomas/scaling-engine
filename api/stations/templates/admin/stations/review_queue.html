@@ -1,0 +1,58 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{{ title }} | {% trans "Django site admin" %}{% endblock %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p>Episodes flagged for human review — low AI confidence or books not found on Google Books.</p>
+
+{% if rows %}
+<table style="width: 100%; border-collapse: collapse; margin-top: 1em;">
+  <thead>
+    <tr style="background: #f8f8f8; border-bottom: 2px solid #ddd;">
+      <th style="padding: 8px; text-align: left;">Show</th>
+      <th style="padding: 8px; text-align: left;">Episode</th>
+      <th style="padding: 8px; text-align: left;">Books</th>
+      <th style="padding: 8px; text-align: left;">Reason</th>
+      <th style="padding: 8px; text-align: left;">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+    <tr style="border-bottom: 1px solid #eee; vertical-align: top;">
+      <td style="padding: 8px;">{{ row.brand }}</td>
+      <td style="padding: 8px;">
+        <a href="{{ row.admin_url }}">{{ row.title|truncatechars:60 }}</a>
+        {% if row.aired_at %}<br><span style="color: #666; font-size: 12px;">{{ row.aired_at|date:"j M Y" }}</span>{% endif %}
+      </td>
+      <td style="padding: 8px; font-size: 13px;">
+        {% for book in row.books %}
+          <span style="{% if book.status == 'not_found' %}color: #dc3545;{% elif book.status == 'verified' %}color: #28a745;{% else %}color: #d4a017;{% endif %}">●</span>
+          {{ book.title }}{% if book.author %} <em style="color: #666;">— {{ book.author }}</em>{% endif %}
+          <a href="{{ book.admin_url }}" style="font-size: 11px;">[edit]</a>
+          <br>
+        {% endfor %}
+      </td>
+      <td style="padding: 8px; font-size: 13px;">
+        {% for reason in row.reasons %}
+          <span style="color: #dc3545;">{{ reason }}</span><br>
+        {% endfor %}
+      </td>
+      <td style="padding: 8px; white-space: nowrap;">
+        {% if row.episode_url %}<a href="{{ row.episode_url }}" target="_blank" rel="noopener noreferrer">Listen</a> · {% endif %}
+        <a href="{{ row.admin_url }}">Edit</a> ·
+        <form method="post" action="{{ row.mark_reviewed_url }}" style="display: inline;">
+          {% csrf_token %}
+          <button type="submit" style="background: none; border: none; color: #0d6efd; cursor: pointer; padding: 0; font-size: inherit;">Mark reviewed</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<p style="margin-top: 1em; font-size: 12px; color: #666;">{{ rows|length }} episode{{ rows|length|pluralize }} need{{ rows|length|pluralize:"s," }} review.</p>
+{% else %}
+<p style="margin-top: 1em; padding: 16px; background: #d4edda; border-radius: 4px; color: #155724;">All clear — nothing to review.</p>
+{% endif %}
+{% endblock %}
