@@ -1,0 +1,19 @@
+{% extends "admin/index.html" %}
+
+{% block content %}
+<div id="radio-reads-nav" style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+    <a href="{% url 'admin:stations_system_health' %}"
+       style="display: inline-block; padding: 8px 16px; background: #417690; color: #fff; border-radius: 4px; text-decoration: none; font-size: 13px;">
+        System Health
+    </a>
+    <a href="{% url 'admin:stations_review_queue' %}"
+       style="display: inline-block; padding: 8px 16px; background: #79aec8; color: #fff; border-radius: 4px; text-decoration: none; font-size: 13px;">
+        Review Queue
+    </a>
+    <a href="{% url 'admin:stations_extraction_evaluation' %}"
+       style="display: inline-block; padding: 8px 16px; background: #79aec8; color: #fff; border-radius: 4px; text-decoration: none; font-size: 13px;">
+        Extraction Evaluation
+    </a>
+</div>
+{{ block.super }}
+{% endblock %}
