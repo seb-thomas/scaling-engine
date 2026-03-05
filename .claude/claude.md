@@ -36,13 +36,15 @@ A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses A
 
 ### Scheduled Tasks (`api/stations/tasks.py`)
 - `scrape_all_brands`: Runs daily at 2 AM (dispatches per-brand scrape, staggered)
-- `extract_books_from_new_episodes`: Runs every 30 minutes (AI extraction)
+- `extract_books_from_new_episodes`: Runs every 30 minutes (AI extraction, SCRAPED → EXTRACTION_QUEUED)
+- `verify_pending_books`: Runs hourly (Google Books verification, VERIFICATION_QUEUED → COMPLETE/REVIEW)
 
 ### Database Models (`api/stations/models.py`)
 - Station → Brand → Episode ↔ Book hierarchy (Episode↔Book is M:N)
-- Brand has `spider_name` field for scrape dispatch (`"bbc_episodes"` or `"rss"`)
-- Episodes track `has_book` flag and `aired_at` date
-- Books store `title`, `author`, and `unmatched_categories` (AI-suggested slugs that don't exist yet)
+- Brand has `spider_name` field for scrape dispatch (`"bbc_episodes"`, `"rss"`, or `"wnyc_api"`)
+- Episodes track lifecycle via single `stage` field: SCRAPED → EXTRACTION_QUEUED → EXTRACTING → VERIFICATION_QUEUED → COMPLETE (or EXTRACTION_NO_BOOKS, EXTRACTION_FAILED, VERIFICATION_FAILED, REVIEW)
+- Episodes also track `has_book` flag, `aired_at` date, `ai_confidence`
+- Books store `title`, `author`, `verification_status` (pending/verified/not_found), and `unmatched_categories` (AI-suggested slugs that don't exist yet)
 
 ## Deployment
 - **Production**: docker-compose.prod.yml (immutable containers)

@@ -300,15 +300,15 @@ def get_book_extractor() -> BookExtractor:
 
 
 def _set_episode_failed(episode, error: Exception) -> None:
-    """Set episode status to FAILED and store short error message."""
+    """Set episode stage to EXTRACTION_FAILED and store short error message."""
     from django.utils import timezone
     from .models import Episode
 
     short = (str(error)[:200]) if str(error) else "Extraction error"
-    episode.status = Episode.STATUS_FAILED
+    episode.stage = Episode.STAGE_EXTRACTION_FAILED
     episode.last_error = short
     episode.status_changed_at = timezone.now()
-    episode.save(update_fields=["status", "last_error", "status_changed_at"])
+    episode.save(update_fields=["stage", "last_error", "status_changed_at"])
 
 
 def extract_books_from_episode(episode_id: int) -> Dict:
@@ -330,10 +330,10 @@ def extract_books_from_episode(episode_id: int) -> Dict:
 
     extractor = get_book_extractor()
     if not extractor.is_available():
-        episode.status = Episode.STATUS_FAILED
+        episode.stage = Episode.STAGE_EXTRACTION_FAILED
         episode.last_error = "API not configured"
         episode.status_changed_at = timezone.now()
-        episode.save(update_fields=["status", "last_error", "status_changed_at"])
+        episode.save(update_fields=["stage", "last_error", "status_changed_at"])
         return {"has_book": False, "books": [], "reasoning": "API not configured"}
 
     # Text from scraped_data or fallback to title
@@ -434,16 +434,15 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 if parsed:
                     episode.aired_at = parsed
 
-        episode.status = Episode.STATUS_PROCESSED
+        episode.stage = episode.compute_stage_after_extraction()
         episode.processed_at = timezone.now()
         episode.status_changed_at = timezone.now()
         episode.last_error = None
-        episode.review_status = episode.compute_review_status()
         episode.save(
             update_fields=[
                 "extraction_result", "ai_confidence", "has_book",
-                "aired_at", "status", "processed_at", "last_error",
-                "review_status", "status_changed_at",
+                "aired_at", "stage", "processed_at", "last_error",
+                "status_changed_at",
             ]
         )
         return result

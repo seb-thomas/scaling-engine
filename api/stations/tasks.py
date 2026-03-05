@@ -46,18 +46,23 @@ def ai_extract_books_task(self, episode_id):
     try:
         episode = Episode.objects.get(pk=episode_id)
 
-        # Skip if already processed — prevents wasting API calls on duplicates
-        if episode.status in (Episode.STATUS_PROCESSED, Episode.STATUS_FAILED):
+        # Skip if already past extraction — prevents wasting API calls on duplicates
+        terminal_stages = (
+            Episode.STAGE_EXTRACTION_NO_BOOKS, Episode.STAGE_EXTRACTION_FAILED,
+            Episode.STAGE_VERIFICATION_QUEUED, Episode.STAGE_VERIFICATION_FAILED,
+            Episode.STAGE_REVIEW, Episode.STAGE_COMPLETE,
+        )
+        if episode.stage in terminal_stages:
             logger.info(
-                f"Episode {episode_id} already {episode.status}, skipping"
+                f"Episode {episode_id} already {episode.stage}, skipping"
             )
-            return {"skipped": True, "reason": f"already {episode.status}"}
+            return {"skipped": True, "reason": f"already {episode.stage}"}
 
-        episode.status = Episode.STATUS_PROCESSING
+        episode.stage = Episode.STAGE_EXTRACTING
         episode.task_id = self.request.id
         episode.last_error = None
         episode.status_changed_at = timezone.now()
-        episode.save(update_fields=["status", "task_id", "last_error", "status_changed_at"])
+        episode.save(update_fields=["stage", "task_id", "last_error", "status_changed_at"])
 
         result = extract_books_from_episode(episode_id)
         logger.info(
@@ -245,20 +250,20 @@ def extract_books_from_new_episodes():
     """
     logger.info("Starting AI extraction for new episodes")
 
-    # Unstick orphaned episodes (QUEUED/PROCESSING for >60min)
+    # Unstick orphaned episodes (EXTRACTION_QUEUED/EXTRACTING for >60min)
     stuck = Episode.stuck(threshold_minutes=60)
     stuck_count = stuck.count()
     if stuck_count > 0:
         stuck.update(
-            status=Episode.STATUS_SCRAPED,
+            stage=Episode.STAGE_SCRAPED,
             last_error=None,
             task_id=None,
             status_changed_at=timezone.now(),
         )
         logger.warning(f"Reset {stuck_count} stuck episode(s) back to SCRAPED")
 
-    # Find episodes with status=SCRAPED (not yet processed)
-    episodes = Episode.objects.filter(status=Episode.STATUS_SCRAPED)[:50]
+    # Find episodes with stage=SCRAPED (not yet processed)
+    episodes = Episode.objects.filter(stage=Episode.STAGE_SCRAPED)[:50]
 
     if not episodes.exists():
         logger.info("No new episodes to process")
@@ -269,10 +274,10 @@ def extract_books_from_new_episodes():
     for episode in episodes:
         logger.info(f"Queuing episode: {episode.title} (ID: {episode.id})")
         try:
-            episode.status = Episode.STATUS_QUEUED
+            episode.stage = Episode.STAGE_EXTRACTION_QUEUED
             episode.last_error = None
             episode.status_changed_at = timezone.now()
-            episode.save(update_fields=["status", "last_error", "status_changed_at"])
+            episode.save(update_fields=["stage", "last_error", "status_changed_at"])
             ai_extract_books_task.delay(episode.id)
             processed += 1
         except Exception as e:
@@ -357,12 +362,12 @@ def verify_pending_books(batch_size=20):
                 book.purchase_link = purchase_url
                 book.save(update_fields=["purchase_link"])
 
-            # Update review status on linked episodes
+            # Update stage on linked episodes
             for episode in book.episodes.all():
-                new_status = episode.compute_review_status()
-                if new_status != episode.review_status:
-                    episode.review_status = new_status
-                    episode.save(update_fields=["review_status"])
+                new_stage = episode.compute_stage_after_verification()
+                if new_stage != episode.stage:
+                    episode.stage = new_stage
+                    episode.save(update_fields=["stage"])
 
             verified_count += 1
             logger.info(f"Verified: '{book.title}' by {book.author}")
@@ -374,6 +379,13 @@ def verify_pending_books(batch_size=20):
             book.save(update_fields=["verification_status", "verification_checked_at"])
             not_found_count += 1
             logger.info(f"Not found on Google Books: '{book.title}' by {book.author}")
+
+            # Update stage on linked episodes
+            for episode in book.episodes.all():
+                new_stage = episode.compute_stage_after_verification()
+                if new_stage != episode.stage:
+                    episode.stage = new_stage
+                    episode.save(update_fields=["stage"])
         else:
             # API error (timeout etc.) — skip, will retry next hour
             logger.warning(

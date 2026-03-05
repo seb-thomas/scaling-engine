@@ -93,13 +93,13 @@ class Command(BaseCommand):
             from stations.tasks import ai_extract_books_task
 
             scraped = Episode.objects.filter(
-                brand=brand, status=Episode.STATUS_SCRAPED
+                brand=brand, stage=Episode.STAGE_SCRAPED
             )
             queued = 0
             for episode in scraped:
-                episode.status = Episode.STATUS_QUEUED
+                episode.stage = Episode.STAGE_EXTRACTION_QUEUED
                 episode.last_error = None
-                episode.save(update_fields=["status", "last_error"])
+                episode.save(update_fields=["stage", "last_error"])
                 ai_extract_books_task.delay(episode.id)
                 queued += 1
             self.stdout.write(f"Queued AI extraction for {queued} episodes")

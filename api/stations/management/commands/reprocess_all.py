@@ -40,7 +40,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         qs = Episode.objects.all().order_by("id")
         if options["status"]:
-            qs = qs.filter(status=options["status"])
+            qs = qs.filter(stage=options["status"])
 
         if options["limit"]:
             qs = qs[: options["limit"]]
@@ -60,7 +60,7 @@ class Command(BaseCommand):
             for ep in episodes:
                 book_count = ep.books.count()
                 self.stdout.write(
-                    f"  [{ep.status:10}] #{ep.id} {ep.title[:60]}"
+                    f"  [{ep.stage:20}] #{ep.id} {ep.title[:60]}"
                     f"  ({book_count} books)"
                 )
             self.stdout.write(f"\nDry run — {total} episodes would be reprocessed.")
@@ -86,7 +86,7 @@ class Command(BaseCommand):
             stats["books_before"] += len(old_books)
 
             self.stdout.write(f"\n[{i}/{total}] #{ep.id} {ep.title[:65]}")
-            self.stdout.write(f"  Status: {ep.status} | Old books: {sorted(old_books) or '(none)'}")
+            self.stdout.write(f"  Stage: {ep.stage} | Old books: {sorted(old_books) or '(none)'}")
 
             try:
                 result = extract_books_from_episode(ep.id)
@@ -106,7 +106,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  Result: has_book={result.get('has_book')} | New books: {sorted(new_books) or '(none)'}")
             self.stdout.write(f"  Reasoning: {reasoning}")
 
-            if ep.status == Episode.STATUS_FAILED:
+            if ep.stage == Episode.STAGE_EXTRACTION_FAILED:
                 stats["failed"] += 1
                 stats["errors"].append((ep.id, ep.title[:50], ep.last_error or "unknown"))
                 self.stdout.write(self.style.ERROR(f"  FAILED: {ep.last_error}"))

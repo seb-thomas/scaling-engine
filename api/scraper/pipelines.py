@@ -39,8 +39,8 @@ class SaveToDbPipeline:
             # Store snapshot and status on Episode
             if raw_data and episode:
                 episode.scraped_data = raw_data
-                episode.status = Episode.STATUS_SCRAPED
-                episode.save(update_fields=["scraped_data", "status"])
+                episode.stage = Episode.STAGE_SCRAPED
+                episode.save(update_fields=["scraped_data", "stage"])
                 logger.info(f"Saved scraped_data for episode: {item['title']}")
 
         except IntegrityError as e:

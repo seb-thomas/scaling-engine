@@ -216,16 +216,16 @@ def _check_pipeline(result):
         now = timezone.now()
         last_24h = now - timedelta(hours=24)
 
-        # Counts by status
-        awaiting = Episode.objects.filter(status=Episode.STATUS_SCRAPED).count()
-        queued = Episode.objects.filter(status=Episode.STATUS_QUEUED).count()
-        processing = Episode.objects.filter(status=Episode.STATUS_PROCESSING).count()
-        processed_24h = Episode.objects.filter(
-            status=Episode.STATUS_PROCESSED,
-            processed_at__gte=last_24h,
-        ).count()
+        # Counts by stage
+        awaiting = Episode.objects.filter(stage=Episode.STAGE_SCRAPED).count()
+        extraction_queued = Episode.objects.filter(stage=Episode.STAGE_EXTRACTION_QUEUED).count()
+        extracting = Episode.objects.filter(stage=Episode.STAGE_EXTRACTING).count()
+        verification_queued = Episode.objects.filter(stage=Episode.STAGE_VERIFICATION_QUEUED).count()
+        review = Episode.objects.filter(stage=Episode.STAGE_REVIEW).count()
+        complete = Episode.objects.filter(stage=Episode.STAGE_COMPLETE).count()
+        no_books = Episode.objects.filter(stage=Episode.STAGE_EXTRACTION_NO_BOOKS).count()
         failed_24h = Episode.objects.filter(
-            status=Episode.STATUS_FAILED,
+            stage__in=[Episode.STAGE_EXTRACTION_FAILED, Episode.STAGE_VERIFICATION_FAILED],
             status_changed_at__gte=last_24h,
         ).count()
         total = Episode.objects.count()
@@ -239,18 +239,20 @@ def _check_pipeline(result):
         stuck = Episode.stuck(threshold_minutes=60)
         stuck_count = stuck.count()
         stuck_episodes = list(
-            stuck.values_list("id", "title", "status", "status_changed_at")[:10]
+            stuck.values_list("id", "title", "stage", "status_changed_at")[:10]
         )
 
         # Newest episode
         newest = Episode.objects.order_by("-aired_at").first()
         last_processed = Episode.objects.filter(
-            status=Episode.STATUS_PROCESSED
+            stage=Episode.STAGE_COMPLETE
         ).order_by("-processed_at").first()
 
         # Recent failures
         recent_failures = list(
-            Episode.objects.filter(status=Episode.STATUS_FAILED)
+            Episode.objects.filter(
+                stage__in=[Episode.STAGE_EXTRACTION_FAILED, Episode.STAGE_VERIFICATION_FAILED]
+            )
             .order_by("-status_changed_at")
             .values_list("id", "title", "last_error", "status_changed_at")[:10]
         )
@@ -265,9 +267,12 @@ def _check_pipeline(result):
 
         result["pipeline"] = {
             "awaiting_processing": awaiting,
-            "queued": queued,
-            "processing": processing,
-            "processed_24h": processed_24h,
+            "extraction_queued": extraction_queued,
+            "extracting": extracting,
+            "verification_queued": verification_queued,
+            "review": review,
+            "complete": complete,
+            "no_books": no_books,
             "failed_24h": failed_24h,
             "total_episodes": total,
             "pending_books": pending_books,
@@ -278,7 +283,7 @@ def _check_pipeline(result):
                 {
                     "id": s[0],
                     "title": s[1][:80],
-                    "status": s[2],
+                    "stage": s[2],
                     "status_changed_at": s[3].isoformat() if s[3] else None,
                 }
                 for s in stuck_episodes
@@ -352,7 +357,7 @@ def _check_api_errors(result):
     try:
         last_24h = timezone.now() - timedelta(hours=24)
         api_errors = Episode.objects.filter(
-            status=Episode.STATUS_FAILED,
+            stage__in=[Episode.STAGE_EXTRACTION_FAILED, Episode.STAGE_VERIFICATION_FAILED],
             status_changed_at__gte=last_24h,
             last_error__icontains="api",
         ).count()

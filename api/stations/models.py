@@ -56,17 +56,25 @@ class Brand(models.Model):
 
 
 class Episode(models.Model):
-    STATUS_SCRAPED = "SCRAPED"
-    STATUS_QUEUED = "QUEUED"
-    STATUS_PROCESSING = "PROCESSING"
-    STATUS_PROCESSED = "PROCESSED"
-    STATUS_FAILED = "FAILED"
-    STATUS_CHOICES = [
-        (STATUS_SCRAPED, "Scraped"),
-        (STATUS_QUEUED, "Queued"),
-        (STATUS_PROCESSING, "Processing"),
-        (STATUS_PROCESSED, "Processed"),
-        (STATUS_FAILED, "Failed"),
+    STAGE_SCRAPED = "SCRAPED"
+    STAGE_EXTRACTION_QUEUED = "EXTRACTION_QUEUED"
+    STAGE_EXTRACTING = "EXTRACTING"
+    STAGE_EXTRACTION_NO_BOOKS = "EXTRACTION_NO_BOOKS"
+    STAGE_EXTRACTION_FAILED = "EXTRACTION_FAILED"
+    STAGE_VERIFICATION_QUEUED = "VERIFICATION_QUEUED"
+    STAGE_VERIFICATION_FAILED = "VERIFICATION_FAILED"
+    STAGE_REVIEW = "REVIEW"
+    STAGE_COMPLETE = "COMPLETE"
+    STAGE_CHOICES = [
+        (STAGE_SCRAPED, "Scraped"),
+        (STAGE_EXTRACTION_QUEUED, "Extraction Queued"),
+        (STAGE_EXTRACTING, "Extracting"),
+        (STAGE_EXTRACTION_NO_BOOKS, "No Books Found"),
+        (STAGE_EXTRACTION_FAILED, "Extraction Failed"),
+        (STAGE_VERIFICATION_QUEUED, "Verification Queued"),
+        (STAGE_VERIFICATION_FAILED, "Verification Failed"),
+        (STAGE_REVIEW, "Needs Review"),
+        (STAGE_COMPLETE, "Complete"),
     ]
 
     brand = models.ForeignKey(
@@ -80,8 +88,8 @@ class Episode(models.Model):
 
     # Snapshot + pipeline (merged from RawEpisodeData)
     scraped_data = models.JSONField(null=True, blank=True)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default=STATUS_SCRAPED
+    stage = models.CharField(
+        max_length=25, choices=STAGE_CHOICES, default=STAGE_SCRAPED
     )
     processed_at = models.DateTimeField(blank=True, null=True)
     last_error = models.TextField(blank=True, null=True)
@@ -90,41 +98,37 @@ class Episode(models.Model):
     ai_confidence = models.FloatField(null=True, blank=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
 
-    REVIEW_NOT_REQUIRED = "NOT_REQUIRED"
-    REVIEW_REQUIRED = "REQUIRED"
-    REVIEW_REVIEWED = "REVIEWED"
-    REVIEW_CHOICES = [
-        ("", "Unprocessed"),
-        (REVIEW_NOT_REQUIRED, "Not required"),
-        (REVIEW_REQUIRED, "Required"),
-        (REVIEW_REVIEWED, "Reviewed"),
-    ]
-    review_status = models.CharField(
-        max_length=20, choices=REVIEW_CHOICES, blank=True, default=""
-    )
-
     @classmethod
     def stuck(cls, threshold_minutes=60):
-        """Return episodes stuck in QUEUED/PROCESSING longer than threshold."""
+        """Return episodes stuck in EXTRACTION_QUEUED/EXTRACTING longer than threshold."""
         from datetime import timedelta
         cutoff = timezone.now() - timedelta(minutes=threshold_minutes)
         return cls.objects.filter(
-            status__in=[cls.STATUS_QUEUED, cls.STATUS_PROCESSING],
+            stage__in=[cls.STAGE_EXTRACTION_QUEUED, cls.STAGE_EXTRACTING],
             status_changed_at__lt=cutoff,
         )
 
-    def compute_review_status(self):
-        """Determine review status based on extraction signals.
-        Does not overwrite REVIEWED — only sets REQUIRED or NOT_REQUIRED."""
-        if self.review_status == self.REVIEW_REVIEWED:
-            return self.review_status
-        if self.ai_confidence is None:
-            return ""
-        if self.ai_confidence < 0.9:
-            return self.REVIEW_REQUIRED
-        if self.books.filter(verification_status='not_found').exists():
-            return self.REVIEW_REQUIRED
-        return self.REVIEW_NOT_REQUIRED
+    def compute_stage_after_extraction(self):
+        """Called after AI extraction. Books are candidates — go to VERIFICATION_QUEUED."""
+        if not self.has_book:
+            return self.STAGE_EXTRACTION_NO_BOOKS
+        return self.STAGE_VERIFICATION_QUEUED
+
+    def compute_stage_after_verification(self):
+        """Called after verify_pending_books. Only now do we evaluate confidence + results."""
+        if self.stage == self.STAGE_COMPLETE:
+            return self.STAGE_COMPLETE  # admin sign-off is sticky
+        books = self.books.all()
+        if not books.exists():
+            return self.STAGE_EXTRACTION_NO_BOOKS
+        if books.filter(verification_status='not_found').exists():
+            return self.STAGE_REVIEW
+        if books.filter(verification_status='pending').exists():
+            return self.STAGE_VERIFICATION_QUEUED
+        # All books verified — check confidence
+        if self.ai_confidence is not None and self.ai_confidence < 0.9:
+            return self.STAGE_REVIEW
+        return self.STAGE_COMPLETE
 
     def save(self, *args, **kwargs):
         # Auto-generate slug from title if not provided

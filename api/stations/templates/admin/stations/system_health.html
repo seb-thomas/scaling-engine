@@ -99,19 +99,31 @@
         <div class="stats-row">
             <div class="stat-box">
                 <div class="number">{{ health.pipeline.awaiting_processing|default:"0" }}</div>
-                <div class="label">Awaiting</div>
+                <div class="label">Scraped</div>
             </div>
             <div class="stat-box">
-                <div class="number">{{ health.pipeline.queued|default:"0" }}</div>
-                <div class="label">Queued</div>
+                <div class="number">{{ health.pipeline.extraction_queued|default:"0" }}</div>
+                <div class="label">Extraction Queued</div>
             </div>
             <div class="stat-box">
-                <div class="number">{{ health.pipeline.processing|default:"0" }}</div>
-                <div class="label">Processing</div>
+                <div class="number">{{ health.pipeline.extracting|default:"0" }}</div>
+                <div class="label">Extracting</div>
             </div>
             <div class="stat-box">
-                <div class="number">{{ health.pipeline.processed_24h|default:"0" }}</div>
-                <div class="label">Processed (24h)</div>
+                <div class="number">{{ health.pipeline.verification_queued|default:"0" }}</div>
+                <div class="label">Verification Queued</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ health.pipeline.review|default:"0" }}</div>
+                <div class="label">Review</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ health.pipeline.complete|default:"0" }}</div>
+                <div class="label">Complete</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">{{ health.pipeline.no_books|default:"0" }}</div>
+                <div class="label">No Books</div>
             </div>
             <div class="stat-box">
                 <div class="number">{{ health.pipeline.failed_24h|default:"0" }}</div>
@@ -233,14 +245,14 @@
         <h3>Stuck Episodes</h3>
         <table class="health-table">
             <thead>
-                <tr><th>ID</th><th>Title</th><th>Status</th><th>Since</th></tr>
+                <tr><th>ID</th><th>Title</th><th>Stage</th><th>Since</th></tr>
             </thead>
             <tbody>
                 {% for ep in health.pipeline.stuck_episodes %}
                 <tr>
                     <td><a href="{% url 'admin:stations_episode_change' ep.id %}">{{ ep.id }}</a></td>
                     <td>{{ ep.title }}</td>
-                    <td>{{ ep.status }}</td>
+                    <td>{{ ep.stage }}</td>
                     <td class="mono">{{ ep.status_changed_at }}</td>
                 </tr>
                 {% endfor %}

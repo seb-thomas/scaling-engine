@@ -132,7 +132,7 @@ def scrape_wnyc_brand(brand, max_episodes=50, since_date=None):
                     "description": description,
                     "date_text": newsdate,
                 },
-                status=Episode.STATUS_SCRAPED,
+                stage=Episode.STAGE_SCRAPED,
             )
             created += 1
 

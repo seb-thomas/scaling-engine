@@ -75,7 +75,7 @@ def scrape_rss_brand(brand, max_episodes=50, since_date=None):
                 "description": description,
                 "date_text": date_text,
             },
-            status=Episode.STATUS_SCRAPED,
+            stage=Episode.STAGE_SCRAPED,
         )
         created += 1
 

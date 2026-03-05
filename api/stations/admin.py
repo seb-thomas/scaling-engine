@@ -1,6 +1,5 @@
 import json
 
-from django import forms
 from django.contrib import admin
 from django.db import models as db_models
 from django.utils.html import format_html, escape
@@ -46,44 +45,21 @@ class BookInline(admin.TabularInline):
         return False
 
 
-class EpisodeAdminForm(forms.ModelForm):
-    class Meta:
-        model = Episode
-        fields = "__all__"
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if "review_status" in self.fields:
-            status = self.instance.review_status if self.instance else ""
-            if status in (Episode.REVIEW_REQUIRED, Episode.REVIEW_REVIEWED):
-                self.fields["review_status"].choices = [
-                    (Episode.REVIEW_REQUIRED, "Required"),
-                    (Episode.REVIEW_REVIEWED, "Reviewed"),
-                ]
-            else:
-                # NOT_REQUIRED or blank — show current value, disabled
-                label = dict(Episode.REVIEW_CHOICES).get(status, "Unprocessed")
-                self.fields["review_status"].choices = [(status, label)]
-                self.fields["review_status"].disabled = True
-
-
 @admin.register(Episode)
 class EpisodeAdmin(admin.ModelAdmin):
-    form = EpisodeAdminForm
     list_display = (
         "title",
         "brand",
         "aired_at",
         "book_count",
-        "review_status_display",
-        "status_display",
+        "stage_display",
     )
-    list_filter = ("review_status", "brand", "aired_at", "status")
+    list_filter = ("stage", "brand", "aired_at")
     search_fields = ("title", "url")
     readonly_fields = (
         "has_book",
         "slug",
-        "status",
+        "stage",
         "ai_confidence",
         "processed_at",
         "last_error",
@@ -97,13 +73,13 @@ class EpisodeAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Episode Information",
-            {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book", "review_status")},
+            {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book")},
         ),
         (
             "Pipeline",
             {
                 "fields": (
-                    "status",
+                    "stage",
                     "ai_confidence",
                     "processed_at",
                     "last_error",
@@ -121,32 +97,29 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     book_count.short_description = "Books"
 
-    def review_status_display(self, obj):
-        if obj.review_status == Episode.REVIEW_REQUIRED:
-            reasons = []
-            if obj.ai_confidence is not None and obj.ai_confidence < 0.9:
-                reasons.append(f"confidence {int(obj.ai_confidence * 100)}%")
-            if obj.books.filter(verification_status=Book.VERIFICATION_NOT_FOUND).exists():
-                reasons.append("book not found on Google Books")
-            hint = ", ".join(reasons) or "flagged"
-            return format_html(
-                '<span style="color: #dc3545; font-weight: bold;" title="{}">Review</span>',
-                hint,
-            )
-        if obj.review_status == Episode.REVIEW_REVIEWED:
-            return format_html('<span style="color: #0d6efd; font-weight: bold;">Reviewed</span>')
-        if obj.review_status == Episode.REVIEW_NOT_REQUIRED:
-            return format_html('<span style="color: #28a745;">OK</span>')
-        return "-"
+    def stage_display(self, obj):
+        """Colour-coded stage badge for list view."""
+        colours = {
+            Episode.STAGE_SCRAPED: "#999",
+            Episode.STAGE_EXTRACTION_QUEUED: "#0d6efd",
+            Episode.STAGE_EXTRACTING: "#0d6efd",
+            Episode.STAGE_EXTRACTION_NO_BOOKS: "#aaa",
+            Episode.STAGE_EXTRACTION_FAILED: "#dc3545",
+            Episode.STAGE_VERIFICATION_QUEUED: "#d4a017",
+            Episode.STAGE_VERIFICATION_FAILED: "#dc3545",
+            Episode.STAGE_REVIEW: "#dc3545",
+            Episode.STAGE_COMPLETE: "#28a745",
+        }
+        colour = colours.get(obj.stage, "#666")
+        bold = " font-weight: bold;" if obj.stage == Episode.STAGE_REVIEW else ""
+        label = obj.get_stage_display()
+        return format_html(
+            '<span style="color: {};{}">{}</span>',
+            colour, bold, label,
+        )
 
-    review_status_display.short_description = "Review"
-    review_status_display.admin_order_field = "review_status"
-
-    def status_display(self, obj):
-        """Status chip for list view"""
-        return obj.get_status_display()
-
-    status_display.short_description = "Status"
+    stage_display.short_description = "Stage"
+    stage_display.admin_order_field = "stage"
 
     def _json_block(self, data):
         """Render a JSON dict as a formatted, readable block."""
@@ -192,7 +165,7 @@ class EpisodeAdmin(admin.ModelAdmin):
         from django.http import JsonResponse
 
         episode = Episode.objects.get(pk=episode_id)
-        return JsonResponse({"status": episode.status})
+        return JsonResponse({"status": episode.stage})
 
     def reprocess_episode(self, request, episode_id):
         """Reprocess a single episode: set QUEUED and enqueue AI extraction."""
@@ -200,7 +173,7 @@ class EpisodeAdmin(admin.ModelAdmin):
 
         episode = Episode.objects.get(pk=episode_id)
 
-        if episode.status in (Episode.STATUS_QUEUED, Episode.STATUS_PROCESSING):
+        if episode.stage in (Episode.STAGE_EXTRACTION_QUEUED, Episode.STAGE_EXTRACTING):
             messages.warning(request, "Already processing — please wait.")
             return redirect(
                 reverse("admin:stations_episode_change", args=[episode_id])
@@ -208,10 +181,10 @@ class EpisodeAdmin(admin.ModelAdmin):
             )
 
         from django.utils import timezone as tz
-        episode.status = Episode.STATUS_QUEUED
+        episode.stage = Episode.STAGE_SCRAPED
         episode.last_error = None
         episode.status_changed_at = tz.now()
-        episode.save(update_fields=["status", "last_error", "status_changed_at"])
+        episode.save(update_fields=["stage", "last_error", "status_changed_at"])
         ai_extract_books_task.delay(episode_id)
 
         messages.info(
@@ -229,10 +202,10 @@ class EpisodeAdmin(admin.ModelAdmin):
 
         from django.utils import timezone as tz
         for episode in queryset:
-            episode.status = Episode.STATUS_QUEUED
+            episode.stage = Episode.STAGE_SCRAPED
             episode.last_error = None
             episode.status_changed_at = tz.now()
-            episode.save(update_fields=["status", "last_error", "status_changed_at"])
+            episode.save(update_fields=["stage", "last_error", "status_changed_at"])
             ai_extract_books_task.delay(episode.id)
         count = queryset.count()
         msg = f"Queued extraction for {count} episode(s)."
@@ -641,7 +614,7 @@ def system_health_unstick(request):
     from django.utils import timezone as tz
     stuck = Episode.stuck(threshold_minutes=60)
     count = stuck.count()
-    stuck.update(status=Episode.STATUS_SCRAPED, last_error=None, status_changed_at=tz.now())
+    stuck.update(stage=Episode.STAGE_SCRAPED, last_error=None, status_changed_at=tz.now())
     messages.success(request, f"Reset {count} stuck episode(s) back to SCRAPED.")
     return redirect("admin:stations_system_health")
 
@@ -686,7 +659,7 @@ def review_queue_view(request):
         return redirect(default_admin_site.login_url)
 
     episodes = (
-        Episode.objects.filter(review_status=Episode.REVIEW_REQUIRED)
+        Episode.objects.filter(stage=Episode.STAGE_REVIEW)
         .select_related("brand")
         .prefetch_related("books")
         .order_by("-aired_at")
@@ -734,9 +707,9 @@ def mark_episode_reviewed(request, episode_id):
     if request.method != "POST" or not request.user.is_staff:
         return redirect("admin:stations_review_queue")
     episode = Episode.objects.get(pk=episode_id)
-    episode.review_status = Episode.REVIEW_REVIEWED
-    episode.save(update_fields=["review_status"])
-    messages.success(request, f"'{episode.title[:50]}' marked as reviewed.")
+    episode.stage = Episode.STAGE_COMPLETE
+    episode.save(update_fields=["stage"])
+    messages.success(request, f"'{episode.title[:50]}' marked as complete.")
     return redirect("admin:stations_review_queue")
 
 

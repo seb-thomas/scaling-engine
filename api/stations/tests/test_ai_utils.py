@@ -400,5 +400,5 @@ class TestExtractBooksFromEpisode:
             extract_books_from_episode(episode.pk)
 
         episode.refresh_from_db()
-        assert episode.status == Episode.STATUS_FAILED
+        assert episode.stage == Episode.STAGE_EXTRACTION_FAILED
         assert "Test error" in (episode.last_error or "")
