@@ -59,12 +59,7 @@ class EpisodeAdmin(admin.ModelAdmin):
     readonly_fields = (
         "has_book",
         "slug",
-        "stage",
-        "ai_confidence",
-        "processed_at",
-        "last_error",
-        "scraped_data_formatted",
-        "extraction_result_formatted",
+        "pipeline_display",
     )
     date_hierarchy = "aired_at"
     inlines = [BookInline]
@@ -78,14 +73,7 @@ class EpisodeAdmin(admin.ModelAdmin):
         (
             "Pipeline",
             {
-                "fields": (
-                    "stage",
-                    "ai_confidence",
-                    "processed_at",
-                    "last_error",
-                    "scraped_data_formatted",
-                    "extraction_result_formatted",
-                ),
+                "fields": ("pipeline_display",),
             },
         ),
     )
@@ -124,25 +112,193 @@ class EpisodeAdmin(admin.ModelAdmin):
     def _json_block(self, data):
         """Render a JSON dict as a formatted, readable block."""
         if not data:
-            return format_html("<em>-</em>")
-        formatted = json.dumps(data, indent=2, ensure_ascii=False)
-        return format_html(
+            return "<em>No data</em>"
+        formatted = escape(json.dumps(data, indent=2, ensure_ascii=False))
+        return (
             '<pre style="white-space: pre-wrap; word-break: break-word; '
             'max-width: 800px; background: #f8f8f8; padding: 10px; '
             'border: 1px solid #ddd; border-radius: 4px; font-size: 12px; '
-            'line-height: 1.5;">{}</pre>',
-            formatted,
+            'line-height: 1.5;">' + formatted + '</pre>'
         )
 
-    def scraped_data_formatted(self, obj):
-        return self._json_block(obj.scraped_data)
+    def pipeline_display(self, obj):
+        """Render the full pipeline UX: progress bar + collapsible stage sections."""
+        if not obj.pk:
+            return "-"
 
-    scraped_data_formatted.short_description = "Scraped data"
+        # --- Stage-to-step mapping ---
+        STEPS = [
+            ("scraped", "Scraped"),
+            ("extracted", "Extracted"),
+            ("verified", "Verified"),
+            ("complete", "Complete"),
+        ]
 
-    def extraction_result_formatted(self, obj):
-        return self._json_block(obj.extraction_result)
+        stage_to_step = {
+            Episode.STAGE_SCRAPED: ("scraped", "current", ""),
+            Episode.STAGE_EXTRACTION_QUEUED: ("extracted", "current", "Queued"),
+            Episode.STAGE_EXTRACTING: ("extracted", "current", "Extracting\u2026"),
+            Episode.STAGE_EXTRACTION_NO_BOOKS: ("extracted", "terminal", "No books"),
+            Episode.STAGE_EXTRACTION_FAILED: ("extracted", "failed", "Failed"),
+            Episode.STAGE_VERIFICATION_QUEUED: ("verified", "current", "Queued"),
+            Episode.STAGE_VERIFICATION_FAILED: ("verified", "failed", "Failed"),
+            Episode.STAGE_REVIEW: ("complete", "review", "Needs Review"),
+            Episode.STAGE_COMPLETE: ("complete", "done", ""),
+        }
 
-    extraction_result_formatted.short_description = "Extraction result"
+        step_key, step_state, step_label = stage_to_step.get(
+            obj.stage, ("scraped", "current", "")
+        )
+        step_order = [s[0] for s in STEPS]
+        current_idx = step_order.index(step_key)
+
+        # --- Progress bar ---
+        bar_html = '<div class="pipeline-bar">'
+        for i, (key, label) in enumerate(STEPS):
+            if i < current_idx:
+                cls = "pipeline-step done"
+                icon = "\u2713"
+            elif i == current_idx:
+                if step_state == "done":
+                    cls = "pipeline-step done"
+                    icon = "\u2713"
+                elif step_state == "failed":
+                    cls = "pipeline-step failed"
+                    icon = "\u2717"
+                elif step_state == "review":
+                    cls = "pipeline-step review"
+                    icon = "!"
+                elif step_state == "terminal":
+                    cls = "pipeline-step terminal"
+                    icon = "\u2014"
+                else:
+                    cls = "pipeline-step current"
+                    icon = "\u25cf"
+            else:
+                cls = "pipeline-step pending"
+                icon = ""
+
+            badge = ""
+            if i == current_idx and step_label:
+                badge_cls = "failed" if step_state == "failed" else (
+                    "review" if step_state == "review" else "info"
+                )
+                badge = f'<span class="pipeline-badge {badge_cls}">{escape(step_label)}</span>'
+
+            if i > 0 and i <= current_idx:
+                connector = '<div class="pipeline-connector" style="background: #28a745;"></div>'
+            elif i > 0:
+                connector = '<div class="pipeline-connector"></div>'
+            else:
+                connector = ""
+            bar_html += f'{connector}<div class="{cls}">'
+            bar_html += f'<div class="pipeline-circle">{icon}</div>'
+            bar_html += f'<div class="pipeline-label">{label}{badge}</div>'
+            bar_html += '</div>'
+        bar_html += '</div>'
+
+        # --- Collapsible sections ---
+        sections_html = ""
+
+        # 1. Scraped section
+        scraped_open = "open" if current_idx == 0 else ""
+        sections_html += f'<details class="pipeline-section" {scraped_open}>'
+        sections_html += '<summary>Scraped Data</summary>'
+        sections_html += f'<div class="pipeline-section-body">{self._json_block(obj.scraped_data)}</div>'
+        sections_html += '</details>'
+
+        # 2. Extracted section
+        extracted_open = "open" if step_key == "extracted" else ""
+        reprocess_url = reverse("admin:stations_episode_reprocess", args=[obj.pk])
+        reprocess_btn = (
+            f'<div style="margin-top: 10px;">'
+            f'<a href="{reprocess_url}" class="button" '
+            f'style="background-color: #417690; color: white; padding: 8px 14px; '
+            f'text-decoration: none; border-radius: 4px;">Reprocess with AI</a>'
+            f'<p style="margin-top: 6px; color: #666; font-size: 12px;">'
+            f'Re-run book extraction on this episode. Replaces any existing books.</p>'
+            f'</div>'
+        )
+        confidence_html = ""
+        if obj.ai_confidence is not None:
+            pct = int(obj.ai_confidence * 100)
+            colour = "#28a745" if pct >= 90 else ("#d4a017" if pct >= 70 else "#dc3545")
+            confidence_html = (
+                f'<p><strong>AI Confidence:</strong> '
+                f'<span style="color: {colour}; font-weight: bold;">{pct}%</span></p>'
+            )
+        processed_html = ""
+        if obj.processed_at:
+            processed_html = f'<p><strong>Processed at:</strong> {escape(str(obj.processed_at))}</p>'
+        error_html = ""
+        if obj.last_error:
+            error_html = (
+                f'<p style="color: #dc3545;"><strong>Error:</strong> {escape(obj.last_error)}</p>'
+            )
+
+        sections_html += f'<details class="pipeline-section" {extracted_open}>'
+        sections_html += '<summary>Extraction</summary>'
+        sections_html += '<div class="pipeline-section-body">'
+        sections_html += confidence_html + processed_html + error_html
+        sections_html += self._json_block(obj.extraction_result)
+        sections_html += reprocess_btn
+        sections_html += '</div></details>'
+
+        # 3. Verified section
+        verified_open = "open" if step_key == "verified" else ""
+        books = obj.books.all()
+        if books.exists():
+            book_summary = '<table style="width: 100%; border-collapse: collapse; margin-top: 6px;">'
+            book_summary += '<tr style="border-bottom: 1px solid #ddd;"><th style="text-align:left; padding: 4px;">Title</th><th style="text-align:left; padding: 4px;">Author</th><th style="text-align:left; padding: 4px;">Status</th></tr>'
+            for book in books:
+                status_colours = {
+                    "verified": "#28a745",
+                    "not_found": "#dc3545",
+                    "pending": "#d4a017",
+                }
+                sc = status_colours.get(book.verification_status, "#666")
+                book_url = reverse("admin:stations_book_change", args=[book.pk])
+                book_summary += (
+                    f'<tr style="border-bottom: 1px solid #eee;">'
+                    f'<td style="padding: 4px;"><a href="{book_url}">{escape(book.title)}</a></td>'
+                    f'<td style="padding: 4px;">{escape(book.author)}</td>'
+                    f'<td style="padding: 4px;"><span style="color: {sc};">{escape(book.verification_status)}</span></td>'
+                    f'</tr>'
+                )
+            book_summary += '</table>'
+        else:
+            book_summary = '<p style="color: #666;"><em>No books extracted</em></p>'
+
+        sections_html += f'<details class="pipeline-section" {verified_open}>'
+        sections_html += '<summary>Verification</summary>'
+        sections_html += f'<div class="pipeline-section-body">{book_summary}</div>'
+        sections_html += '</details>'
+
+        # 4. Complete / Review section
+        complete_open = "open" if step_key == "complete" else ""
+        complete_body = f'<p><strong>Current stage:</strong> {escape(obj.get_stage_display())}</p>'
+        if obj.stage == Episode.STAGE_REVIEW:
+            mark_url = reverse("admin:stations_episode_mark_complete", args=[obj.pk])
+            complete_body += (
+                f'<form method="post" action="{mark_url}" style="margin-top: 10px;">'
+                f'<input type="hidden" name="csrfmiddlewaretoken" value="CSRF_PLACEHOLDER">'
+                f'<button type="submit" class="button" '
+                f'style="background-color: #28a745; color: white; padding: 8px 14px; '
+                f'border: none; border-radius: 4px; cursor: pointer;">'
+                f'Mark as Complete</button>'
+                f'<p style="margin-top: 6px; color: #666; font-size: 12px;">'
+                f'Confirm this episode\'s books are correct and mark it as reviewed.</p>'
+                f'</form>'
+            )
+
+        sections_html += f'<details class="pipeline-section" {complete_open}>'
+        sections_html += '<summary>Complete</summary>'
+        sections_html += f'<div class="pipeline-section-body">{complete_body}</div>'
+        sections_html += '</details>'
+
+        return mark_safe(bar_html + sections_html)
+
+    pipeline_display.short_description = "Pipeline"
 
     def get_urls(self):
         urls = super().get_urls()

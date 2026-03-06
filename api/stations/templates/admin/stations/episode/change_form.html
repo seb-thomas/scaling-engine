@@ -1,38 +1,130 @@
 {% extends "admin/change_form.html" %}
 {% load i18n admin_urls %}
 
-{% block submit_buttons_bottom %}
-{{ block.super }}
-{% if show_mark_complete and original %}
-<div class="submit-row">
-    <form method="post" action="{{ mark_complete_url }}" style="display: inline;">
-        {% csrf_token %}
-        <button type="submit" class="button default"
-                style="background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
-            Mark as Complete
-        </button>
-    </form>
-    <p style="margin-top: 10px; color: #666; font-size: 12px;">
-        Confirm this episode's books are correct and mark it as reviewed.
-    </p>
-</div>
-{% endif %}
-{% if show_reprocess_button and original %}
-<div class="submit-row">
-    <a href="{% url 'admin:stations_episode_reprocess' original.pk %}"
-       class="button default"
-       style="background-color: #417690; color: white; padding: 10px 15px; text-decoration: none; border-radius: 4px; margin-left: 10px;">
-        Reprocess with AI
-    </a>
-    <p style="margin-top: 10px; color: #666; font-size: 12px;">
-        Re-run book extraction on this episode. Replaces any existing books.
-    </p>
-</div>
-{% endif %}
-{% endblock %}
-
 {% block extrahead %}
 {{ block.super }}
+<style>
+/* Pipeline progress bar */
+.pipeline-bar {
+    display: flex;
+    align-items: flex-start;
+    margin: 16px 0 24px 0;
+    padding: 0;
+}
+.pipeline-connector {
+    width: 40px;
+    height: 2px;
+    background: #ddd;
+    align-self: center;
+    margin-top: -18px;
+    flex-shrink: 0;
+}
+.pipeline-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+.pipeline-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid #ddd;
+    background: #fff;
+    color: #ccc;
+}
+.pipeline-step.done .pipeline-circle {
+    background: #28a745;
+    border-color: #28a745;
+    color: #fff;
+}
+.pipeline-step.done ~ .pipeline-connector,
+.pipeline-step.done + .pipeline-connector {
+    background: #28a745;
+}
+.pipeline-step.current .pipeline-circle {
+    background: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+.pipeline-step.failed .pipeline-circle {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+}
+.pipeline-step.review .pipeline-circle {
+    background: #e67e22;
+    border-color: #e67e22;
+    color: #fff;
+}
+.pipeline-step.terminal .pipeline-circle {
+    background: #aaa;
+    border-color: #aaa;
+    color: #fff;
+}
+.pipeline-label {
+    margin-top: 6px;
+    font-size: 12px;
+    color: #333;
+    text-align: center;
+    font-weight: 600;
+}
+.pipeline-badge {
+    display: inline-block;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 8px;
+    margin-left: 2px;
+    font-weight: normal;
+    vertical-align: middle;
+}
+.pipeline-badge.failed {
+    background: #fce4e4;
+    color: #dc3545;
+}
+.pipeline-badge.review {
+    background: #fff3e0;
+    color: #e67e22;
+}
+.pipeline-badge.info {
+    background: #e3f2fd;
+    color: #0d6efd;
+}
+
+/* Collapsible sections */
+.pipeline-section {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: #fff;
+}
+.pipeline-section summary {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    background: #fafafa;
+    border-radius: 4px;
+    user-select: none;
+}
+.pipeline-section summary:hover {
+    background: #f0f0f0;
+}
+.pipeline-section[open] summary {
+    border-bottom: 1px solid #ddd;
+    border-radius: 4px 4px 0 0;
+}
+.pipeline-section-body {
+    padding: 12px 14px;
+}
+</style>
+
 {% if awaiting_reprocess %}
 <script>
 (function() {
@@ -44,13 +136,27 @@
                 var done = ["EXTRACTION_NO_BOOKS", "EXTRACTION_FAILED", "VERIFICATION_QUEUED", "COMPLETE", "REVIEW"];
                 if (done.indexOf(data.status) !== -1) {
                     clearInterval(interval);
-                    // Reload without the query param so we don't keep polling
                     window.location.href = window.location.pathname;
                 }
             })
             .catch(function() {});
     }, 2000);
 })();
+</script>
+{% endif %}
+
+{% if original %}
+<script>
+// Inject CSRF token into pipeline Mark as Complete form
+document.addEventListener('DOMContentLoaded', function() {
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (csrfToken) {
+        var placeholders = document.querySelectorAll('input[value="CSRF_PLACEHOLDER"]');
+        placeholders.forEach(function(el) {
+            el.value = csrfToken.value;
+        });
+    }
+});
 </script>
 {% endif %}
 {% endblock %}
