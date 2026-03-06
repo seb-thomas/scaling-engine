@@ -8,31 +8,30 @@
 .pipeline-bar {
     display: flex;
     align-items: flex-start;
-    margin: 16px 0 24px 0;
-    padding: 0;
+    margin: 8px 0 16px 0;
 }
 .pipeline-connector {
-    width: 40px;
+    width: 36px;
     height: 2px;
     background: #ddd;
     align-self: center;
-    margin-top: -18px;
+    margin-top: -16px;
     flex-shrink: 0;
 }
 .pipeline-step {
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 80px;
+    min-width: 72px;
 }
 .pipeline-circle {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: bold;
     border: 2px solid #ddd;
     background: #fff;
@@ -42,10 +41,6 @@
     background: #28a745;
     border-color: #28a745;
     color: #fff;
-}
-.pipeline-step.done ~ .pipeline-connector,
-.pipeline-step.done + .pipeline-connector {
-    background: #28a745;
 }
 .pipeline-step.current .pipeline-circle {
     background: #0d6efd;
@@ -68,61 +63,60 @@
     color: #fff;
 }
 .pipeline-label {
-    margin-top: 6px;
-    font-size: 12px;
+    margin-top: 4px;
+    font-size: 11px;
     color: #333;
     text-align: center;
     font-weight: 600;
 }
 .pipeline-badge {
     display: inline-block;
-    font-size: 10px;
-    padding: 1px 6px;
+    font-size: 9px;
+    padding: 1px 5px;
     border-radius: 8px;
     margin-left: 2px;
     font-weight: normal;
     vertical-align: middle;
 }
-.pipeline-badge.failed {
-    background: #fce4e4;
-    color: #dc3545;
-}
-.pipeline-badge.review {
-    background: #fff3e0;
-    color: #e67e22;
-}
-.pipeline-badge.info {
-    background: #e3f2fd;
-    color: #0d6efd;
-}
+.pipeline-badge.failed { background: #fce4e4; color: #dc3545; }
+.pipeline-badge.review { background: #fff3e0; color: #e67e22; }
+.pipeline-badge.info { background: #e3f2fd; color: #0d6efd; }
 
-/* Collapsible sections */
+/* Grouped sections */
 .pipeline-section {
     border: 1px solid #ddd;
-    border-radius: 4px;
-    margin-bottom: 8px;
+    border-radius: 3px;
+    margin-bottom: 6px;
     background: #fff;
 }
-.pipeline-section summary {
-    padding: 10px 14px;
-    cursor: pointer;
+.pipeline-section-title {
+    padding: 6px 10px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 12px;
     color: #333;
     background: #fafafa;
-    border-radius: 4px;
-    user-select: none;
-}
-.pipeline-section summary:hover {
-    background: #f0f0f0;
-}
-.pipeline-section[open] summary {
     border-bottom: 1px solid #ddd;
-    border-radius: 4px 4px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 .pipeline-section-body {
-    padding: 12px 14px;
+    padding: 8px 10px;
 }
+.pipeline-section-body p {
+    margin: 0 0 4px 0;
+}
+.pipeline-section-body pre {
+    margin: 0;
+}
+.pipeline-meta {
+    font-size: 12px;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+/* Move books inline before pipeline */
+.inline-group { order: -1; }
 </style>
 
 {% if awaiting_reprocess %}
@@ -147,14 +141,24 @@
 
 {% if original %}
 <script>
-// Inject CSRF token into pipeline Mark as Complete form
 document.addEventListener('DOMContentLoaded', function() {
+    // Inject CSRF token into pipeline Mark as Complete form
     var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
     if (csrfToken) {
-        var placeholders = document.querySelectorAll('input[value="CSRF_PLACEHOLDER"]');
-        placeholders.forEach(function(el) {
+        document.querySelectorAll('input[value="CSRF_PLACEHOLDER"]').forEach(function(el) {
             el.value = csrfToken.value;
         });
+    }
+    // Move book inlines before the pipeline fieldset
+    var inlineGroup = document.querySelector('.inline-group');
+    var pipelineFieldset = document.getElementById('pipeline-fieldset');
+    if (!pipelineFieldset) {
+        // Find the fieldset containing pipeline-bar
+        var bar = document.querySelector('.pipeline-bar');
+        if (bar) pipelineFieldset = bar.closest('fieldset');
+    }
+    if (inlineGroup && pipelineFieldset && pipelineFieldset.parentNode) {
+        pipelineFieldset.parentNode.insertBefore(inlineGroup, pipelineFieldset);
     }
 });
 </script>

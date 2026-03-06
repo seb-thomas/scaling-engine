@@ -71,7 +71,7 @@ class EpisodeAdmin(admin.ModelAdmin):
             {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book")},
         ),
         (
-            "Pipeline",
+            None,
             {
                 "fields": ("pipeline_display",),
             },
@@ -197,59 +197,53 @@ class EpisodeAdmin(admin.ModelAdmin):
             bar_html += '</div>'
         bar_html += '</div>'
 
-        # --- Collapsible sections ---
+        # --- Grouped sections (non-collapsible) ---
         sections_html = ""
 
         # 1. Scraped section
-        scraped_open = "open" if current_idx == 0 else ""
-        sections_html += f'<details class="pipeline-section" {scraped_open}>'
-        sections_html += '<summary>Scraped Data</summary>'
+        sections_html += '<div class="pipeline-section">'
+        sections_html += '<div class="pipeline-section-title">Scraped Data</div>'
         sections_html += f'<div class="pipeline-section-body">{self._json_block(obj.scraped_data)}</div>'
-        sections_html += '</details>'
+        sections_html += '</div>'
 
         # 2. Extracted section
-        extracted_open = "open" if step_key == "extracted" else ""
         reprocess_url = reverse("admin:stations_episode_reprocess", args=[obj.pk])
         reprocess_btn = (
-            f'<div style="margin-top: 10px;">'
             f'<a href="{reprocess_url}" class="button" '
-            f'style="background-color: #417690; color: white; padding: 8px 14px; '
-            f'text-decoration: none; border-radius: 4px;">Reprocess with AI</a>'
-            f'<p style="margin-top: 6px; color: #666; font-size: 12px;">'
-            f'Re-run book extraction on this episode. Replaces any existing books.</p>'
-            f'</div>'
+            f'style="background-color: #417690; color: white; padding: 6px 12px; '
+            f'text-decoration: none; border-radius: 4px; font-size: 12px;">Reprocess with AI</a>'
         )
-        confidence_html = ""
+        meta_parts = []
         if obj.ai_confidence is not None:
             pct = int(obj.ai_confidence * 100)
             colour = "#28a745" if pct >= 90 else ("#d4a017" if pct >= 70 else "#dc3545")
-            confidence_html = (
-                f'<p><strong>AI Confidence:</strong> '
-                f'<span style="color: {colour}; font-weight: bold;">{pct}%</span></p>'
+            meta_parts.append(
+                f'<span><strong>Confidence:</strong> '
+                f'<span style="color: {colour}; font-weight: bold;">{pct}%</span></span>'
             )
-        processed_html = ""
         if obj.processed_at:
-            processed_html = f'<p><strong>Processed at:</strong> {escape(str(obj.processed_at))}</p>'
+            meta_parts.append(f'<span><strong>Processed:</strong> {escape(str(obj.processed_at))}</span>')
         error_html = ""
         if obj.last_error:
             error_html = (
-                f'<p style="color: #dc3545;"><strong>Error:</strong> {escape(obj.last_error)}</p>'
+                f'<div style="color: #dc3545; margin-bottom: 4px;"><strong>Error:</strong> {escape(obj.last_error)}</div>'
             )
+        meta_html = ""
+        if meta_parts:
+            meta_html = '<div class="pipeline-meta">' + " &middot; ".join(meta_parts) + '</div>'
 
-        sections_html += f'<details class="pipeline-section" {extracted_open}>'
-        sections_html += '<summary>Extraction</summary>'
+        sections_html += '<div class="pipeline-section">'
+        sections_html += f'<div class="pipeline-section-title">Extraction {reprocess_btn}</div>'
         sections_html += '<div class="pipeline-section-body">'
-        sections_html += confidence_html + processed_html + error_html
+        sections_html += meta_html + error_html
         sections_html += self._json_block(obj.extraction_result)
-        sections_html += reprocess_btn
-        sections_html += '</div></details>'
+        sections_html += '</div></div>'
 
         # 3. Verified section
-        verified_open = "open" if step_key == "verified" else ""
         books = obj.books.all()
         if books.exists():
-            book_summary = '<table style="width: 100%; border-collapse: collapse; margin-top: 6px;">'
-            book_summary += '<tr style="border-bottom: 1px solid #ddd;"><th style="text-align:left; padding: 4px;">Title</th><th style="text-align:left; padding: 4px;">Author</th><th style="text-align:left; padding: 4px;">Status</th></tr>'
+            book_summary = '<table style="width: 100%; border-collapse: collapse;">'
+            book_summary += '<tr style="border-bottom: 1px solid #ddd;"><th style="text-align:left; padding: 3px 4px; font-size: 12px;">Title</th><th style="text-align:left; padding: 3px 4px; font-size: 12px;">Author</th><th style="text-align:left; padding: 3px 4px; font-size: 12px;">Status</th></tr>'
             for book in books:
                 status_colours = {
                     "verified": "#28a745",
@@ -260,41 +254,37 @@ class EpisodeAdmin(admin.ModelAdmin):
                 book_url = reverse("admin:stations_book_change", args=[book.pk])
                 book_summary += (
                     f'<tr style="border-bottom: 1px solid #eee;">'
-                    f'<td style="padding: 4px;"><a href="{book_url}">{escape(book.title)}</a></td>'
-                    f'<td style="padding: 4px;">{escape(book.author)}</td>'
-                    f'<td style="padding: 4px;"><span style="color: {sc};">{escape(book.verification_status)}</span></td>'
+                    f'<td style="padding: 3px 4px; font-size: 12px;"><a href="{book_url}">{escape(book.title)}</a></td>'
+                    f'<td style="padding: 3px 4px; font-size: 12px;">{escape(book.author)}</td>'
+                    f'<td style="padding: 3px 4px; font-size: 12px;"><span style="color: {sc};">{escape(book.verification_status)}</span></td>'
                     f'</tr>'
                 )
             book_summary += '</table>'
         else:
-            book_summary = '<p style="color: #666;"><em>No books extracted</em></p>'
+            book_summary = '<em style="color: #666; font-size: 12px;">No books extracted</em>'
 
-        sections_html += f'<details class="pipeline-section" {verified_open}>'
-        sections_html += '<summary>Verification</summary>'
+        sections_html += '<div class="pipeline-section">'
+        sections_html += '<div class="pipeline-section-title">Verification</div>'
         sections_html += f'<div class="pipeline-section-body">{book_summary}</div>'
-        sections_html += '</details>'
+        sections_html += '</div>'
 
         # 4. Complete / Review section
-        complete_open = "open" if step_key == "complete" else ""
-        complete_body = f'<p><strong>Current stage:</strong> {escape(obj.get_stage_display())}</p>'
+        complete_body = f'<strong>Stage:</strong> {escape(obj.get_stage_display())}'
         if obj.stage == Episode.STAGE_REVIEW:
             mark_url = reverse("admin:stations_episode_mark_complete", args=[obj.pk])
             complete_body += (
-                f'<form method="post" action="{mark_url}" style="margin-top: 10px;">'
+                f' &nbsp; <form method="post" action="{mark_url}" style="display: inline;">'
                 f'<input type="hidden" name="csrfmiddlewaretoken" value="CSRF_PLACEHOLDER">'
                 f'<button type="submit" class="button" '
-                f'style="background-color: #28a745; color: white; padding: 8px 14px; '
-                f'border: none; border-radius: 4px; cursor: pointer;">'
-                f'Mark as Complete</button>'
-                f'<p style="margin-top: 6px; color: #666; font-size: 12px;">'
-                f'Confirm this episode\'s books are correct and mark it as reviewed.</p>'
-                f'</form>'
+                f'style="background-color: #28a745; color: white; padding: 6px 12px; '
+                f'border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">'
+                f'Mark as Complete</button></form>'
             )
 
-        sections_html += f'<details class="pipeline-section" {complete_open}>'
-        sections_html += '<summary>Complete</summary>'
+        sections_html += '<div class="pipeline-section">'
+        sections_html += '<div class="pipeline-section-title">Status</div>'
         sections_html += f'<div class="pipeline-section-body">{complete_body}</div>'
-        sections_html += '</details>'
+        sections_html += '</div>'
 
         return mark_safe(bar_html + sections_html)
 
