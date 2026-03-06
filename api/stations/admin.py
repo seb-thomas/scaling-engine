@@ -157,6 +157,11 @@ class EpisodeAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.episode_status_json),
                 name="stations_episode_status",
             ),
+            path(
+                "<int:episode_id>/mark-complete/",
+                self.admin_site.admin_view(self.mark_episode_complete),
+                name="stations_episode_mark_complete",
+            ),
         ]
         return custom_urls + urls
 
@@ -214,6 +219,16 @@ class EpisodeAdmin(admin.ModelAdmin):
             msg = format_html('{} <a href="{}" target="_blank">Open Flower</a>', msg, flower_url)
         self.message_user(request, msg)
 
+    def mark_episode_complete(self, request, episode_id):
+        """Mark an episode as complete from the episode detail page."""
+        if request.method != "POST":
+            return redirect(reverse("admin:stations_episode_change", args=[episode_id]))
+        episode = Episode.objects.get(pk=episode_id)
+        episode.stage = Episode.STAGE_COMPLETE
+        episode.save(update_fields=["stage"])
+        messages.success(request, f"'{episode.title[:50]}' marked as complete.")
+        return redirect(reverse("admin:stations_episode_change", args=[episode_id]))
+
     def change_view(self, request, object_id, form_url="", extra_context=None):
         extra_context = extra_context or {}
         extra_context["show_reprocess_button"] = True
@@ -221,6 +236,12 @@ class EpisodeAdmin(admin.ModelAdmin):
         extra_context["status_url"] = reverse(
             "admin:stations_episode_status", args=[object_id]
         )
+        episode = Episode.objects.get(pk=object_id)
+        if episode.stage == Episode.STAGE_REVIEW:
+            extra_context["show_mark_complete"] = True
+            extra_context["mark_complete_url"] = reverse(
+                "admin:stations_episode_mark_complete", args=[object_id]
+            )
         return super().change_view(request, object_id, form_url, extra_context)
 
 

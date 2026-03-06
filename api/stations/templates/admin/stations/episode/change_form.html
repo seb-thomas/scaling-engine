@@ -3,6 +3,20 @@
 
 {% block submit_buttons_bottom %}
 {{ block.super }}
+{% if show_mark_complete and original %}
+<div class="submit-row">
+    <form method="post" action="{{ mark_complete_url }}" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" class="button default"
+                style="background-color: #28a745; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 13px;">
+            Mark as Complete
+        </button>
+    </form>
+    <p style="margin-top: 10px; color: #666; font-size: 12px;">
+        Confirm this episode's books are correct and mark it as reviewed.
+    </p>
+</div>
+{% endif %}
 {% if show_reprocess_button and original %}
 <div class="submit-row">
     <a href="{% url 'admin:stations_episode_reprocess' original.pk %}"
@@ -27,7 +41,8 @@
         fetch(statusUrl)
             .then(function(r) { return r.json(); })
             .then(function(data) {
-                if (data.status === "PROCESSED" || data.status === "FAILED") {
+                var done = ["EXTRACTION_NO_BOOKS", "EXTRACTION_FAILED", "VERIFICATION_QUEUED", "COMPLETE", "REVIEW"];
+                if (done.indexOf(data.status) !== -1) {
                     clearInterval(interval);
                     // Reload without the query param so we don't keep polling
                     window.location.href = window.location.pathname;
