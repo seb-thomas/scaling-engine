@@ -31,7 +31,7 @@ queuelib==1.7.0
 colorlog==6.9.0
 
 # HTTP & Security
-cryptography==43.0.3
+cryptography==46.0.5
 pyopenssl==24.3.0
 cffi==1.17.1
 pycparser==2.22
