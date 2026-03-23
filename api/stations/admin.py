@@ -498,15 +498,38 @@ class BookAdmin(admin.ModelAdmin):
     refetch_cover_button.short_description = "Refetch"
 
     def verify_book_button(self, obj):
-        if not obj.pk or obj.verification_status != Book.VERIFICATION_PENDING:
+        if not obj.pk:
             return "-"
-        url = reverse("admin:stations_book_verify", args=[obj.pk])
-        return format_html(
-            '<a href="{}" class="button" style="padding: 6px 12px;">Verify now</a>'
-            '<p style="margin-top: 6px; color: #666; font-size: 12px;">'
-            'Look up on Google Books and verify this book.</p>', url)
+        from urllib.parse import quote_plus
+        parts = []
+        # Google search link (always show)
+        search_q = quote_plus(f'{obj.title} {obj.author} book')
+        parts.append(format_html(
+            '<a href="https://www.google.com/search?q={}" target="_blank" '
+            'style="margin-right: 8px;">Search Google</a>',
+            search_q,
+        ))
+        # Action buttons based on status
+        if obj.verification_status == Book.VERIFICATION_NOT_FOUND:
+            manual_url = reverse("admin:stations_book_manually_verify", args=[obj.pk])
+            parts.append(format_html(
+                '<a href="{}" class="button" style="padding: 6px 12px; background: #28a745; color: white;">Manually verify</a>',
+                manual_url,
+            ))
+            reverify_url = reverse("admin:stations_book_verify", args=[obj.pk])
+            parts.append(format_html(
+                '<a href="{}" class="button" style="padding: 6px 12px;">Re-verify via Google Books</a>',
+                reverify_url,
+            ))
+        elif obj.verification_status == Book.VERIFICATION_PENDING:
+            url = reverse("admin:stations_book_verify", args=[obj.pk])
+            parts.append(format_html(
+                '<a href="{}" class="button" style="padding: 6px 12px;">Verify now</a>',
+                url,
+            ))
+        return mark_safe(" ".join(str(p) for p in parts))
 
-    verify_book_button.short_description = "Verify"
+    verify_book_button.short_description = "Actions"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -520,6 +543,11 @@ class BookAdmin(admin.ModelAdmin):
                 "<int:book_id>/verify/",
                 self.admin_site.admin_view(self.verify_book),
                 name="stations_book_verify",
+            ),
+            path(
+                "<int:book_id>/manually-verify/",
+                self.admin_site.admin_view(self.manually_verify_book),
+                name="stations_book_manually_verify",
             ),
         ]
         return custom_urls + urls
@@ -582,6 +610,22 @@ class BookAdmin(admin.ModelAdmin):
             book.save(update_fields=["verification_status", "verification_checked_at"])
             messages.warning(request, f"'{book.title}' not found on Google Books.")
 
+        return redirect(reverse("admin:stations_book_change", args=[book_id]))
+
+    def manually_verify_book(self, request, book_id):
+        """Manually mark a book as verified (when Google Books doesn't have it)."""
+        if request.method != "GET":
+            return redirect(reverse("admin:stations_book_change", args=[book_id]))
+        from .utils import generate_bookshop_affiliate_url
+        from django.utils import timezone as tz
+
+        book = Book.objects.get(pk=book_id)
+        book.verification_status = Book.VERIFICATION_VERIFIED
+        book.verification_checked_at = tz.now()
+        if not book.purchase_link:
+            book.purchase_link = generate_bookshop_affiliate_url(book.title, book.author)
+        book.save(update_fields=["verification_status", "verification_checked_at", "purchase_link"])
+        messages.success(request, f"'{book.title}' manually verified.")
         return redirect(reverse("admin:stations_book_change", args=[book_id]))
 
     actions = ["refetch_covers"]
