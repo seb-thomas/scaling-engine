@@ -1,12 +1,12 @@
 from django.http import Http404, JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Max, Q
+from django.db.models import Count, F, Max, Prefetch, Q
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .serializers import StationSerializer, BookSerializer, BrandShowSerializer
-from .models import Station, Book, Brand, Topic
+from .models import Station, Book, Brand, Episode, Topic
 
 
 class StationViewSet(viewsets.ReadOnlyModelViewSet):
@@ -78,7 +78,11 @@ class BrandViewSet(viewsets.ReadOnlyModelViewSet):
 class BookViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = BookSerializer
     queryset = Book.objects.prefetch_related(
-        "episodes", "episodes__brand", "episodes__brand__station", "topics"
+        Prefetch(
+            "episodes",
+            queryset=Episode.objects.select_related("brand", "brand__station").order_by("-aired_at"),
+        ),
+        "topics",
     ).all()
     lookup_field = "slug"
     filter_backends = [filters.SearchFilter]
