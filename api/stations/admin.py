@@ -115,10 +115,7 @@ class EpisodeAdmin(admin.ModelAdmin):
             return "<em>No data</em>"
         formatted = escape(json.dumps(data, indent=2, ensure_ascii=False))
         return (
-            '<pre style="white-space: pre-wrap; word-break: break-word; '
-            'max-width: 800px; background: #f8f8f8; padding: 10px; '
-            'border: 1px solid #ddd; border-radius: 4px; font-size: 12px; '
-            'line-height: 1.5;">' + formatted + '</pre>'
+            '<pre class="pipeline-json">' + formatted + '</pre>'
         )
 
     def pipeline_display(self, obj):
@@ -226,7 +223,7 @@ class EpisodeAdmin(admin.ModelAdmin):
         error_html = ""
         if obj.last_error:
             error_html = (
-                f'<div style="color: #dc3545; margin-bottom: 4px;"><strong>Error:</strong> {escape(obj.last_error)}</div>'
+                f'<div class="pipeline-error"><strong>Error:</strong> {escape(obj.last_error)}</div>'
             )
         meta_html = ""
         if meta_parts:
@@ -242,8 +239,8 @@ class EpisodeAdmin(admin.ModelAdmin):
         # 3. Verified section
         books = obj.books.all()
         if books.exists():
-            book_summary = '<table style="width: 100%; border-collapse: collapse;">'
-            book_summary += '<tr style="border-bottom: 1px solid #ddd;"><th style="text-align:left; padding: 3px 4px; font-size: 12px;">Title</th><th style="text-align:left; padding: 3px 4px; font-size: 12px;">Author</th><th style="text-align:left; padding: 3px 4px; font-size: 12px;">Status</th></tr>'
+            book_summary = '<table class="pipeline-book-table">'
+            book_summary += '<tr><th>Title</th><th>Author</th><th>Status</th></tr>'
             for book in books:
                 status_colours = {
                     "verified": "#28a745",
@@ -253,15 +250,15 @@ class EpisodeAdmin(admin.ModelAdmin):
                 sc = status_colours.get(book.verification_status, "#666")
                 book_url = reverse("admin:stations_book_change", args=[book.pk])
                 book_summary += (
-                    f'<tr style="border-bottom: 1px solid #eee;">'
-                    f'<td style="padding: 3px 4px; font-size: 12px;"><a href="{book_url}">{escape(book.title)}</a></td>'
-                    f'<td style="padding: 3px 4px; font-size: 12px;">{escape(book.author)}</td>'
-                    f'<td style="padding: 3px 4px; font-size: 12px;"><span style="color: {sc};">{escape(book.verification_status)}</span></td>'
+                    f'<tr>'
+                    f'<td><a href="{book_url}">{escape(book.title)}</a></td>'
+                    f'<td>{escape(book.author)}</td>'
+                    f'<td><span style="color: {sc};">{escape(book.verification_status)}</span></td>'
                     f'</tr>'
                 )
             book_summary += '</table>'
         else:
-            book_summary = '<em style="color: #666; font-size: 12px;">No books extracted</em>'
+            book_summary = '<em class="pipeline-meta">No books extracted</em>'
 
         sections_html += '<div class="pipeline-section">'
         sections_html += '<div class="pipeline-section-title">Verification</div>'

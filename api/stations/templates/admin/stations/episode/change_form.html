@@ -13,7 +13,7 @@
 .pipeline-connector {
     width: 36px;
     height: 2px;
-    background: #ddd;
+    background: var(--border-color, #ddd);
     align-self: center;
     margin-top: -16px;
     flex-shrink: 0;
@@ -33,9 +33,9 @@
     justify-content: center;
     font-size: 14px;
     font-weight: bold;
-    border: 2px solid #ddd;
-    background: #fff;
-    color: #ccc;
+    border: 2px solid var(--border-color, #ddd);
+    background: var(--body-bg, #fff);
+    color: var(--body-quiet-color, #ccc);
 }
 .pipeline-step.done .pipeline-circle {
     background: #28a745;
@@ -65,7 +65,7 @@
 .pipeline-label {
     margin-top: 4px;
     font-size: 11px;
-    color: #333;
+    color: var(--body-fg, #333);
     text-align: center;
     font-weight: 600;
 }
@@ -84,24 +84,25 @@
 
 /* Grouped sections */
 .pipeline-section {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border-color, #ddd);
     border-radius: 3px;
     margin-bottom: 6px;
-    background: #fff;
+    background: var(--body-bg, #fff);
 }
 .pipeline-section-title {
     padding: 6px 10px;
     font-weight: 600;
     font-size: 12px;
-    color: #333;
-    background: #fafafa;
-    border-bottom: 1px solid #ddd;
+    color: var(--body-fg, #333);
+    background: var(--darkened-bg, #fafafa);
+    border-bottom: 1px solid var(--border-color, #ddd);
     display: flex;
     align-items: center;
     gap: 10px;
 }
 .pipeline-section-body {
     padding: 8px 10px;
+    color: var(--body-fg, #333);
 }
 .pipeline-section-body p {
     margin: 0 0 4px 0;
@@ -109,11 +110,42 @@
 .pipeline-section-body pre {
     margin: 0;
 }
+.pipeline-json {
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-width: 800px;
+    background: var(--darkened-bg, #f8f8f8);
+    color: var(--body-fg, #333);
+    padding: 10px;
+    border: 1px solid var(--border-color, #ddd);
+    border-radius: 4px;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
+}
 .pipeline-meta {
     font-size: 12px;
-    color: #555;
+    color: var(--body-quiet-color, #555);
     margin-bottom: 4px;
 }
+.pipeline-section-body a { color: var(--link-fg, #417690); }
+.pipeline-book-table {
+    width: 100%;
+    border-collapse: collapse;
+    color: var(--body-fg, #333);
+    font-size: 12px;
+}
+.pipeline-book-table th {
+    text-align: left;
+    padding: 3px 4px;
+    border-bottom: 1px solid var(--border-color, #ddd);
+}
+.pipeline-book-table td {
+    padding: 3px 4px;
+    border-bottom: 1px solid var(--hairline-color, #eee);
+}
+.pipeline-book-table a { color: var(--link-fg, #417690); }
+.pipeline-error { color: #dc3545; margin-bottom: 4px; }
 
 /* Move books inline before pipeline */
 .inline-group { order: -1; }
