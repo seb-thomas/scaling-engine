@@ -502,11 +502,11 @@ class BookAdmin(admin.ModelAdmin):
             return "-"
         from urllib.parse import quote_plus
         parts = []
-        # Google search link (always show)
-        search_q = quote_plus(f'{obj.title} {obj.author} book')
+        # Google Books search link (always show)
+        search_q = quote_plus(f'{obj.title} {obj.author}')
         parts.append(format_html(
-            '<a href="https://www.google.com/search?q={}" target="_blank" '
-            'style="margin-right: 8px;">Search Google</a>',
+            '<a href="https://books.google.com/books?q={}" target="_blank" '
+            'style="margin-right: 8px;">Search Google Books</a>',
             search_q,
         ))
         # Action buttons based on status
