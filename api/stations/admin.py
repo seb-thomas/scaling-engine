@@ -270,12 +270,10 @@ class EpisodeAdmin(admin.ModelAdmin):
         if obj.stage == Episode.STAGE_REVIEW:
             mark_url = reverse("admin:stations_episode_mark_complete", args=[obj.pk])
             complete_body += (
-                f' &nbsp; <form method="post" action="{mark_url}" style="display: inline;">'
-                f'<input type="hidden" name="csrfmiddlewaretoken" value="CSRF_PLACEHOLDER">'
-                f'<button type="submit" class="button" '
+                f' &nbsp; <a href="{mark_url}" class="button" '
                 f'style="background-color: #28a745; color: white; padding: 6px 12px; '
-                f'border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">'
-                f'Mark as Complete</button></form>'
+                f'text-decoration: none; border-radius: 4px; font-size: 12px;">'
+                f'Mark as Complete</a>'
             )
 
         sections_html += '<div class="pipeline-section">'
@@ -364,8 +362,6 @@ class EpisodeAdmin(admin.ModelAdmin):
 
     def mark_episode_complete(self, request, episode_id):
         """Mark an episode as complete from the episode detail page."""
-        if request.method != "POST":
-            return redirect(reverse("admin:stations_episode_change", args=[episode_id]))
         episode = Episode.objects.get(pk=episode_id)
         episode.stage = Episode.STAGE_COMPLETE
         episode.save(update_fields=["stage"])

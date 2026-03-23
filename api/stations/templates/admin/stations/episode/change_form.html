@@ -174,13 +174,6 @@
 {% if original %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Inject CSRF token into pipeline Mark as Complete form
-    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-    if (csrfToken) {
-        document.querySelectorAll('input[value="CSRF_PLACEHOLDER"]').forEach(function(el) {
-            el.value = csrfToken.value;
-        });
-    }
     // Move book inlines before the pipeline fieldset
     var inlineGroup = document.querySelector('.inline-group');
     var pipelineFieldset = document.getElementById('pipeline-fieldset');
