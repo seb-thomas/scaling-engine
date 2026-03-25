@@ -877,6 +877,12 @@ def review_queue_view(request):
         not_found_books = ep.books.filter(verification_status=Book.VERIFICATION_NOT_FOUND)
         if not_found_books.exists():
             reasons.append("Book not found on Google Books")
+        er = ep.extraction_result or {}
+        ai_books = er.get("books", [])
+        if ai_books and not ep.books.exists():
+            reasons.append("AI found books but none were created")
+        if not reasons:
+            reasons.append("Unknown — stage set to review manually?")
 
         books_info = []
         for book in ep.books.all():
