@@ -321,6 +321,31 @@ def verify_pending_books(batch_size=20):
             canonical_title = book_info.get("title") or book.title
             canonical_author = book_info.get("author") or book.author
 
+            # Sanity check: Google Books result must resemble what we searched for.
+            # Study guides ("Summary of X") and wrong editions often outrank originals.
+            ai_title_lower = book.title.lower()
+            gb_title_lower = canonical_title.lower()
+            ai_author_lower = book.author.lower()
+            gb_author_lower = canonical_author.lower()
+            title_ok = (
+                ai_title_lower in gb_title_lower
+                or gb_title_lower in ai_title_lower
+            )
+            author_ok = (
+                not ai_author_lower
+                or ai_author_lower.split()[-1] in gb_author_lower
+            )
+            if not (title_ok and author_ok):
+                logger.warning(
+                    f"Google Books mismatch for '{book.title}' by {book.author}: "
+                    f"got '{canonical_title}' by {canonical_author} — marking not_found"
+                )
+                book.verification_status = Book.VERIFICATION_NOT_FOUND
+                book.verification_checked_at = timezone.now()
+                book.save(update_fields=["verification_status", "verification_checked_at"])
+                not_found_count += 1
+                continue
+
             # Check if a verified book with the canonical title/author already exists
             existing = Book.objects.filter(
                 title__iexact=canonical_title,
@@ -339,13 +364,12 @@ def verify_pending_books(batch_size=20):
                 verified_count += 1
                 continue
 
-            # Update with canonical info
-            book.title = canonical_title
-            book.author = canonical_author
+            # Keep AI-extracted title/author — Google Books often returns
+            # subtitles, edition names, or study guides that are less clean.
             book.verification_status = Book.VERIFICATION_VERIFIED
             book.verification_checked_at = timezone.now()
             book.save(update_fields=[
-                "title", "author", "verification_status", "verification_checked_at",
+                "verification_status", "verification_checked_at",
             ])
 
             # Download cover
