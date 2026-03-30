@@ -509,24 +509,19 @@ class BookAdmin(admin.ModelAdmin):
             'style="margin-right: 8px;">Search Google Books</a>',
             search_q,
         ))
-        # Action buttons based on status
+        # Action buttons
+        verify_url = reverse("admin:stations_book_verify", args=[obj.pk])
         if obj.verification_status == Book.VERIFICATION_NOT_FOUND:
             manual_url = reverse("admin:stations_book_manually_verify", args=[obj.pk])
             parts.append(format_html(
                 '<a href="{}" class="button" style="padding: 6px 12px; background: #28a745; color: white;">Manually verify</a>',
                 manual_url,
             ))
-            reverify_url = reverse("admin:stations_book_verify", args=[obj.pk])
-            parts.append(format_html(
-                '<a href="{}" class="button" style="padding: 6px 12px;">Re-verify via Google Books</a>',
-                reverify_url,
-            ))
-        elif obj.verification_status == Book.VERIFICATION_PENDING:
-            url = reverse("admin:stations_book_verify", args=[obj.pk])
-            parts.append(format_html(
-                '<a href="{}" class="button" style="padding: 6px 12px;">Verify now</a>',
-                url,
-            ))
+        label = "Verify now" if obj.verification_status == Book.VERIFICATION_PENDING else "Re-verify via Google Books"
+        parts.append(format_html(
+            '<a href="{}" class="button" style="padding: 6px 12px;">{}</a>',
+            verify_url, label,
+        ))
         return mark_safe(" ".join(str(p) for p in parts))
 
     verify_book_button.short_description = "Actions"
@@ -596,13 +591,11 @@ class BookAdmin(admin.ModelAdmin):
 
         if book_info.get("exists"):
             book.verification_status = Book.VERIFICATION_VERIFIED
-            # Download cover if available and not already present
+            # Always re-fetch cover and purchase link on explicit verify
             cover_url = book_info.get("cover_url") or ""
-            if cover_url and not book.cover_image:
+            if cover_url:
                 download_and_save_cover(book, cover_url, allow_fallback=True)
-            # Set purchase link if not already present
-            if not book.purchase_link:
-                book.purchase_link = generate_bookshop_affiliate_url(book.title, book.author)
+            book.purchase_link = generate_bookshop_affiliate_url(book.title, book.author)
             book.save(update_fields=["verification_status", "verification_checked_at", "purchase_link"])
             messages.success(request, f"'{book.title}' verified on Google Books.")
         else:
