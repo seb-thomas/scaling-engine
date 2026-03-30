@@ -428,11 +428,6 @@ def verify_pending_books(batch_size=20):
         episodes = list(book.episodes.all())
         book_title = book.title
         book.delete()
-        # Update has_book flag on orphaned episodes
-        for episode in episodes:
-            if not episode.books.exists():
-                episode.has_book = False
-                episode.save(update_fields=["has_book"])
         deleted_count += 1
         logger.info(f"Deleted stale not_found book: '{book_title}'")
 

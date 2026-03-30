@@ -427,7 +427,6 @@ def extract_books_from_episode(episode_id: int) -> Dict:
                 book.purchase_link = purchase_url
                 book.save(update_fields=["purchase_link"])
 
-        episode.has_book = len(new_books) > 0
         if not episode.aired_at and episode.scraped_data:
             date_text = episode.scraped_data.get("date_text")
             if date_text:
@@ -441,7 +440,7 @@ def extract_books_from_episode(episode_id: int) -> Dict:
         episode.last_error = None
         episode.save(
             update_fields=[
-                "extraction_result", "ai_confidence", "has_book",
+                "extraction_result", "ai_confidence",
                 "aired_at", "stage", "processed_at", "last_error",
                 "status_changed_at",
             ]

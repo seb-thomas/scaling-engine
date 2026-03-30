@@ -34,7 +34,7 @@ class EpisodeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Episode
-        fields = ('id', 'title', 'url', 'slug', 'aired_at', 'has_book', 'brand')
+        fields = ('id', 'title', 'url', 'slug', 'aired_at', 'brand')
 
 
 class TopicSerializer(serializers.ModelSerializer):

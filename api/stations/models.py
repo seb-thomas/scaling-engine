@@ -84,7 +84,6 @@ class Episode(models.Model):
     slug = models.SlugField(max_length=255, unique=True, blank=True)
     url = models.URLField(default="", unique=True)
     aired_at = models.DateTimeField(blank=True, null=True)
-    has_book = models.BooleanField(default=False, editable=False)
 
     # Snapshot + pipeline (merged from RawEpisodeData)
     scraped_data = models.JSONField(null=True, blank=True)
@@ -110,7 +109,7 @@ class Episode(models.Model):
 
     def compute_stage_after_extraction(self):
         """Called after AI extraction. Books are candidates — go to VERIFICATION_QUEUED."""
-        if not self.has_book:
+        if not self.books.exists():
             return self.STAGE_EXTRACTION_NO_BOOKS
         return self.STAGE_VERIFICATION_QUEUED
 

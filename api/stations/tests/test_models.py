@@ -57,7 +57,6 @@ class TestEpisodeModel:
         assert episode.title == 'Test Episode'
         assert episode.brand == brand
         assert episode.url == 'https://example.com/test-episode'
-        assert episode.has_book is False
 
     def test_episode_str(self, episode):
         """Test episode string representation."""
@@ -76,15 +75,6 @@ class TestEpisodeModel:
                 title='Episode 2',
                 url='https://example.com/unique'  # Duplicate!
             )
-
-    def test_episode_has_book_default(self, episode):
-        """Test has_book defaults to False."""
-        assert episode.has_book is False
-
-    def test_episode_has_book_editable_false(self):
-        """Test has_book field is not editable."""
-        field = Episode._meta.get_field('has_book')
-        assert field.editable is False
 
 
 @pytest.mark.unit

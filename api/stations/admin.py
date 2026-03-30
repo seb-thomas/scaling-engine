@@ -57,7 +57,6 @@ class EpisodeAdmin(admin.ModelAdmin):
     list_filter = ("stage", "brand", "aired_at")
     search_fields = ("title", "url")
     readonly_fields = (
-        "has_book",
         "slug",
         "pipeline_display",
     )
@@ -68,7 +67,7 @@ class EpisodeAdmin(admin.ModelAdmin):
     fieldsets = (
         (
             "Episode Information",
-            {"fields": ("brand", "title", "slug", "url", "aired_at", "has_book")},
+            {"fields": ("brand", "title", "slug", "url", "aired_at")},
         ),
         (
             None,
@@ -267,7 +266,7 @@ class EpisodeAdmin(admin.ModelAdmin):
 
         # 4. Complete / Review section
         complete_body = f'<strong>Stage:</strong> {escape(obj.get_stage_display())}'
-        if obj.stage == Episode.STAGE_REVIEW:
+        if obj.stage in (Episode.STAGE_REVIEW, Episode.STAGE_VERIFICATION_QUEUED):
             mark_url = reverse("admin:stations_episode_mark_complete", args=[obj.pk])
             complete_body += (
                 f' &nbsp; <a href="{mark_url}" class="button" '
@@ -361,11 +360,16 @@ class EpisodeAdmin(admin.ModelAdmin):
         self.message_user(request, msg)
 
     def mark_episode_complete(self, request, episode_id):
-        """Mark an episode as complete from the episode detail page."""
+        """Mark an episode as complete from the episode detail page.
+        If no books are linked, set stage to EXTRACTION_NO_BOOKS instead."""
         episode = Episode.objects.get(pk=episode_id)
-        episode.stage = Episode.STAGE_COMPLETE
+        if episode.books.exists():
+            episode.stage = Episode.STAGE_COMPLETE
+            messages.success(request, f"'{episode.title[:50]}' marked as complete.")
+        else:
+            episode.stage = Episode.STAGE_EXTRACTION_NO_BOOKS
+            messages.success(request, f"'{episode.title[:50]}' marked as no books.")
         episode.save(update_fields=["stage"])
-        messages.success(request, f"'{episode.title[:50]}' marked as complete.")
         return redirect(reverse("admin:stations_episode_change", args=[episode_id]))
 
     def change_view(self, request, object_id, form_url="", extra_context=None):
@@ -376,7 +380,7 @@ class EpisodeAdmin(admin.ModelAdmin):
             "admin:stations_episode_status", args=[object_id]
         )
         episode = Episode.objects.get(pk=object_id)
-        if episode.stage == Episode.STAGE_REVIEW:
+        if episode.stage in (Episode.STAGE_REVIEW, Episode.STAGE_VERIFICATION_QUEUED):
             extra_context["show_mark_complete"] = True
             extra_context["mark_complete_url"] = reverse(
                 "admin:stations_episode_mark_complete", args=[object_id]

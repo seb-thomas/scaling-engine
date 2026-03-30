@@ -43,7 +43,7 @@ A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses A
 - Station → Brand → Episode ↔ Book hierarchy (Episode↔Book is M:N)
 - Brand has `spider_name` field for scrape dispatch (`"bbc_episodes"`, `"rss"`, or `"wnyc_api"`)
 - Episodes track lifecycle via single `stage` field: SCRAPED → EXTRACTION_QUEUED → EXTRACTING → VERIFICATION_QUEUED → COMPLETE (or EXTRACTION_NO_BOOKS, EXTRACTION_FAILED, VERIFICATION_FAILED, REVIEW)
-- Episodes also track `has_book` flag, `aired_at` date, `ai_confidence`
+- Episodes also track `aired_at` date, `ai_confidence`
 - Books store `title`, `author`, `verification_status` (pending/verified/not_found), and `unmatched_categories` (AI-suggested slugs that don't exist yet)
 
 ## Deployment

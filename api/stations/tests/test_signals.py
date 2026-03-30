@@ -30,13 +30,12 @@ class TestEpisodePostSaveSignal:
             url='https://example.com/signal-test-2'
         )
 
-        # Should not crash, has_book stays False
+        # Should not crash, stage stays SCRAPED
         episode.refresh_from_db()
-        assert episode.has_book is False
+        assert episode.stage == Episode.STAGE_SCRAPED
 
-    def test_signal_does_not_reprocess_if_has_book_true(self, brand, phrases):
-        """Test signal doesn't reprocess if has_book is already True."""
-        # Create and let it process
+    def test_signal_does_not_reprocess_if_past_scraped(self, brand, phrases):
+        """Test signal doesn't re-trigger extraction if stage is past SCRAPED."""
         episode = Episode.objects.create(
             brand=brand,
             title='Episode with book keyword',
@@ -44,18 +43,17 @@ class TestEpisodePostSaveSignal:
         )
 
         episode.refresh_from_db()
-        initial_value = episode.has_book
 
-        # Manually set has_book=True
-        Episode.objects.filter(pk=episode.pk).update(has_book=True)
+        # Manually advance stage past SCRAPED
+        Episode.objects.filter(pk=episode.pk).update(stage=Episode.STAGE_COMPLETE)
         episode.refresh_from_db()
 
-        # Save again - should not trigger task since has_book=True
+        # Save again - should not trigger task since stage != SCRAPED
         episode.save()
         episode.refresh_from_db()
 
-        # Should still be True
-        assert episode.has_book is True
+        # Should still be COMPLETE
+        assert episode.stage == Episode.STAGE_COMPLETE
 
     def test_signal_uses_transaction_on_commit(self, brand):
         """Test signal uses transaction.on_commit for task queuing."""

@@ -39,7 +39,7 @@ Episode lifecycle is tracked by a single `stage` field that captures the full pi
    - Task sets `Episode.stage = EXTRACTING`, reads `scraped_data`, calls Claude, parses JSON.
    - Store `Episode.extraction_result` and `Episode.ai_confidence`.
    - Create candidate Book rows (pending verification). Replace semantics: unlink old books first.
-   - Update `Episode.has_book` and, if missing, `Episode.aired_at`.
+   - Update `Episode.aired_at` if missing.
    - On success: `Episode.stage = VERIFICATION_QUEUED` (if books found) or `EXTRACTION_NO_BOOKS`. On failure: `EXTRACTION_FAILED`.
 
 3. **Verify (scheduled, hourly)**
@@ -61,7 +61,7 @@ Episode lifecycle is tracked by a single `stage` field that captures the full pi
 ## Domain models (merged)
 
 - **Station** → **Brand** (1:N): Brand has `url` (BBC brand page or RSS feed URL), `spider_name` (`"bbc_episodes"` or `"rss"`), `brand_color` (hex).
-- **Brand** → **Episode** (1:N): Episode has `url` (unique), `title`, `slug`, `aired_at`, `has_book`, plus:
+- **Brand** → **Episode** (1:N): Episode has `url` (unique), `title`, `slug`, `aired_at`, plus:
   - **Snapshot**: `scraped_data` (JSON: url, title, date_text, description, meta_tags, html_title, etc.)
   - **Pipeline**: `stage` (SCRAPED | EXTRACTION_QUEUED | EXTRACTING | EXTRACTION_NO_BOOKS | EXTRACTION_FAILED | VERIFICATION_QUEUED | VERIFICATION_FAILED | REVIEW | COMPLETE), `processed_at`, `last_error`, `task_id`, `extraction_result`
   - **Confidence**: `ai_confidence` (float 0.0–1.0) — AI's overall confidence in the extraction decision. Evaluated after verification: < 0.9 sends episode to REVIEW.

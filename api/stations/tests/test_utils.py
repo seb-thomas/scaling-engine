@@ -13,16 +13,10 @@ class TestContainsKeywords:
         result = contains_keywords(episode_with_book_keyword.pk)
         assert result is True
 
-        episode_with_book_keyword.refresh_from_db()
-        assert episode_with_book_keyword.has_book is True
-
     def test_episode_without_keywords(self, episode, phrases):
         """Test episode without keywords returns False."""
         result = contains_keywords(episode.pk)
         assert result is False
-
-        episode.refresh_from_db()
-        assert episode.has_book is False
 
     def test_episode_with_novel_keyword(self, brand, phrases):
         """Test episode with 'novel' keyword is detected."""
@@ -33,9 +27,6 @@ class TestContainsKeywords:
         )
         result = contains_keywords(ep.pk)
         assert result is True
-
-        ep.refresh_from_db()
-        assert ep.has_book is True
 
     def test_episode_with_author_keyword(self, brand, phrases):
         """Test episode with 'author' keyword is detected."""

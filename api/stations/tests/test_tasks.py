@@ -25,8 +25,7 @@ class TestContainsKeywordsTask:
         result = contains_keywords_task(episode_with_book_keyword.pk)
         assert result is True
 
-        episode_with_book_keyword.refresh_from_db()
-        assert episode_with_book_keyword.has_book is True
+        # has_book field removed — result True is sufficient
 
     def test_task_with_nonexistent_episode(self):
         """Test task handles nonexistent episode gracefully."""

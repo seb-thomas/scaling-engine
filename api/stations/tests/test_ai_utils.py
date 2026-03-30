@@ -268,7 +268,7 @@ class TestExtractBooksFromEpisode:
             brand=brand,
             title="Book Club: Discussion of 1984",
             url="http://test.com/episode-1",
-            has_book=False
+
         )
 
         # Mock the extractor
@@ -289,7 +289,7 @@ class TestExtractBooksFromEpisode:
 
         # Verify episode was updated
         episode.refresh_from_db()
-        assert episode.has_book is True
+
 
     @patch("stations.ai_utils.get_book_extractor")
     def test_extract_books_from_episode_no_book_found(self, mock_get_extractor, brand):
@@ -300,7 +300,7 @@ class TestExtractBooksFromEpisode:
             brand=brand,
             title="Music show",
             url="http://test.com/episode-2",
-            has_book=False
+
         )
 
         mock_extractor = Mock()
@@ -318,19 +318,19 @@ class TestExtractBooksFromEpisode:
 
         # Verify episode was NOT updated
         episode.refresh_from_db()
-        assert episode.has_book is False
+
 
     @patch("stations.utils.verify_book_exists")
     @patch("stations.ai_utils.get_book_extractor")
-    def test_extract_books_from_episode_already_has_book(self, mock_get_extractor, mock_verify, brand):
-        """Test extraction when episode already has_book=True."""
+    def test_extract_books_from_episode_reextraction(self, mock_get_extractor, mock_verify, brand):
+        """Test extraction works on reprocessing."""
         from stations.models import Episode
 
         episode = Episode.objects.create(
             brand=brand,
             title="Book review",
             url="http://test.com/episode-3",
-            has_book=True  # Already marked
+
         )
 
         mock_extractor = Mock()
@@ -348,7 +348,7 @@ class TestExtractBooksFromEpisode:
         # Should still return result even if already marked
         assert result["has_book"] is True
         episode.refresh_from_db()
-        assert episode.has_book is True
+
 
     @patch("stations.ai_utils.get_book_extractor")
     def test_extract_books_from_episode_not_available(self, mock_get_extractor, brand):
@@ -359,7 +359,7 @@ class TestExtractBooksFromEpisode:
             brand=brand,
             title="Test episode",
             url="http://test.com/episode-4",
-            has_book=False
+
         )
 
         mock_extractor = Mock()
@@ -388,7 +388,6 @@ class TestExtractBooksFromEpisode:
             brand=brand,
             title="Test episode",
             url="http://test.com/episode-5",
-            has_book=False,
         )
 
         mock_extractor = Mock()

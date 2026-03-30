@@ -22,7 +22,7 @@ def episode_post_save(sender, instance, created, **kwargs):
     if not created:
         return
 
-    if not instance.has_book:
+    if instance.stage == Episode.STAGE_SCRAPED:
         mode = getattr(settings, "BOOK_EXTRACTION_MODE", "keyword")
 
         if mode == "keyword":

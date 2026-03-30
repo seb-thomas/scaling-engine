@@ -33,8 +33,6 @@ def contains_keywords(episode_id):
             return False
 
         if any(keyword in episode.title for keyword in keyword_list):
-            episode.has_book = True
-            episode.save(update_fields=["has_book"])
             logger.info(f"Episode {episode_id} '{episode.title}' contains book keywords")
             return True
         else:
