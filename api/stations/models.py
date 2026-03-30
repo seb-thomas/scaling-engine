@@ -232,6 +232,11 @@ class Book(models.Model):
     def __str__(self):
         return self.title
 
+    def get_absolute_url(self):
+        episode = self.episodes.select_related("brand").first()
+        brand_slug = episode.brand.slug if episode and episode.brand else "unknown"
+        return f"https://radioreads.fun/{brand_slug}/{self.slug}"
+
     def get_bookshop_affiliate_url(self):
         """Generate Bookshop.org affiliate search URL for this book"""
         from .utils import generate_bookshop_affiliate_url
