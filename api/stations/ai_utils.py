@@ -109,25 +109,26 @@ class BookExtractor:
                 "reasoning": "API key not configured",
             }
 
-        prompt = f"""We collect books discussed, reviewed, or interviewed about on radio. Not books mentioned only in adaptation context (film, theatre, TV, musical, play).
-
-Analyze this radio episode text. Extract only books that are the subject of the segment.
+        prompt = f"""Extract books that are the subject of a radio episode. We want books that are discussed, reviewed, or whose author is interviewed. We do NOT want books mentioned only as the source of an adaptation (film, TV, theatre, musical).
 
 Episode text: "{text}"
 
-Rules:
-- Do not infer from author names alone. "Tom Stoppard" or "Anne Brontë biographer" without a book discussion = no extraction.
-- Every extracted book MUST have an identified author. If the text does not name the author, do not extract the book. Never use "Unknown", "N/A", "Various" etc. as author — either provide the real name or skip the book.
-- Require author + book title, OR explicit book-type words: "book", "novel", "short story collection", "autobiography", "memoir".
-- "Thriller" or "comedy" alone = often TV/film, not books. We describe books as "thrilling" or "hilarious". Do not extract titles that could be film/TV unless there is author + book signal (e.g. "the contemporary thriller Lurker" = TV show, NOT a book).
-- A book does not need to be explicitly discussed to be included — but its subject matter must be relevant to the segment's topic. A guest's book on the same subject as the episode counts; a book credited in a guest's bio whose topic is unrelated to the segment does not.
-- Exclude when context is adaptation, play, or musical. Signals: adaptation, adapted, film, movie, director, theatre, stage, screen, play, musical, transformed into, starring, choreographer, BBC adaptation, RSC production, West End. "Play" = theatre, not a book. "Musical based on [book]" = segment is about the musical, not the book.
-- Exception: if the source book is substantively discussed (book title + author named + book content described), include it even when the framing is an adaptation. E.g. "Kristen Stewart directs The Chronology of Water, based on the life story of author Lidia Yuknavitch" = include, because the book and author are clearly identified and the book's content is discussed.
-- Each book description must match the book title; do not mix descriptions between books.
+When to extract:
+- The text names a book title AND its author.
+- OR the text uses book-type words ("book", "novel", "memoir", "autobiography", "short story collection") with enough context to identify the work.
+- Author interviews count — if an author is a guest and their book is named, extract it.
 
-INCLUDE examples: "Mark Haddon's autobiography Leaving Home"; "Eric Schlosser's book Fast Food Nation... talks to the author"; "George Saunders' new book, Vigil"; prize announcements with author + book; "short story collection by Joy Williams"; "have read James Meek's book Your Life Without Me".
+When NOT to extract:
+- Author name alone without a specific book being identified.
+- Titles that could be film or TV without clear book signals. Genres like "thriller" or "comedy" often mean screen, not print.
+- The segment is about an adaptation, play, or musical — not the source book. E.g. "musical based on The Unlikely Pilgrimage of Harold Fry" = about the musical, not the book.
+- Exception: if the source book is clearly identified (title + author + book content described) even within adaptation framing, extract it. E.g. "The new movie Fairyland is adapted from the memoir by Alysia Abbott. She wrote about growing up as the child of a gay single father..." = the book and author are the subject, include with high confidence.
 
-EXCLUDE examples: "Anne Brontë biographer" (no book); "thriller Lurker" (TV show); "BBC adaptation of Lord of the Flies"; "A Christmas Carol... transformed into hip hop dance"; "her new play My Brother's a Genius"; "RSC's new production of Cyrano de Bergerac"; "musical based on Rachel's hit book The Unlikely Pilgrimage of Harold Fry" (context is the musical).
+Every extracted book MUST have a real author name. If the text doesn't name the author, skip the book. Never use "Unknown" or "N/A" as author.
+
+INCLUDE: "Mark Haddon's autobiography Leaving Home"; "Eric Schlosser's book Fast Food Nation... talks to the author"; "George Saunders' new book, Vigil"; prize announcements with author + book; "short story collection by Joy Williams".
+
+EXCLUDE: "Anne Brontë biographer" (no book named); "thriller Lurker" (TV show); "BBC adaptation of Lord of the Flies" (adaptation context); "her new play My Brother's a Genius" (play, not book); "RSC's new production of Cyrano de Bergerac" (theatre).
 
 Return JSON only:
 {{
@@ -144,13 +145,9 @@ Return JSON only:
     "reasoning": "Brief explanation of your decision"
 }}
 
-topics: assign one or more from the standard list: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts.
+Topics: assign from this list: fiction, classics, prize-winners, debut, history, biography, cookbooks, politics, science, arts. A book can have multiple (e.g. ["fiction", "debut"]). "science" = natural sciences, medicine, physics, biology, climate — not technology or economics. You may suggest up to 2 additional slugs if needed (lowercase with hyphens, e.g. true-crime, philosophy, memoir, nature, music).
 
-- "science" = natural sciences, medicine, neuroscience, physics, biology, climate science. NOT technology, economics, sociology, or activism.
-- A book can belong to multiple topics (e.g. a debut novel = ["fiction", "debut"]).
-- You may also suggest up to 2 additional topic slugs if the book clearly belongs to a topic not in the standard list. Use lowercase slugs with hyphens (e.g. technology, health, environment, music, philosophy, true-crime, sport, food-and-drink, nature, memoir).
-
-confidence is your overall confidence in the decision (0.0-1.0). 0.9+ = clear-cut, 0.7-0.9 = probable, <0.7 = uncertain. Return ONLY valid JSON, no additional text."""
+Confidence: 0.9+ = book clearly identified, 0.7-0.9 = probable but some ambiguity, <0.7 = uncertain. Return ONLY valid JSON."""
 
         for attempt in range(max_retries + 1):
             try:
