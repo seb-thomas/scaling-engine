@@ -416,8 +416,8 @@ def verify_pending_books(batch_size=20):
                 f"Skipping '{book.title}': API error {book_info['error']}"
             )
 
-    # Cleanup: delete not_found books older than 7 days
-    cutoff = timezone.now() - timedelta(days=7)
+    # Cleanup: delete not_found books older than 21 days
+    cutoff = timezone.now() - timedelta(days=21)
     stale_books = Book.objects.filter(
         verification_status=Book.VERIFICATION_NOT_FOUND,
         verification_checked_at__lt=cutoff,
