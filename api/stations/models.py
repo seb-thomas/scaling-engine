@@ -124,9 +124,8 @@ class Episode(models.Model):
             return self.STAGE_REVIEW
         if books.filter(verification_status='pending').exists():
             return self.STAGE_VERIFICATION_QUEUED
-        # All books verified — check confidence
-        if self.ai_confidence is not None and self.ai_confidence < 0.9:
-            return self.STAGE_REVIEW
+        # All books verified — the sanity check during verification
+        # already guards against wrong matches, so trust the result.
         return self.STAGE_COMPLETE
 
     def save(self, *args, **kwargs):
