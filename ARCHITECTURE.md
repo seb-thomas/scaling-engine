@@ -44,7 +44,7 @@ Episode lifecycle is tracked by a single `stage` field that captures the full pi
 
 3. **Verify (scheduled, hourly)**
    - `verify_pending_books` picks up books with `verification_status=pending`.
-   - Each book verified via Google Books API (`intitle:`/`inauthor:` search). Verified books get corrected metadata, cover images, ISBNs.
+   - Each book verified via Google Books API: first tries strict `intitle:`/`inauthor:` search, then falls back to plain text search (`title author`) if no results. A word-overlap sanity check prevents false matches (e.g. wrong book by same author). Verified books get cover images and ISBNs.
    - After all books for an episode are checked, `compute_stage_after_verification()` evaluates:
      - All books verified + confidence ≥ 0.9 → `COMPLETE`
      - Any book `not_found` or confidence < 0.9 → `REVIEW`
@@ -53,7 +53,8 @@ Episode lifecycle is tracked by a single `stage` field that captures the full pi
 
 4. **Review (admin)**
    - Episodes at `REVIEW` stage appear in the review queue.
-   - Admin can mark as complete → `COMPLETE` (sticky — won't be overwritten by recompute).
+   - Admin can mark as complete → `COMPLETE` (sticky — won't be overwritten by recompute). If no books are linked, sets `EXTRACTION_NO_BOOKS` instead (false positive dismissal).
+   - Admin can re-verify or manually verify individual books; re-verify always refreshes cover and purchase link.
 
 5. **Operate**
    - Django admin Episode page is the operational cockpit: colour-coded stage badge, scraped description preview, extraction reasoning preview, list of Books, and “Reprocess (AI)” (single and bulk). System health dashboard shows pipeline stage counts.
