@@ -207,25 +207,29 @@ class Book(models.Model):
     verification_checked_at = models.DateTimeField(null=True, blank=True)
     unmatched_topics = models.CharField(max_length=255, blank=True, default="")
 
+    def _generate_slug(self):
+        """Generate slug from author + title, ensuring uniqueness."""
+        if self.author:
+            slug_source = f"{self.author} {self.title}"
+        else:
+            slug_source = self.title
+        base_slug = slugify(slug_source) or f"book-{self.id or 0}"
+        slug = base_slug
+        counter = 1
+        while (
+            Book.objects.filter(slug=slug)
+            .exclude(pk=self.pk if self.pk else None)
+            .exists()
+        ):
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+        return slug
+
     def save(self, *args, **kwargs):
-        # Auto-generate slug from author + title if not provided
-        if not self.slug and self.title:
-            # Include author in slug for better URLs (e.g., alan-hollinghurst-the-line-of-beauty)
-            if self.author:
-                slug_source = f"{self.author} {self.title}"
-            else:
-                slug_source = self.title
-            base_slug = slugify(slug_source) or f"book-{self.id or 0}"
-            self.slug = base_slug
-            # Ensure uniqueness
-            counter = 1
-            while (
-                Book.objects.filter(slug=self.slug)
-                .exclude(pk=self.pk if self.pk else None)
-                .exists()
-            ):
-                self.slug = f"{base_slug}-{counter}"
-                counter += 1
+        if self.title:
+            expected_slug = self._generate_slug()
+            if not self.slug or self.slug != expected_slug:
+                self.slug = expected_slug
         super().save(*args, **kwargs)
 
     def __str__(self):
