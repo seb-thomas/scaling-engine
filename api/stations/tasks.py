@@ -340,13 +340,19 @@ def verify_pending_books(batch_size=20):
             canonical_author = book_info.get("author") or book.author
 
             # Sanity check: Google Books result must resemble what we searched for.
-            # Study guides ("Summary of X") and wrong editions often outrank originals.
-            ai_author_lower = book.author.lower()
-            gb_author_lower = canonical_author.lower()
+            # Title uses word-overlap matching; author checks last name against
+            # the authors field, description, and search snippet (Google Books
+            # sometimes lists publishers instead of human authors).
             title_ok = _titles_match(book.title, canonical_title)
+            ai_author_words = [w for w in book.author.lower().split() if w not in ("and", "by", "&") and len(w) > 2]
+            gb_text = " ".join([
+                canonical_author.lower(),
+                (book_info.get("description") or "").lower(),
+                (book_info.get("search_snippet") or "").lower(),
+            ])
             author_ok = (
-                not ai_author_lower
-                or ai_author_lower.split()[-1] in gb_author_lower
+                not book.author
+                or any(w in gb_text for w in ai_author_words)
             )
             if not (title_ok and author_ok):
                 logger.warning(

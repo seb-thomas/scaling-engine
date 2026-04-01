@@ -179,12 +179,18 @@ def verify_book_exists(title: str, author: str = "") -> dict:
             image_links = info.get("imageLinks", {})
             best_cover_url = image_links.get("thumbnail")
 
+        # Description and search snippet for author-in-content fallback
+        gb_description = info.get("description", "")
+        search_snippet = items[0].get("searchInfo", {}).get("textSnippet", "")
+
         return {
             "exists": True,
             "title": gb_title,
             "author": gb_author,
             "cover_url": best_cover_url,
             "isbn": isbn,
+            "description": gb_description,
+            "search_snippet": search_snippet,
         }
     except GoogleBooksRateLimited:
         raise  # let caller handle rate limiting differently from other errors
