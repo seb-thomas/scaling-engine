@@ -10,6 +10,24 @@ from .models import Brand, Episode, Book
 
 logger = get_task_logger(__name__)
 
+_STOP_WORDS = {"the", "a", "an", "and", "of", "in", "on", "for", "to", "is", "at", "by"}
+
+
+def _titles_match(ai_title, gb_title):
+    """Check if two titles refer to the same book using word overlap."""
+    def significant_words(t):
+        # Strip punctuation, split, keep meaningful words
+        import re
+        words = re.findall(r"[a-z0-9]+", t.lower())
+        return set(w for w in words if w not in _STOP_WORDS and len(w) > 1)
+    ai_words = significant_words(ai_title)
+    gb_words = significant_words(gb_title)
+    if not ai_words or not gb_words:
+        return False
+    overlap = ai_words & gb_words
+    smaller = min(len(ai_words), len(gb_words))
+    return len(overlap) >= max(1, smaller * 0.5)
+
 
 @shared_task(
     name="stations.tasks.contains_keywords_task",
@@ -323,14 +341,9 @@ def verify_pending_books(batch_size=20):
 
             # Sanity check: Google Books result must resemble what we searched for.
             # Study guides ("Summary of X") and wrong editions often outrank originals.
-            ai_title_lower = book.title.lower()
-            gb_title_lower = canonical_title.lower()
             ai_author_lower = book.author.lower()
             gb_author_lower = canonical_author.lower()
-            title_ok = (
-                ai_title_lower in gb_title_lower
-                or gb_title_lower in ai_title_lower
-            )
+            title_ok = _titles_match(book.title, canonical_title)
             author_ok = (
                 not ai_author_lower
                 or ai_author_lower.split()[-1] in gb_author_lower

@@ -118,6 +118,14 @@ def verify_book_exists(title: str, author: str = "") -> dict:
         data = _gb_request(search_url)
 
         items = data.get("items")
+        if not items and author:
+            # Fallback: plain text search without intitle/inauthor operators
+            fallback_params = {"q": f"{title} {author}", "maxResults": 5}
+            if api_key:
+                fallback_params["key"] = api_key
+            fallback_url = f"https://www.googleapis.com/books/v1/volumes?{urllib.parse.urlencode(fallback_params)}"
+            data = _gb_request(fallback_url)
+            items = data.get("items")
         if not items:
             return not_found
 
