@@ -43,7 +43,7 @@ automat==24.8.1
 constantly==23.10.4
 hyperlink==21.0.0
 incremental==24.7.2
-pyasn1==0.6.1
+pyasn1==0.6.2
 pyasn1-modules==0.4.1
 service-identity==24.2.0
 zope.interface==7.1.1
