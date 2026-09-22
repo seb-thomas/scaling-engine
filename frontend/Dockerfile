@@ -40,6 +40,6 @@ COPY --from=builder /app/dist ./dist
 
 EXPOSE 3000
 
-# Run the Astro entry point directly (auto-starts server with PORT/HOST from env)
+# Standalone @astrojs/node entry (auto-starts server with PORT/HOST from env; runs under Bun)
 CMD ["bun", "run", "./dist/server/entry.mjs"]
 

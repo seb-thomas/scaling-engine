@@ -41,7 +41,7 @@ describe('Build output verification', () => {
     // Should have Astro dependencies
     expect(packageJson.dependencies).toHaveProperty('astro');
     expect(packageJson.dependencies).toHaveProperty('@astrojs/react');
-    expect(packageJson.dependencies).toHaveProperty('@nurodev/astro-bun');
+    expect(packageJson.dependencies).toHaveProperty('@astrojs/node');
   });
 });
 
