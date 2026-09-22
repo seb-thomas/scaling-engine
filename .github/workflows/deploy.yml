@@ -37,10 +37,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -98,7 +98,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.0.3
@@ -151,13 +151,9 @@ jobs:
             # Determine DEBUG mode: enable if DEBUG_IP_ADDRESS or DEBUG_MODE is set
             # DEBUG_IP_ADDRESS enables debug mode with IP restriction
             # DEBUG_MODE is a simple on/off switch for staging/early development
-            # TEMPORARILY ENABLED FOR DEBUGGING 502 ERRORS
-            DEBUG_VALUE="1"
-            echo "Debug mode ENABLED for troubleshooting"
-            if [ -n "${DEBUG_IP_ADDRESS:-}" ]; then
-              echo "Debug mode enabled for IP: ${DEBUG_IP_ADDRESS}"
-            fi
+            DEBUG_VALUE="0"
             if [ "${DEBUG_MODE:-}" = "1" ]; then
+              DEBUG_VALUE="1"
               echo "Debug mode enabled via DEBUG_MODE secret"
             fi
 

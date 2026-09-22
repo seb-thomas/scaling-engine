@@ -14,10 +14,11 @@ if [ ! -d "$WEBROOT" ]; then
   exit 1
 fi
 
-if command -v docker-compose &> /dev/null; then
-  DOCKER_COMPOSE="docker-compose"
-elif docker compose version &> /dev/null; then
+# Prefer Compose v2 — v1 (docker-compose) is still installed on the server but is buggy
+if docker compose version &> /dev/null; then
   DOCKER_COMPOSE="docker compose"
+elif command -v docker-compose &> /dev/null; then
+  DOCKER_COMPOSE="docker-compose"
 else
   echo "Error: docker-compose not found"
   exit 1

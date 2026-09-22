@@ -1,4 +1,8 @@
-version: "3.7"
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
 
 services:
   nginx:
@@ -16,6 +20,7 @@ services:
       - web
       - frontend
     restart: unless-stopped
+    logging: *default-logging
 
   web:
     build:
@@ -33,6 +38,7 @@ services:
       - db
       - redis
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
       interval: 30s
@@ -54,6 +60,7 @@ services:
     depends_on:
       - web
     restart: unless-stopped
+    logging: *default-logging
 
   db:
     image: postgres:16-alpine
@@ -62,6 +69,7 @@ services:
     env_file:
       - ./.env.prod.db
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U paperwaves_user -d paperwaves_prod"]
       interval: 10s
@@ -76,6 +84,7 @@ services:
     expose:
       - 6379
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -95,6 +104,7 @@ services:
       - db
       - redis
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD", "celery", "-A", "paperwaves", "inspect", "ping"]
       interval: 60s
@@ -112,6 +122,7 @@ services:
       - db
       - redis
     restart: unless-stopped
+    logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "cat /proc/1/cmdline | tr '\\0' ' ' | grep -q 'celery.*beat'"]
       interval: 60s
@@ -130,6 +141,7 @@ services:
     depends_on:
       - redis
     restart: unless-stopped
+    logging: *default-logging
 
 volumes:
   postgres_data:
