@@ -14,6 +14,7 @@ import urllib.request
 from typing import Dict, List, Optional
 from datetime import datetime
 from anthropic import Anthropic, APIError, APITimeoutError, RateLimitError
+from django.conf import settings
 from django.core.files import File
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,9 @@ class BookExtractor:
             )
             self.client = None
         else:
-            self.client = Anthropic(api_key=self.api_key)
+            self.client = Anthropic(
+                api_key=self.api_key, timeout=settings.ANTHROPIC_TIMEOUT
+            )
 
     def extract_books(self, text: str, max_retries: int = 2) -> Dict:
         """
@@ -152,7 +155,7 @@ Confidence: 0.9+ = book clearly identified, 0.7-0.9 = probable but some ambiguit
         for attempt in range(max_retries + 1):
             try:
                 message = self.client.messages.create(
-                    model="claude-sonnet-4-6",  # Reliable instruction-following
+                    model=settings.ANTHROPIC_EXTRACTION_MODEL,
                     max_tokens=1024,
                     messages=[{"role": "user", "content": prompt}],
                 )

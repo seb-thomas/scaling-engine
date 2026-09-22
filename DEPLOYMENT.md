@@ -249,7 +249,7 @@ Set `BOOK_EXTRACTION_MODE` in `.env.prod`:
 |----------|-------------|----------|---------|
 | `DEBUG` | Debug mode (0 for production) | Yes | 0 |
 | `SECRET_KEY` | Django secret key | Yes | - |
-| `DJANGO_ALLOWED_HOSTS` | Space-separated list of allowed hosts | Yes | - |
+| `DJANGO_ALLOWED_HOSTS` | Comma-separated list of allowed hosts | Yes | - |
 | `SQL_DATABASE` | PostgreSQL database name | Yes | - |
 | `SQL_USER` | PostgreSQL username | Yes | - |
 | `SQL_PASSWORD` | PostgreSQL password | Yes | - |

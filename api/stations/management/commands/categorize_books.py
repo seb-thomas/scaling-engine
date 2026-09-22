@@ -4,6 +4,7 @@ import json
 import os
 import logging
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from anthropic import Anthropic
 
@@ -32,7 +33,7 @@ class Command(BaseCommand):
             self.stderr.write("ANTHROPIC_API_KEY not set")
             return
 
-        client = Anthropic(api_key=api_key)
+        client = Anthropic(api_key=api_key, timeout=settings.ANTHROPIC_TIMEOUT)
         valid_slugs = set(Topic.objects.values_list("slug", flat=True))
 
         queryset = Book.objects.all().order_by("id")
@@ -75,7 +76,7 @@ Return ONLY valid JSON array, no other text."""
 
             try:
                 message = client.messages.create(
-                    model="claude-haiku-4-5-20251001",
+                    model=settings.ANTHROPIC_FAST_MODEL,
                     max_tokens=1024,
                     messages=[{"role": "user", "content": prompt}],
                 )

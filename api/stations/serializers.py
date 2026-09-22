@@ -1,5 +1,10 @@
+import logging
+
+from django.db import DatabaseError
 from rest_framework import serializers
 from .models import Station, Book, Episode, Brand, Topic
+
+logger = logging.getLogger(__name__)
 
 
 class StationSerializer(serializers.ModelSerializer):
@@ -23,7 +28,8 @@ class BrandShowSerializer(serializers.ModelSerializer):
         # Fallback: use the property
         try:
             return obj.book_count
-        except:
+        except DatabaseError:
+            logger.exception("book_count query failed for brand %s", obj.pk)
             return 0
 
 

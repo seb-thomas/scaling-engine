@@ -21,7 +21,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = "0_tqywsmq1ls#fitr@5z=poushslei6zc_70x&mnakhs5mlhw#"
 SECRET_KEY = os.environ.get("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -34,11 +33,6 @@ ALLOWED_HOSTS = [
 
 # CSRF trusted origins for production
 CSRF_TRUSTED_ORIGINS = [
-    "http://159.65.18.16:8080",
-    "http://159.65.18.16:1337",
-    "http://159.65.18.16",
-    "http://radioreads.fun",
-    "http://www.radioreads.fun",
     "https://radioreads.fun",
     "https://www.radioreads.fun",
 ]
@@ -46,6 +40,17 @@ CSRF_TRUSTED_ORIGINS = [
 # Use X-Forwarded-Host for CSRF checks
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
+
+# HTTPS hardening. TLS terminates at nginx, which sets X-Forwarded-Proto.
+# No SECURE_SSL_REDIRECT: nginx already redirects 80 -> 443, and the container
+# healthcheck and the Astro frontend call Django over plain http inside Docker.
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = int(os.environ.get("SECURE_HSTS_SECONDS", 60 * 60 * 24 * 30))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
 
 # CORS settings (updated for django-cors-headers 4.x)
 CORS_ALLOWED_ORIGINS = [
@@ -189,8 +194,6 @@ TIME_ZONE = "Europe/London"
 
 USE_I18N = True
 
-USE_L10N = True
-
 USE_TZ = True
 
 
@@ -258,6 +261,15 @@ if not PAUSE_SCRAPING:
 # AI / BOOK EXTRACTION
 # Set to 'ai' to use Claude AI, 'keyword' for legacy keyword matching, 'both' for both
 BOOK_EXTRACTION_MODE = os.environ.get("BOOK_EXTRACTION_MODE", "keyword")
+
+# Claude models. Extraction is the quality-sensitive call; the cheaper model
+# handles bulk jobs (topic categorisation, blurbs).
+ANTHROPIC_EXTRACTION_MODEL = os.environ.get(
+    "ANTHROPIC_EXTRACTION_MODEL", "claude-sonnet-4-6"
+)
+ANTHROPIC_FAST_MODEL = os.environ.get("ANTHROPIC_FAST_MODEL", "claude-haiku-4-5")
+# Seconds per request (the SDK default is 10 minutes, which can stall a worker)
+ANTHROPIC_TIMEOUT = float(os.environ.get("ANTHROPIC_TIMEOUT", 60))
 
 # Bookshop.org Affiliate
 BOOKSHOP_AFFILIATE_ID = os.environ.get("BOOKSHOP_AFFILIATE_ID", "16640")

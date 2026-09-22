@@ -1,4 +1,5 @@
 import os
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from anthropic import Anthropic
 from stations.models import Book
@@ -33,7 +34,7 @@ class Command(BaseCommand):
             )
             return
 
-        client = Anthropic(api_key=api_key)
+        client = Anthropic(api_key=api_key, timeout=settings.ANTHROPIC_TIMEOUT)
         dry_run = options["dry_run"]
         overwrite = options["overwrite"]
 
@@ -103,7 +104,7 @@ Write ONLY the blurb text, nothing else. No quotes. Keep it under 120 characters
 
         try:
             response = client.messages.create(
-                model="claude-3-haiku-20240307",
+                model=settings.ANTHROPIC_FAST_MODEL,
                 max_tokens=100,
                 messages=[{"role": "user", "content": prompt}],
             )
