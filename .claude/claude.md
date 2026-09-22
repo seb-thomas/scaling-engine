@@ -49,10 +49,10 @@ A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses A
 ## Deployment
 - **Production**: docker-compose.prod.yml (immutable containers)
 - **Development**: docker-compose.dev.yml (volume mounts, hot reload, separate PostgreSQL)
-- **URL**: http://159.65.18.16:8080
-- **Domain**: radioreads.fun (DNS A record configured, propagating)
-- **IP**: 159.65.18.16 (regular IP, not reserved IP)
-- **SSL**: Certbot installed, ready to generate certificate once DNS propagates
+- **URL**: https://radioreads.fun (push to master deploys via GitHub Actions)
+- **Server**: DigitalOcean droplet, 159.65.18.16 (reserved IP 209.38.161.55), 2GB RAM + 2GB swap. SSH: `ssh radioreads` (key-only)
+- **SSL**: Let's Encrypt via webroot; cron runs `deploy/renew-cert.sh` on the 1st and 15th (see DEPLOYMENT.md)
+- **Logs**: container logs capped at 3 × 10MB each (docker-compose.prod.yml); journald capped at 200MB. The disk filled in Aug 2026 and took the frontend down — keep an eye on `df -h`
 
 ## Database Setup
 - **PostgreSQL 16 required** for both dev and prod (SQLite disabled)
@@ -104,28 +104,6 @@ docker-compose -f docker-compose.dev.yml exec -T web python manage.py shell
 docker-compose -f docker-compose.dev.yml exec -T web sh -c "scrapy crawl bbc_episodes -a brand_id=2"
 ```
 
-### Setting up HTTPS (once DNS propagates)
-```bash
-# Check DNS is working
-dig radioreads.fun A +short  # Should show 159.65.18.16
-
-# Stop containers to free port 80
-docker-compose -f docker-compose.dev.yml down
-
-# Get SSL certificate
-certbot certonly --standalone -d radioreads.fun
-
-# Certificates will be saved to:
-# /etc/letsencrypt/live/radioreads.fun/fullchain.pem
-# /etc/letsencrypt/live/radioreads.fun/privkey.pem
-```
-
-### Trigger AI Extraction
-```python
-from stations.tasks import extract_books_from_new_episodes
-extract_books_from_new_episodes()
-```
-
 ### Bookshop.org Affiliate Integration
 - **Affiliate ID**: 16640
 - **Shop Name**: Radio Reads
@@ -168,11 +146,11 @@ python manage.py populate_purchase_links --limit 100
 
 ## Environment Variables
 
-### `.env.prod`
+### `.env.prod` (generated on the server by deploy.yml from GitHub secrets — don't edit by hand)
 ```bash
-DEBUG=1
+DEBUG=0
 SECRET_KEY=change-me-to-a-secure-random-string
-DJANGO_ALLOWED_HOSTS=159.65.18.16,web,localhost
+DJANGO_ALLOWED_HOSTS=159.65.18.16,209.38.161.55,web,localhost,radioreads.fun,www.radioreads.fun
 SQL_ENGINE=django.db.backends.postgresql
 SQL_DATABASE=paperwaves_prod
 SQL_USER=paperwaves_user
