@@ -1,0 +1,54 @@
+name: Uptime check
+
+# External check from GitHub's network. A failed run emails whoever last
+# edited this schedule. Covers what UptimeRobot doesn't: the Astro homepage
+# (can be down while /api/health/ is green) and certificate expiry.
+# Note: GitHub pauses scheduled workflows after 60 days without repo activity.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: uptime
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Homepage serves the Astro app
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o page.html -w '%{http_code}' --max-time 20 https://radioreads.fun/)
+            if [ "$code" = 200 ] && grep -q '/_astro/' page.html; then echo "OK"; exit 0; fi
+            echo "Attempt $i: status $code"; sleep 30
+          done
+          echo "::error::Homepage down or not rendering (last status $code)"; exit 1
+
+      - name: API health is not unhealthy
+        run: |
+          for i in 1 2 3; do
+            code=$(curl -s -o health.json -w '%{http_code}' --max-time 20 https://radioreads.fun/api/health/)
+            if [ "$code" = 200 ]; then
+              echo "OK: $(jq -r .status health.json)"
+              jq -r '.checks | to_entries[] | select(.value.status != "ok") | "\(.key): \(.value.status) \(.value.message // "")"' health.json || true
+              exit 0
+            fi
+            echo "Attempt $i: status $code"; sleep 30
+          done
+          echo "::error::/api/health/ returned $code"
+          jq -r '.checks | to_entries[] | select(.value.status != "ok") | "\(.key): \(.value.status) \(.value.message // "")"' health.json 2>/dev/null || cat health.json || true
+          exit 1
+
+      - name: Certificate valid for 14+ days
+        run: |
+          end=$(echo | openssl s_client -connect radioreads.fun:443 -servername radioreads.fun 2>/dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
+          echo "Certificate expires $end ($days days)"
+          if [ "$days" -lt 14 ]; then
+            echo "::error::Certificate expires in $days days; renewal cron (deploy/renew-cert.sh) may be failing"
+            exit 1
+          fi

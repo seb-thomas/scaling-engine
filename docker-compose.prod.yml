@@ -134,8 +134,10 @@ services:
       context: ./api
       dockerfile: Dockerfile.prod
     command: celery -A paperwaves flower --port=5555
+    # Localhost only: Flower can stop workers and has no auth.
+    # Reach it with: ssh -L 5555:localhost:5555 radioreads, then http://localhost:5555
     ports:
-      - "5555:5555"
+      - "127.0.0.1:5555:5555"
     env_file:
       - ./.env.prod
     depends_on:

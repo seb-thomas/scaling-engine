@@ -21,4 +21,10 @@ This website collects books which have been **discussed or reviewed** on a radio
 - **Server access**: `ssh radioreads` (host alias in the developer's `~/.ssh/config`, key-based). SSH is key-only — password logins are disabled. If SSH is unreachable, use DigitalOcean's **Recovery Console** (root password); the "Web Console" button goes over SSH and fails with it.
 - **One-time server steps** (new server, or expired cert): (1) `mkdir -p /root/scaling-engine/certbot-webroot`, (2) run renewal once (`/root/scaling-engine/deploy/renew-cert.sh`), (3) add the cron entry as in DEPLOYMENT.md.
 - **Checking TLS from a work laptop**: a corporate proxy (Netskope) may re-sign HTTPS, so cert checks from the laptop can be misleading. Verify from the server: `openssl s_client -connect 127.0.0.1:443 -servername radioreads.fun`.
-- **Monitoring**: UptimeRobot watches the site. `/api/health/` only covers Django — the Astro frontend can be down while it's green, so the homepage needs its own monitor.
+- **Monitoring**: UptimeRobot watches the site. `/api/health/` only covers Django — the Astro frontend can be down while it's green, so the homepage needs its own monitor. `.github/workflows/uptime.yml` checks the homepage, `/api/health/` and cert expiry every 30 min from GitHub; a failed run emails.
+- **Workflow**: push straight to `master` (no PRs). The deploy runs tests first, then smoke-tests `/` and `/api/` through nginx and fails if either isn't serving.
+- **Automation on the server** (`/etc/cron.d/scaling-engine`, written by `deploy/install-cron.sh` on every deploy — edit the script, not the server):
+  - `deploy/watchdog.sh` every 5 min: restarts frontend / web / nginx / celery after ~15 min of failed probes, max once per 30 min; prunes Docker when disk ≥ 90%. Log: `/var/log/scaling-engine-watchdog.log`.
+  - `deploy/backup-db.sh` nightly 03:30: `pg_dump` to `/root/backups`, 14 days kept (same droplet — restore steps in the script).
+  - Weekly Docker image/build-cache prune.
+- **Flower** is bound to localhost: `ssh -L 5555:localhost:5555 radioreads`, then http://localhost:5555.
