@@ -41,6 +41,13 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Warm up (a deploy leaves cold workers and DB caches)
+        run: |
+          sleep 60
+          for n in 1 2 3; do
+            while read -r u; do [ -n "$u" ] && curl -s -o /dev/null --max-time 30 "$u"; done <<< "${{ steps.urls.outputs.list }}"
+          done
+
       - name: Run Lighthouse CI
         id: lhci
         continue-on-error: true
