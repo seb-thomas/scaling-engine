@@ -252,9 +252,10 @@ jobs:
               sleep 2
             done
 
-            # Reload nginx so it resolves the new web container IP
-            echo "Reloading nginx..."
-            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T nginx nginx -s reload || $DOCKER_COMPOSE -f $COMPOSE_FILE restart nginx
+            # Reload nginx so it resolves the new web container IP, and clear the
+            # page cache: cached HTML points at /_astro/ assets the new build renamed
+            echo "Reloading nginx and clearing page cache..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T nginx sh -c 'rm -rf /var/cache/nginx/pages/* && nginx -s reload' || $DOCKER_COMPOSE -f $COMPOSE_FILE restart nginx
 
             # Verify environment variables are loaded in web container
             echo "Checking environment variables in web container..."
@@ -316,7 +317,7 @@ jobs:
             echo "Smoke testing through nginx..."
             smoke() {
               for i in {1..30}; do
-                code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 --resolve radioreads.fun:443:127.0.0.1 "https://radioreads.fun$1")
+                code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 -H 'X-Cache-Bypass: 1' --resolve radioreads.fun:443:127.0.0.1 "https://radioreads.fun$1")
                 if [ "$code" = 200 ]; then echo "OK $1"; return 0; fi
                 sleep 2
               done

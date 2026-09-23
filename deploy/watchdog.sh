@@ -38,7 +38,8 @@ fi
 probe() {
   local path="$1" code
   for _ in 1 2 3; do
-    code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 \
+    # Bypass nginx's page cache, which would otherwise hide a dead frontend
+    code=$(curl -sk -o /dev/null -w '%{http_code}' --max-time 10 -H 'X-Cache-Bypass: 1' \
       --resolve "$HOST_HEADER:443:127.0.0.1" "https://$HOST_HEADER$path")
     [[ "$code" =~ ^[23] ]] && return 0
     sleep 5

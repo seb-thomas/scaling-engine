@@ -22,11 +22,20 @@ jobs:
       - name: Homepage serves the Astro app
         run: |
           for i in 1 2 3; do
-            code=$(curl -s -o page.html -w '%{http_code}' --max-time 20 https://radioreads.fun/)
+            # Bypass nginx's page cache so a dead frontend can't hide behind it
+            code=$(curl -s -o page.html -w '%{http_code}' --max-time 20 -H 'X-Cache-Bypass: 1' https://radioreads.fun/)
             if [ "$code" = 200 ] && grep -q '/_astro/' page.html; then echo "OK"; exit 0; fi
             echo "Attempt $i: status $code"; sleep 30
           done
           echo "::error::Homepage down or not rendering (last status $code)"; exit 1
+
+      - name: Page cache is serving
+        run: |
+          # Two plain requests: the second should come from nginx's page cache
+          curl -s -o /dev/null https://radioreads.fun/books
+          read -r status ttfb < <(curl -s -o /dev/null -D headers.txt -w '%{http_code} %{time_starttransfer}' https://radioreads.fun/books)
+          cache=$(grep -i '^x-cache:' headers.txt | tr -d '\r' | cut -d' ' -f2)
+          echo "::notice title=Page cache::/books $status X-Cache=${cache:-none} TTFB ${ttfb}s"
 
       - name: API health is not unhealthy
         run: |
