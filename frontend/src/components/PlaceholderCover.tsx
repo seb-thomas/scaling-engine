@@ -23,6 +23,9 @@ export function PlaceholderCover({ title, author, brandColor, className }: Place
     <div
       className={`relative overflow-hidden flex flex-col justify-between bg-neutral-900 ${className}`}
       style={{ aspectRatio: '2 / 3' }}
+      // A drawn stand-in for the cover image, not page structure
+      role="img"
+      aria-label={`Cover of ${title}`}
     >
       {/* Decorative top line */}
       <div
@@ -32,7 +35,7 @@ export function PlaceholderCover({ title, author, brandColor, className }: Place
 
       {/* Title and author */}
       <div className="flex-1 flex flex-col justify-center px-[10%] py-2 overflow-hidden">
-        <h3
+        <p
           className="font-bold leading-[1.1] text-center"
           style={{
             fontFamily: "'EB Garamond', serif",
@@ -44,7 +47,7 @@ export function PlaceholderCover({ title, author, brandColor, className }: Place
           lang="en"
         >
           {title}
-        </h3>
+        </p>
         {author && (
           <p
             className="text-neutral-400 text-center mt-[4%]"

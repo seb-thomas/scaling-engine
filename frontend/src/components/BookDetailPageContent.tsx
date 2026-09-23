@@ -72,6 +72,7 @@ export function BookDetailPageContent({ book, showSlug }: BookDetailPageContentP
                   title={book.title}
                   author={book.author}
                   brandColor={contextBrand?.brand_color}
+                  priority
                 />
               </div>
             <div className="flex-1">

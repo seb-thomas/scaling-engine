@@ -35,7 +35,7 @@ export function Pagination({ currentPage, totalPages, onPageChange }: Pagination
       <div className="flex items-center gap-1 mx-2">
         {visiblePages.map((page, index) => (
           page === -1 ? (
-            <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-400">···</span>
+            <span key={`ellipsis-${index}`} className="px-3 py-2 text-gray-500 dark:text-gray-400" aria-hidden="true">···</span>
           ) : (
             <button
               key={page}

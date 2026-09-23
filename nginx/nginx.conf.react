@@ -1,3 +1,11 @@
+# Compression for HTML, JS, CSS, JSON and SVG (including proxied responses)
+gzip on;
+gzip_vary on;
+gzip_proxied any;
+gzip_comp_level 5;
+gzip_min_length 1024;
+gzip_types text/plain text/css text/xml text/javascript application/javascript application/json application/xml application/rss+xml image/svg+xml;
+
 upstream paperwaves {
     server web:8000;
 }
@@ -29,8 +37,8 @@ server {
 
 # Reject requests to IP address (HTTPS)
 server {
-    listen 443 ssl default_server;
-    listen [::]:443 ssl default_server;
+    listen 443 ssl http2 default_server;
+    listen [::]:443 ssl http2 default_server;
     server_name _;
 
     ssl_certificate /etc/letsencrypt/live/radioreads.fun/fullchain.pem;
@@ -41,7 +49,7 @@ server {
 
 # HTTPS server
 server {
-    listen 443 ssl;
+    listen 443 ssl http2;
     server_name radioreads.fun;
 
     ssl_certificate /etc/letsencrypt/live/radioreads.fun/fullchain.pem;
@@ -51,6 +59,8 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_prefer_server_ciphers on;
     ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 1d;
 
     # Admin requests go to Django
     location /admin/ {
@@ -82,6 +92,15 @@ server {
         alias /home/app/web/media/;
         expires 30d;
         add_header Cache-Control "public, immutable";
+    }
+
+    # Astro build assets: content-hashed filenames, so cache them forever
+    location /_astro/ {
+        proxy_pass http://frontend;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_hide_header Cache-Control;
+        add_header Cache-Control "public, max-age=31536000, immutable";
     }
 
     # All other requests go to React SSR

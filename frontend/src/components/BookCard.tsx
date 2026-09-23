@@ -73,9 +73,9 @@ export function BookCard({ book, featured = false }: BookCardProps) {
             />
           </div>
         <div className="flex-1 flex flex-col">
-          <h3 className="font-serif text-lg font-medium mb-1 group-hover:opacity-70 transition-opacity">
+          <h2 className="font-serif text-lg font-medium mb-1 group-hover:opacity-70 transition-opacity">
             {book.title}
-          </h3>
+          </h2>
           {book.author && (
             <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">
               by {book.author}

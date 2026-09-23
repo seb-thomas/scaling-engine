@@ -43,6 +43,8 @@ export function Header({ pathname }: HeaderProps) {
               size="icon"
               className="md:hidden"
               onClick={() => setMobileOpen(!mobileOpen)}
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </Button>
