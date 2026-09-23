@@ -1,5 +1,12 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import { reportServerError } from '../lib/errorTracking';
+
+interface Props {
+  error: unknown;
+}
+
+await reportServerError(Astro.props.error, Astro.url);
 ---
 
 <Layout title="Something went wrong — Radio Reads" pathname="/500" noindex>

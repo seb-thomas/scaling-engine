@@ -28,6 +28,7 @@ feedparser==6.0.14
 
 # AI / LLM
 anthropic==1.8.0
+posthog==7.60.0
 
 # Image Processing
 Pillow==12.3.0

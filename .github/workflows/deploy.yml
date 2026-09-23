@@ -184,6 +184,9 @@ jobs:
               echo ""
               echo "# AI / Book Extraction"
               echo "BOOK_EXTRACTION_MODE=ai"
+              echo ""
+              echo "# Error tracking (PostHog project key: public, write-only)"
+              echo "POSTHOG_KEY=phc_w4ygxdLhw9wfUA4yWtDzzheKaWmAj5Q5ggzsMBBCgxvG"
             } > .env.prod
 
             # Add ANTHROPIC_API_KEY if provided

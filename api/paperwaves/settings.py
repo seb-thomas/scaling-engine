@@ -306,6 +306,11 @@ except (OSError, PermissionError):
     # Console logging will still work
     pass
 
+# ERROR logs and uncaught exceptions to PostHog, in production only
+# (POSTHOG_KEY is set in .env.prod). See paperwaves/observability.py.
+if os.environ.get("POSTHOG_KEY"):
+    handlers_config["posthog"] = {"()": "paperwaves.observability.PostHogErrorHandler"}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

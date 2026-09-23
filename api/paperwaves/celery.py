@@ -1,5 +1,6 @@
 import os
 from celery import Celery
+from celery.signals import after_setup_logger
 
 
 # set the default Django settings module for the 'celery' program.
@@ -15,6 +16,16 @@ app.config_from_object("django.conf:settings", namespace="CELERY")
 
 # Load task modules from all registered Django app configs.
 app.autodiscover_tasks()
+
+
+@after_setup_logger.connect
+def send_errors_to_posthog(logger, **kwargs):
+    # Celery replaces the root logger's handlers, so re-add the PostHog one
+    # (task failures are logged through root)
+    if os.environ.get("POSTHOG_KEY"):
+        from paperwaves.observability import PostHogErrorHandler
+
+        logger.addHandler(PostHogErrorHandler())
 
 
 @app.task(bind=True)
