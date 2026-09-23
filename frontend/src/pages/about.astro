@@ -28,13 +28,13 @@ const stationPhrases = [...stationMap.entries()].map(
   ([station, names]) => `${listWithAnd(names)} on ${station}`
 );
 const showsSentence = stationPhrases.length > 0
-  ? `We currently cover ${shows.length} show${shows.length !== 1 ? 's' : ''} across ${stationMap.size} network${stationMap.size !== 1 ? 's' : ''}: ${listWithAnd(stationPhrases)}.`
+  ? `We listen to ${shows.length} show${shows.length !== 1 ? 's' : ''} across ${stationMap.size} network${stationMap.size !== 1 ? 's' : ''}: ${listWithAnd(stationPhrases)}.`
   : '';
 ---
 
 <Layout
   title="About — Radio Reads"
-  description="Radio Reads is an automated archive of books discussed on BBC Radio 4 and NPR. AI scans every episode for author interviews, reviews and prize-winners."
+  description="Radio Reads keeps a list of the books talked about on BBC Radio 4 and NPR, each with a link to the conversation, so you can hear what was said before you read it."
   pathname="/about"
 >
   <div class="container pt-10 pb-16 max-w-2xl">
@@ -42,34 +42,43 @@ const showsSentence = stationPhrases.length > 0
 
     <div class="space-y-5 text-gray-600 dark:text-gray-400 leading-relaxed">
       <p>
-        Radio Reads is a searchable archive of books discussed, reviewed and
-        recommended on radio. If you caught an interview on Radio 4 but missed
-        the title, or you're looking for a gift and trust the taste of
-        a favourite show — this is the place.
+        Radio is one of the best places to hear about books. A novelist gets
+        twenty minutes to explain what they were trying to do. A critic says
+        why a book stayed with them. A panel argues about whether the prize
+        went to the right one. Then the programme ends, and all of it
+        disappears into the archive.
       </p>
 
       <p>
-        The idea had been rattling around for a while, but it was the arrival
-        of large language models that made it practical. AI does the heavy
-        lifting: scanning each episode for book references, extracting titles
-        and authors, and verifying them against Google Books. The whole
-        pipeline — scraping, extraction, publishing — runs automatically.
+        Radio Reads keeps the list. Every book here was the subject of a
+        conversation: an author interview, a review, a debate or a prize.
+        Passing mentions don't count. Each book links back to the episode,
+        so you can hear what was said before you decide whether to read it.
+        It's a better way to choose a book than a star rating.
+      </p>
+
+      <p>
+        It's also useful if you caught half an interview in the car and
+        missed the title, or you're looking for a present and trust the
+        taste of a favourite show.
       </p>
 
       {showsSentence && (
         <p>
-          {showsSentence} New episodes are checked daily and books appear on
-          the site within hours.
+          {showsSentence} New books usually appear within a day of broadcast.
         </p>
       )}
 
       <p>
-        Radio Reads is open source. View the code on <a
-          href="https://github.com/seb-thomas/scaling-engine"
+        Software does the listening. It reads each episode's notes, picks out
+        the books being discussed, and checks them against Google Books. It
+        gets things wrong sometimes. If you spot a mistake, or a book that
+        should be here and isn't, please say so on <a
+          href="https://github.com/seb-thomas/scaling-engine/issues"
           target="_blank"
           rel="noopener noreferrer"
           class="underline hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
-        >GitHub</a>.
+        >GitHub</a>, where the code is also open source.
       </p>
     </div>
   </div>

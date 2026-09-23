@@ -16,7 +16,7 @@ describe('BookCard', () => {
 
   it('renders station, show and date in metadata', async () => {
     const screen = await render(BookCard, { book: mockBook })
-    expect(screen.getByText('Test Station · Test Show · Jan 1, 2024')).toBeInTheDocument()
+    expect(screen.getByText('Test Show · Test Station · Jan 1, 2024')).toBeInTheDocument()
   })
 
   it('links to the book under its show', async () => {
@@ -27,7 +27,7 @@ describe('BookCard', () => {
   it('renders featured layout with description and long date', async () => {
     const screen = await render(BookCard, { book: mockBook, featured: true })
     expect(screen.getByText('A test book description')).toBeInTheDocument()
-    expect(screen.getByText('Test Station · January 1, 2024')).toBeInTheDocument()
+    expect(screen.getByText('Heard on Test Show, Test Station · January 1, 2024')).toBeInTheDocument()
   })
 
   it('renders a lazy cover image with intrinsic size', async () => {

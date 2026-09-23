@@ -20,7 +20,7 @@ const showsByStation = stations
 
   <div class="mb-12">
     <h1 class="font-serif text-3xl font-medium mb-4">Shows</h1>
-    <p class="text-gray-700 dark:text-gray-400">Explore all radio shows from {stations.map((s) => s.name).join(' and ')}</p>
+    <p class="text-gray-700 dark:text-gray-400">The programmes we listen to on {stations.map((s) => s.name).join(' and ')}, and the books they've talked about.</p>
   </div>
 
   {showsByStation.map(({ station, shows: stationShows }, index) => (

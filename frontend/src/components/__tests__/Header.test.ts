@@ -15,6 +15,6 @@ describe('Header', () => {
     await render(Header, { pathname: '/show/front-row' })
     const desktopNav = document.querySelectorAll('nav')[0] as HTMLElement
     expect(within(desktopNav).getByText('Shows')).toHaveClass('text-gray-900')
-    expect(within(desktopNav).getByText('Latest')).toHaveClass('text-gray-600')
+    expect(within(desktopNav).getByText('This week')).toHaveClass('text-gray-600')
   })
 })

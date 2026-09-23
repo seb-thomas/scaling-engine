@@ -10,7 +10,7 @@ let shows: Show[] = [];
 
 try {
   const [booksData, showsData] = await Promise.all([
-    fetchBooks(1, 8).catch(() => ({ results: [], count: 0 })),
+    fetchBooks(1, 16).catch(() => ({ results: [], count: 0 })),
     fetchShows().catch(() => [])
   ]);
   
@@ -25,8 +25,8 @@ try {
 ---
 
 <Layout
-  title="Radio Reads — Books from Radio Shows"
-  description="Discover books discussed, reviewed and recommended on BBC Radio 4 and NPR. Author interviews, reviews and prize-winners from Front Row, Free Thinking, Bookclub, A Good Read and Fresh Air."
+  title="Radio Reads — Books discussed on BBC Radio 4 and NPR"
+  description="The books talked about on BBC Radio 4 and NPR this week, from Front Row, Start the Week, Fresh Air and more. Each one comes with the conversation, so you can hear what they said before you read it."
   pathname={Astro.url.pathname}
 >
   <HomePageContent books={books} shows={shows} />
