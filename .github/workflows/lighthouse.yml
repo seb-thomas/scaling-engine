@@ -1,0 +1,77 @@
+name: Lighthouse
+
+# Lab Core Web Vitals + Lighthouse scores for key page types, on every
+# successful deploy and daily. Budgets live in .github/lighthouse/lighthouserc.json;
+# an "error" assertion that fails turns the run red, which emails you.
+
+on:
+  workflow_run:
+    workflows: ["Deploy to Digital Ocean"]
+    types: [completed]
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse
+  cancel-in-progress: true
+
+jobs:
+  lighthouse:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Pick URLs (one of each page type)
+        id: urls
+        run: |
+          curl -sf https://radioreads.fun/sitemap.xml -o sitemap.xml
+          locs=$(grep -o '<loc>[^<]*</loc>' sitemap.xml | sed 's/<[^>]*>//g')
+          show=$(echo "$locs" | grep -m1 '/show/')
+          book=$(echo "$locs" | grep -vE '/(show|topic|station)/' | grep -m1 -E '^https://radioreads\.fun/[^/]+/[^/]+$')
+          {
+            echo "list<<EOF"
+            printf '%s\n' https://radioreads.fun/ https://radioreads.fun/books "$show" "$book"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Run Lighthouse CI
+        id: lhci
+        continue-on-error: true
+        run: |
+          args=()
+          while read -r u; do [ -n "$u" ] && args+=(--collect.url="$u"); done <<< "${{ steps.urls.outputs.list }}"
+          npx -y @lhci/cli@0.15.1 autorun --config=.github/lighthouse/lighthouserc.json "${args[@]}"
+
+      - name: Summarise median runs
+        if: always()
+        run: |
+          # manifest.json (with the representative/median run per URL) is only
+          # written by a filesystem upload
+          npx -y @lhci/cli@0.15.1 upload --target=filesystem --outputDir=.lighthouseci/fs > /dev/null
+          jq -r '.[] | select(.isRepresentativeRun) | .jsonPath' .lighthouseci/fs/manifest.json | while read -r f; do
+            jq -r '
+              def pct(k): ((.categories[k].score // 0) * 100 | round);
+              def ms(a): ((.audits[a].numericValue // 0) | round);
+              "\(.finalDisplayedUrl) | perf \(pct("performance")) a11y \(pct("accessibility")) bp \(pct("best-practices")) seo \(pct("seo")) | LCP \(ms("largest-contentful-paint"))ms FCP \(ms("first-contentful-paint"))ms TBT \(ms("total-blocking-time"))ms CLS \(.audits["cumulative-layout-shift"].numericValue * 1000 | round / 1000) SI \(ms("speed-index"))ms | TTFB \(ms("server-response-time"))ms | weight \((.audits["total-byte-weight"].numericValue // 0) / 1024 | round)KB"
+            ' "$f" | tee -a "$GITHUB_STEP_SUMMARY" | sed 's/^/::notice title=Lighthouse::/'
+            # Failing audits (score < 0.9), worst first, for improvement ideas
+            jq -r '
+              [.audits[] | select(.score != null and .score < 0.9 and (.scoreDisplayMode == "numeric" or .scoreDisplayMode == "binary" or .scoreDisplayMode == "metricSavings"))]
+              | sort_by(.score) | .[:12]
+              | map("\(.id) (\(.score)) \(.displayValue // "")") | join("; ")
+            ' "$f" | sed "s|^|::notice title=Failing audits $(jq -r .finalDisplayedUrl "$f")::|"
+          done
+          [ -f .lighthouseci/links.json ] && jq -r 'to_entries[] | "::notice title=Report::\(.key) \(.value)"' .lighthouseci/links.json || true
+
+      - name: Fail on budget errors
+        if: steps.lhci.outcome == 'failure'
+        run: |
+          echo "::error::Lighthouse budgets failed; see the assertion output and reports above"
+          exit 1
