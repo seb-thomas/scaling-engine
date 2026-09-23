@@ -87,6 +87,12 @@ server {
         alias /home/app/web/staticfiles/;
     }
 
+    # Cover thumbnails: URLs carry ?v=<mtime>, so they can be cached for a year
+    location /media/thumbs/ {
+        alias /home/app/web/media/thumbs/;
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+
     # Media files (book covers, etc.)
     location /media/ {
         alias /home/app/web/media/;
