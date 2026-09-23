@@ -33,7 +33,7 @@ jobs:
         run: |
           # Two plain requests: the second should come from nginx's page cache
           curl -s -o /dev/null https://radioreads.fun/books
-          read -r status ttfb < <(curl -s -o /dev/null -D headers.txt -w '%{http_code} %{time_starttransfer}' https://radioreads.fun/books)
+          read -r status ttfb < <(curl -s -o /dev/null -D headers.txt -w '%{http_code} %{time_starttransfer}\n' https://radioreads.fun/books)
           cache=$(grep -i '^x-cache:' headers.txt | tr -d '\r' | cut -d' ' -f2)
           echo "::notice title=Page cache::/books $status X-Cache=${cache:-none} TTFB ${ttfb}s"
 
