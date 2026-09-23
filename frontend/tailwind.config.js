@@ -15,8 +15,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        'serif': ['EB Garamond', 'serif'],
-        'sans': ['Inter', 'sans-serif'],
+        'serif': ['EB Garamond Variable', 'EB Garamond', 'serif'],
+        'sans': ['Inter Variable', 'Inter', 'sans-serif'],
       },
     },
   },
