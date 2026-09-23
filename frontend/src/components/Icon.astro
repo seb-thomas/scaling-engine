@@ -1,0 +1,18 @@
+---
+// The handful of Lucide icons the site uses, inlined (same paths as lucide-react)
+interface Props {
+  name: 'menu' | 'x' | 'search' | 'chevron-left' | 'chevron-right' | 'arrow-right' | 'external-link'
+  class?: string
+}
+const { name, class: className = '' } = Astro.props
+const nodes: Record<Props['name'], string> = {
+  menu: '<path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  search: '<path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/>',
+  'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+  'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+  'arrow-right': '<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>',
+  'external-link': '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+}
+---
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class={`lucide lucide-${name} ${className}`} aria-hidden="true" set:html={nodes[name]} />

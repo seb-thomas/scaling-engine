@@ -1,0 +1,66 @@
+---
+import ImageWithFallback from './ImageWithFallback.astro'
+import { formatDateLong, formatDateShort } from '@/lib/utils'
+import type { Book } from '@/types'
+
+interface Props {
+  book: Book
+  featured?: boolean
+}
+
+const { book, featured = false } = Astro.props
+const ep = book.episodes?.[0]
+const brand = ep?.brand
+const href = `/${brand?.slug ?? 'unknown'}/${book.slug}`
+---
+{featured ? (
+  <a href={href} class="group block">
+    <article class="border-b border-gray-200 dark:border-gray-800 pb-8 mb-8">
+      <div class="flex gap-6 mb-6">
+        <div class="flex-shrink-0 w-32" style="container-type: inline-size">
+          <ImageWithFallback
+            src={book.cover_image}
+            alt={`Cover of ${book.title}`}
+            class="w-full h-auto shadow-lg"
+            title={book.title}
+            author={book.author}
+            brandColor={brand?.brand_color}
+          />
+        </div>
+        <div class="flex-1">
+          <h2 class="font-serif text-3xl mb-3 group-hover:opacity-70 transition-opacity">{book.title}</h2>
+          {book.author && <div class="text-gray-600 dark:text-gray-400 mb-3">by {book.author}</div>}
+        </div>
+      </div>
+      {book.description && <p class="text-gray-700 dark:text-gray-300 mb-3">{book.description}</p>}
+      <div class="text-sm text-gray-600 dark:text-gray-400">
+        {brand?.station?.name}{ep?.aired_at && ` · ${formatDateLong(ep.aired_at)}`}
+      </div>
+    </article>
+  </a>
+) : (
+  <a
+    href={href}
+    class="group block border-b border-gray-200 dark:border-gray-800 py-6 hover:bg-gray-50 dark:hover:bg-gray-900 transition-colors -mx-4 px-4"
+  >
+    <article class="flex gap-4">
+      <div class="flex-shrink-0 w-16" style="container-type: inline-size">
+        <ImageWithFallback
+          src={book.cover_image}
+          alt={`Cover of ${book.title}`}
+          class="w-full h-auto shadow"
+          title={book.title}
+          author={book.author}
+          brandColor={brand?.brand_color}
+        />
+      </div>
+      <div class="flex-1 flex flex-col">
+        <h2 class="font-serif text-lg font-medium mb-1 group-hover:opacity-70 transition-opacity">{book.title}</h2>
+        {book.author && <div class="text-sm text-gray-600 dark:text-gray-400 mb-2">by {book.author}</div>}
+        <div class="text-sm text-gray-500 dark:text-gray-400 mt-auto">
+          {brand?.station?.name}{brand?.name && ` · ${brand.name}`}{ep?.aired_at && ` · ${formatDateShort(ep.aired_at)}`}
+        </div>
+      </div>
+    </article>
+  </a>
+)}

@@ -1,6 +1,5 @@
 ---
-import { ThemeProvider } from '../components/ThemeProvider';
-import { Header } from '../components/Header';
+import Header from '../components/Header.astro';
 import '../index.css';
 
 interface Props {
@@ -47,19 +46,17 @@ const canonicalURL = new URL(pathname, SITE_URL).href;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <script is:inline>
-      // Set dark mode synchronously before React loads to prevent flash
+      // Follow the system colour scheme; runs before first paint to prevent a flash
       (function() {
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (prefersDark) {
-          document.documentElement.classList.add('dark');
-        }
+        const mq = window.matchMedia('(prefers-color-scheme: dark)');
+        const apply = () => document.documentElement.classList.toggle('dark', mq.matches);
+        apply();
+        mq.addEventListener('change', apply);
       })();
     </script>
   </head>
   <body class="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-    <ThemeProvider client:load>
-      <Header pathname={pathname} client:load />
-    </ThemeProvider>
+    <Header pathname={pathname} />
     <main class="pb-16">
       <slot />
     </main>

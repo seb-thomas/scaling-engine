@@ -1,0 +1,37 @@
+---
+import PlaceholderCover from './PlaceholderCover.astro'
+
+interface Props {
+  src?: string
+  alt: string
+  class?: string
+  title?: string
+  author?: string
+  brandColor?: string
+  /** Above-the-fold image (e.g. the LCP cover): load eagerly at high priority */
+  priority?: boolean
+}
+
+const { src, alt, class: className = '', title, author, brandColor, priority = false } = Astro.props
+// On a broken image, hide it and reveal the fallback rendered right after it
+const onError = "this.style.display='none';this.nextElementSibling.classList.remove('hidden')"
+---
+{src && (
+  <img
+    src={src}
+    alt={alt}
+    class={className}
+    width="400"
+    height="600"
+    loading={priority ? 'eager' : 'lazy'}
+    fetchpriority={priority ? 'high' : undefined}
+    onerror={onError}
+  />
+)}
+{title ? (
+  <PlaceholderCover title={title} author={author} brandColor={brandColor} class={src ? `${className} hidden` : className} />
+) : (
+  <div class={`bg-gray-200 dark:bg-gray-800 flex items-center justify-center ${className}${src ? ' hidden' : ''}`} style="aspect-ratio: 2 / 3">
+    <span class="text-gray-400 text-sm">No Cover</span>
+  </div>
+)}

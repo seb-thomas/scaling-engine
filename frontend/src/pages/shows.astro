@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { ShowsPageContent } from '../components/ShowsPageContent';
+import ShowsPageContent from '../components/ShowsPageContent.astro';
 import { fetchShows, fetchStations } from '../api/client';
 import type { Show, Station } from '../types';
 
@@ -32,6 +32,6 @@ try {
   description="Browse the radio shows covered by Radio Reads. BBC Radio 4 programmes and NPR shows including Front Row, Free Thinking, Bookclub, A Good Read and Fresh Air."
   pathname={Astro.url.pathname}
 >
-  <ShowsPageContent shows={shows} stations={stations} client:load />
+  <ShowsPageContent shows={shows} stations={stations} />
 </Layout>
 

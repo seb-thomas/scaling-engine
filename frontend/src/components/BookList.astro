@@ -1,0 +1,17 @@
+---
+import BookCard from './BookCard.astro'
+import Pagination from './Pagination.astro'
+import type { Book } from '../types'
+
+interface Props {
+  books: { results: Book[]; count: number }
+  currentPage: number
+  booksPerPage: number
+  url: URL
+}
+
+const { books, currentPage, booksPerPage, url } = Astro.props
+const totalPages = Math.ceil(books.count / booksPerPage)
+---
+{books.results.map((book) => <BookCard book={book} />)}
+{totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} url={url} />}

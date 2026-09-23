@@ -1,0 +1,44 @@
+---
+import Icon from './Icon.astro'
+import { waveStyle } from './wave'
+import type { Topic } from '@/types'
+
+interface Props {
+  topic: Topic
+}
+
+const TOPIC_COLORS: Record<string, string> = {
+  fiction: '#2d5986',
+  classics: '#8b4513',
+  'prize-winners': '#6b4c8a',
+  debut: '#c2703e',
+  history: '#5a6b7c',
+  biography: '#4a7c59',
+  cookbooks: '#7c4a4a',
+  politics: '#3d5a80',
+  science: '#4a6b7c',
+  arts: '#8a6b4c',
+}
+
+const { topic } = Astro.props
+const color = TOPIC_COLORS[topic.slug] || '#6b6b6b'
+---
+<article class="group block">
+  <a href={`/topic/${topic.slug}`} class="block">
+    <!-- Wave pattern masthead -->
+    <div class="mb-4 overflow-hidden h-6">
+      <div class="h-6" style={waveStyle(color)}></div>
+    </div>
+
+    <div>
+      <h3 class="font-serif text-xl mb-2 group-hover:text-orange-900 dark:group-hover:text-orange-100 transition-colors leading-tight">{topic.name}</h3>
+      {topic.description && <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3 line-clamp-2">{topic.description}</p>}
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-orange-800 dark:group-hover:text-orange-300 transition-colors">
+          {topic.book_count.toLocaleString('en-GB')} {topic.book_count === 1 ? 'book' : 'books'}
+        </div>
+        <Icon name="arrow-right" class="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 group-hover:translate-x-2 transition-all" />
+      </div>
+    </div>
+  </a>
+</article>

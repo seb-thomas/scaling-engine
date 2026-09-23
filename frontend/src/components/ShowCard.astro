@@ -1,0 +1,46 @@
+---
+import Icon from './Icon.astro'
+import { waveStyle } from './wave'
+import type { Show } from '@/types'
+
+interface Props {
+  show: Show
+}
+
+function getShowColor(brandColor: string | undefined, stationId: string): { light: string; dark: string } {
+  if (brandColor) {
+    // The persisted brand colour is used for both light and dark mode
+    return { light: brandColor, dark: brandColor }
+  }
+  // Fallback to default colors based on station
+  return stationId === 'bbc'
+    ? { light: '#8b4513', dark: '#a0522d' }
+    : { light: '#1e3a5f', dark: '#2d5986' }
+}
+
+const { show } = Astro.props
+const colors = getShowColor(show.brand_color, show.station.station_id)
+---
+<article class="group block">
+  <a href={`/show/${show.slug}`} class="block">
+    <!-- Wave pattern masthead -->
+    <div class="mb-4 overflow-hidden h-6">
+      <div class="h-6 dark:hidden" style={waveStyle(colors.light)}></div>
+      <div class="h-6 hidden dark:block" style={waveStyle(colors.dark)}></div>
+    </div>
+
+    <div>
+      <div class="text-xs tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-2 group-hover:text-orange-700 dark:group-hover:text-orange-400 transition-colors">
+        {show.station.name}{show.producer_name && ` · ${show.producer_name}`}
+      </div>
+      <h3 class="font-serif text-xl mb-2 group-hover:text-orange-900 dark:group-hover:text-orange-100 transition-colors leading-tight">{show.name}</h3>
+      {show.description && <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3">{show.description}</p>}
+      <div class="flex items-center justify-between">
+        <div class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-orange-800 dark:group-hover:text-orange-300 transition-colors">
+          {show.book_count.toLocaleString('en-GB')} books
+        </div>
+        <Icon name="arrow-right" class="w-4 h-4 text-gray-400 group-hover:text-orange-700 dark:group-hover:text-orange-400 group-hover:translate-x-2 transition-all" />
+      </div>
+    </div>
+  </a>
+</article>

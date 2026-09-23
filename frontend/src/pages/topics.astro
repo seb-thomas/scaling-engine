@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { TopicsPageContent } from '../components/TopicsPageContent';
+import TopicsPageContent from '../components/TopicsPageContent.astro';
 import { fetchTopics, fetchStations } from '../api/client';
 import type { Topic, Station } from '../types';
 
@@ -27,5 +27,5 @@ try {
   description="Browse books from radio shows by topic. Fiction, biography, history, poetry, politics and more — all discussed on BBC Radio 4 and NPR."
   pathname={Astro.url.pathname}
 >
-  <TopicsPageContent topics={topics} stationNames={stationNames} client:load />
+  <TopicsPageContent topics={topics} stationNames={stationNames} />
 </Layout>

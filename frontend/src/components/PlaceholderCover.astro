@@ -1,0 +1,48 @@
+---
+interface Props {
+  title: string
+  author?: string
+  brandColor?: string
+  class?: string
+}
+
+const DEFAULT_TEXT_COLOR = '#d4c5a9'
+
+/** Scale font size down for longer titles so text fits without truncation */
+function titleFontSize(title: string): string {
+  const len = title.length
+  if (len <= 15) return 'clamp(0.6rem, 5cqi, 1.6rem)'
+  if (len <= 25) return 'clamp(0.5rem, 4cqi, 1.4rem)'
+  if (len <= 40) return 'clamp(0.45rem, 3.2cqi, 1.2rem)'
+  return 'clamp(0.4rem, 2.6cqi, 1rem)'
+}
+
+const { title, author, brandColor, class: className = '' } = Astro.props
+const textColor = brandColor || DEFAULT_TEXT_COLOR
+---
+<!-- A drawn stand-in for the cover image, not page structure -->
+<div
+  class={`relative overflow-hidden flex flex-col justify-between bg-neutral-900 ${className}`}
+  style="aspect-ratio: 2 / 3"
+  role="img"
+  aria-label={`Cover of ${title}`}
+>
+  <div class="mx-[12%] mt-[12%] h-px opacity-30" style={`background-color: ${textColor}`}></div>
+
+  <div class="flex-1 flex flex-col justify-center px-[10%] py-2 overflow-hidden">
+    <p
+      class="font-bold leading-[1.1] text-center"
+      style={`font-family: 'EB Garamond', serif; font-size: ${titleFontSize(title)}; color: ${textColor}; overflow-wrap: break-word; hyphens: auto`}
+      lang="en"
+    >{title}</p>
+    {author && (
+      <p
+        class="text-neutral-400 text-center mt-[4%]"
+        style="font-size: clamp(0.35rem, 2.2cqi, 0.7rem); overflow-wrap: break-word; hyphens: auto"
+        lang="en"
+      >{author}</p>
+    )}
+  </div>
+
+  <div class="mx-[12%] mb-[12%] h-px opacity-30" style={`background-color: ${textColor}`}></div>
+</div>

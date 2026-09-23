@@ -1,8 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { HomePageContent } from '../components/HomePageContent';
+import HomePageContent from '../components/HomePageContent.astro';
 import { fetchBooks, fetchShows } from '../api/client';
-import type { Book, Show } from '../types';
+import type { Show } from '../types';
 
 // Fetch data (equivalent to loader function)
 let books = { results: [], count: 0 };
@@ -29,6 +29,6 @@ try {
   description="Discover books discussed, reviewed and recommended on BBC Radio 4 and NPR. Author interviews, reviews and prize-winners from Front Row, Free Thinking, Bookclub, A Good Read and Fresh Air."
   pathname={Astro.url.pathname}
 >
-  <HomePageContent books={books} shows={shows} client:load />
+  <HomePageContent books={books} shows={shows} />
 </Layout>
 

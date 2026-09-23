@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { TopicPageContent } from '../../components/TopicPageContent';
+import TopicPageContent from '../../components/TopicPageContent.astro';
 import { fetchTopic, fetchTopicBooks } from '../../api/client';
 
 const { topicSlug } = Astro.params;
@@ -43,9 +43,9 @@ const pageDescription = topic.description
   pathname={Astro.url.pathname}
 >
   <TopicPageContent
-    initialTopic={topic}
-    initialBooks={books}
-    initialPage={page}
-    client:load
+    topic={topic}
+    books={books}
+    currentPage={page}
+    booksPerPage={booksPerPage}
   />
 </Layout>

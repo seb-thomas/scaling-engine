@@ -1,0 +1,97 @@
+---
+import Icon from './Icon.astro'
+import Breadcrumbs from './Breadcrumbs.astro'
+import BookList from './BookList.astro'
+import type { Book } from '../types'
+
+interface Props {
+  books: { results: Book[]; count: number }
+  search: string
+  currentPage: number
+  booksPerPage: number
+}
+
+const { books, search, currentPage, booksPerPage } = Astro.props
+---
+<div class="container py-12">
+  <Breadcrumbs items={[{ label: 'All Books' }]} />
+
+  <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
+    <h1 class="text-sm tracking-wider uppercase mb-4">All Books</h1>
+  </div>
+
+  <!-- Search: a plain GET form (works without JS); the script below makes it live -->
+  <div class="max-w-4xl mb-12">
+    <form action="/books" method="get" role="search" class="relative" data-book-search>
+      <Icon name="search" class="absolute left-4 top-1/2 -translate-y-1/2 size-5 text-gray-400" />
+      <input
+        type="text"
+        name="search"
+        value={search}
+        placeholder="Search by title, author, or topic..."
+        aria-label="Search books"
+        autocomplete="off"
+        class="w-full pl-12 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 focus:outline-none focus:border-gray-400 dark:focus:border-gray-600 transition-colors"
+      />
+    </form>
+    <div data-search-summary>
+      {search && (
+        <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">
+          Found {books.count} book{books.count !== 1 ? 's' : ''} matching &ldquo;{search}&rdquo;
+        </p>
+      )}
+    </div>
+  </div>
+
+  <div class="max-w-4xl transition-opacity" data-search-results>
+    {books.results.length > 0 ? (
+      <BookList books={books} currentPage={currentPage} booksPerPage={booksPerPage} url={Astro.url} />
+    ) : (
+      <p class="text-center py-12 text-gray-600 dark:text-gray-400">No books found matching your search.</p>
+    )}
+  </div>
+</div>
+
+<script>
+  // Live search: after a pause in typing, fetch the server-rendered results
+  // page and swap in its summary + results, so markup lives in one place.
+  const form = document.querySelector<HTMLFormElement>('[data-book-search]')
+  const input = form?.querySelector<HTMLInputElement>('input[name="search"]')
+  const summary = document.querySelector('[data-search-summary]')
+  const results = document.querySelector<HTMLElement>('[data-search-results]')
+
+  if (form && input && summary && results) {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let controller: AbortController | undefined
+
+    const run = async () => {
+      const q = input.value.trim()
+      const url = q ? `/books?search=${encodeURIComponent(q)}` : '/books'
+      controller?.abort()
+      controller = new AbortController()
+      results.style.opacity = '0.5'
+      try {
+        const res = await fetch(url, { signal: controller.signal })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const doc = new DOMParser().parseFromString(await res.text(), 'text/html')
+        summary.innerHTML = doc.querySelector('[data-search-summary]')?.innerHTML ?? ''
+        results.innerHTML = doc.querySelector('[data-search-results]')?.innerHTML ?? ''
+        history.replaceState(null, '', url)
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') form.submit()
+      } finally {
+        results.style.opacity = ''
+      }
+    }
+
+    input.addEventListener('input', () => {
+      clearTimeout(timer)
+      timer = setTimeout(run, 300)
+    })
+    form.addEventListener('submit', (e) => {
+      e.preventDefault()
+      clearTimeout(timer)
+      run()
+    })
+  }
+</script>

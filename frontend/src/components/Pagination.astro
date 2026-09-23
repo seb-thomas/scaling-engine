@@ -1,0 +1,72 @@
+---
+import Icon from './Icon.astro'
+
+interface Props {
+  currentPage: number
+  totalPages: number
+  /** Current URL; each page link keeps its other query params (e.g. search) */
+  url: URL
+}
+
+const { currentPage, totalPages, url } = Astro.props
+
+function pageHref(page: number): string {
+  const params = new URLSearchParams(url.search)
+  if (page === 1) params.delete('page')
+  else params.set('page', String(page))
+  const qs = params.toString()
+  return qs ? `${url.pathname}?${qs}` : url.pathname
+}
+
+const pages = Array.from({ length: totalPages }, (_, i) => i + 1)
+
+// Show max 7 page numbers
+let visiblePages: (number | -1)[] = pages
+if (totalPages > 7) {
+  if (currentPage <= 4) {
+    visiblePages = [...pages.slice(0, 5), -1, totalPages]
+  } else if (currentPage >= totalPages - 3) {
+    visiblePages = [1, -1, ...pages.slice(totalPages - 5)]
+  } else {
+    visiblePages = [1, -1, currentPage - 1, currentPage, currentPage + 1, -1, totalPages]
+  }
+}
+
+const arrowClass = 'px-3 py-2 hover:opacity-70 cursor-default transition-opacity'
+const wave = `url("data:image/svg+xml,%3Csvg width='32' height='4' viewBox='0 0 32 4' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M2 2 Q 4 0, 6 2 T 10 2 T 14 2 T 18 2 T 22 2 T 26 2 T 30 2' stroke='%23C85A3A' stroke-width='1.5' fill='none'/%3E%3C/svg%3E")`
+---
+<nav class="flex items-center justify-center gap-1 mt-12" aria-label="Pagination">
+  {currentPage === 1 ? (
+    <span class={`${arrowClass} opacity-30`} aria-label="Previous page" aria-disabled="true"><Icon name="chevron-left" class="size-4" /></span>
+  ) : (
+    <a href={pageHref(currentPage - 1)} class={arrowClass} aria-label="Previous page" rel="prev"><Icon name="chevron-left" class="size-4" /></a>
+  )}
+
+  <div class="flex items-center gap-1 mx-2">
+    {visiblePages.map((page) => (
+      page === -1 ? (
+        <span class="px-3 py-2 text-gray-500 dark:text-gray-400" aria-hidden="true">···</span>
+      ) : (
+        <a
+          href={pageHref(page)}
+          class="min-w-10 px-3 py-2 transition-all relative text-center"
+          aria-current={currentPage === page ? 'page' : undefined}
+        >
+          <span class="relative z-10">{page}</span>
+          {currentPage === page && (
+            <span
+              class="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1"
+              style={`background-image: ${wave}; background-size: 100% 100%; background-repeat: no-repeat`}
+            ></span>
+          )}
+        </a>
+      )
+    ))}
+  </div>
+
+  {currentPage >= totalPages ? (
+    <span class={`${arrowClass} opacity-30`} aria-label="Next page" aria-disabled="true"><Icon name="chevron-right" class="size-4" /></span>
+  ) : (
+    <a href={pageHref(currentPage + 1)} class={arrowClass} aria-label="Next page" rel="next"><Icon name="chevron-right" class="size-4" /></a>
+  )}
+</nav>

@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { BookDetailPageContent } from '../../components/BookDetailPageContent';
+import BookDetailPageContent from '../../components/BookDetailPageContent.astro';
 import { fetchBook } from '../../api/client';
 
 const { showSlug, bookSlug } = Astro.params;
@@ -44,5 +44,5 @@ const pageImage = book.cover_image || undefined;
   ogImage={pageImage}
   pathname={Astro.url.pathname}
 >
-  <BookDetailPageContent book={book} showSlug={showSlug} client:load />
+  <BookDetailPageContent book={book} showSlug={showSlug} />
 </Layout>

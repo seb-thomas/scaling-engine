@@ -1,0 +1,42 @@
+---
+import BookCard from './BookCard.astro'
+import ShowCard from './ShowCard.astro'
+import type { Book, Show } from '../types'
+
+interface Props {
+  books: { results: Book[]; count: number }
+  shows: Show[]
+}
+
+const { books, shows } = Astro.props
+const latestBooks = books.results.slice(0, 8)
+---
+<div class="container py-12">
+  <section class="mb-16">
+    <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
+      <h1 class="text-sm tracking-wider uppercase mb-4">Latest Books</h1>
+    </div>
+
+    <div class="max-w-4xl">
+      {latestBooks.map((book, index) => (
+        <BookCard book={book} featured={index === 0 && !!book.description} />
+      ))}
+
+      <div class="mt-8 text-left">
+        <a href="/books" class="text-sm hover:opacity-70 transition-opacity">All books →</a>
+      </div>
+    </div>
+  </section>
+
+  {shows.length > 0 && (
+    <section>
+      <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
+        <h2 class="text-sm tracking-wider uppercase mb-4">Top Shows</h2>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {shows.slice(0, 6).map((show) => <ShowCard show={show} />)}
+      </div>
+    </section>
+  )}
+</div>

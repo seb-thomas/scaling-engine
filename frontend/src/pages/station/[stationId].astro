@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { StationPageContent } from '../../components/StationPageContent';
+import StationPageContent from '../../components/StationPageContent.astro';
 import { fetchStation, fetchStationShows } from '../../api/client';
 import type { Show, Station } from '../../types';
 
@@ -43,6 +43,6 @@ const pageDescription = station.description
   description={pageDescription}
   pathname={Astro.url.pathname}
 >
-  <StationPageContent station={station} shows={shows} client:load />
+  <StationPageContent station={station} shows={shows} />
 </Layout>
 

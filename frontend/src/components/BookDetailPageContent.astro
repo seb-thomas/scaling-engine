@@ -1,0 +1,130 @@
+---
+import Icon from './Icon.astro'
+import ImageWithFallback from './ImageWithFallback.astro'
+import Breadcrumbs from './Breadcrumbs.astro'
+import AffiliateDisclosure from './AffiliateDisclosure.astro'
+import { cn, formatDateLong } from '../lib/utils'
+import type { Book, BookEpisode } from '../types'
+
+interface Props {
+  book: Book
+  showSlug?: string
+}
+
+const { book, showSlug } = Astro.props
+
+function sortEpisodesByAiredAt(episodes: BookEpisode[]): BookEpisode[] {
+  return [...episodes].sort((a, b) => {
+    const aAt = a.aired_at ? new Date(a.aired_at).getTime() : 0
+    const bAt = b.aired_at ? new Date(b.aired_at).getTime() : 0
+    return bAt - aAt
+  })
+}
+
+const sortedEpisodes = sortEpisodesByAiredAt(book.episodes ?? [])
+
+const contextBrand = showSlug && book.episodes?.length
+  ? book.episodes.find((ep) => ep.brand.slug === showSlug)?.brand
+  : book.episodes?.[0]?.brand
+
+const seen = new Set<string>()
+const uniqueBrands = (book.episodes ?? [])
+  .map((ep) => ep.brand)
+  .filter((b) => {
+    if (seen.has(b.slug)) return false
+    seen.add(b.slug)
+    return true
+  })
+
+const breadcrumbItems = uniqueBrands.length > 1
+  ? [
+      { label: 'Home', href: '/' },
+      { label: 'Books', href: '/' },
+      { label: book.title },
+    ]
+  : [
+      { label: 'Home', href: '/' },
+      ...(contextBrand ? [
+        { label: contextBrand.station.name, href: `/station/${contextBrand.station.station_id}` },
+        { label: contextBrand.name, href: `/show/${contextBrand.slug}` },
+      ] : []),
+      { label: book.title },
+    ]
+
+// Outline button styles (formerly ui/button variant="outline")
+const buyButtonClass = cn(
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 outline-none focus-visible:ring-2 focus-visible:ring-gray-400',
+  'border border-gray-300 dark:border-gray-700 bg-transparent hover:bg-gray-50 dark:hover:bg-gray-800',
+  'h-9 px-4 py-2',
+  'inline-flex items-center gap-2',
+)
+---
+<div class="container py-12">
+  <Breadcrumbs items={breadcrumbItems} />
+
+  <div class="max-w-3xl">
+    <article>
+      <div class="flex gap-8 mb-8">
+        <div class="flex-shrink-0 w-48" style="container-type: inline-size">
+          <ImageWithFallback
+            src={book.cover_image}
+            alt={`Cover of ${book.title}`}
+            class="w-full h-auto shadow-xl"
+            title={book.title}
+            author={book.author}
+            brandColor={contextBrand?.brand_color}
+            priority
+          />
+        </div>
+        <div class="flex-1">
+          <h1 class="font-serif text-5xl mb-6">{book.title}</h1>
+
+          {book.author && <div class="text-xl text-gray-600 dark:text-gray-400 mb-4">by {book.author}</div>}
+
+          {book.topics && book.topics.length > 0 && (
+            <div class="text-xs text-gray-500 dark:text-gray-500 mt-2">
+              {book.topics.map((c, i) => (
+                <span>{i > 0 && ' · '}<a href={`/topic/${c.slug}`} class="hover:text-[#c1573a] dark:hover:text-[#c1573a] transition-colors">{c.name}</a></span>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div class="border-y border-gray-200 dark:border-gray-800 py-6">
+        <h2 class="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4">Featured On</h2>
+        <div class="space-y-6">
+          {sortedEpisodes.map((episode) => (
+            <div>
+              <div class="text-gray-900 dark:text-gray-100 mb-2">
+                <a href={`/show/${episode.brand.slug}`} class="hover:text-gray-600 dark:hover:text-gray-300 transition-colors">{episode.brand.name}, {episode.brand.station.name}</a>{episode.aired_at && (
+                  <Fragment><span class="text-gray-500 dark:text-gray-500"> · </span><span class="text-gray-500 dark:text-gray-500 text-sm">{formatDateLong(episode.aired_at)}</span></Fragment>
+                )}
+              </div>
+              <p class="italic mb-2 text-gray-700 dark:text-gray-300">{episode.title}</p>
+              {episode.url && (
+                <a href={episode.url} target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors underline">
+                  Listen to episode
+                  <Icon name="external-link" class="w-4 h-4" />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {book.description && <p class="text-xl leading-relaxed text-gray-900 dark:text-gray-200 my-8">{book.description}</p>}
+
+      {book.purchase_link && (
+        <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded">
+          <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">Get this book</p>
+          <a href={book.purchase_link} target="_blank" rel="noopener noreferrer" class={buyButtonClass}>
+            Buy on Bookshop.org
+            <Icon name="external-link" class="w-4 h-4" />
+          </a>
+          <AffiliateDisclosure />
+        </div>
+      )}
+    </article>
+  </div>
+</div>

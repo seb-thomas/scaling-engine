@@ -1,0 +1,39 @@
+---
+import Breadcrumbs from './Breadcrumbs.astro'
+import BookList from './BookList.astro'
+import type { Book, Topic } from '../types'
+
+interface Props {
+  topic: Topic
+  books: { results: Book[]; count: number }
+  currentPage: number
+  booksPerPage: number
+}
+
+const { topic, books, currentPage, booksPerPage } = Astro.props
+---
+<div class="container py-12">
+  <Breadcrumbs items={[
+    { label: 'Home', href: '/' },
+    { label: 'Topics', href: '/topics' },
+    { label: topic.name },
+  ]} />
+
+  <div class="mb-12">
+    <h1 class="font-serif text-3xl font-medium mb-4">{topic.name}</h1>
+    {topic.description && <p class="text-gray-600 dark:text-gray-400 mb-2">{topic.description}</p>}
+    <p class="text-sm text-gray-500 dark:text-gray-400">
+      {topic.book_count.toLocaleString('en-GB')} book{topic.book_count !== 1 ? 's' : ''}
+    </p>
+  </div>
+
+  <div>
+    <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
+      <h2 class="text-sm tracking-wider uppercase mb-4">Books</h2>
+    </div>
+
+    <div class="max-w-4xl">
+      <BookList books={books} currentPage={currentPage} booksPerPage={booksPerPage} url={Astro.url} />
+    </div>
+  </div>
+</div>

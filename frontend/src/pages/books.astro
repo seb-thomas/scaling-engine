@@ -1,6 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { BooksPageContent } from '../components/BooksPageContent';
+import BooksPageContent from '../components/BooksPageContent.astro';
 import { fetchBooks } from '../api/client';
 
 // Get query params
@@ -24,9 +24,9 @@ try {
   pathname={Astro.url.pathname}
 >
   <BooksPageContent
-    initialBooks={books}
-    initialSearch={search || ''}
-    initialPage={page}
-    client:load
+    books={books}
+    search={search || ''}
+    currentPage={page}
+    booksPerPage={booksPerPage}
   />
 </Layout>

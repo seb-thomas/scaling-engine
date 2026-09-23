@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { ShowPageContent } from '../../components/ShowPageContent';
+import ShowPageContent from '../../components/ShowPageContent.astro';
 import { fetchShow, fetchShowBooks } from '../../api/client';
 
 const { showSlug } = Astro.params;
@@ -46,9 +46,9 @@ const pageDescription = show.description
   pathname={Astro.url.pathname}
 >
   <ShowPageContent
-    initialShow={show}
-    initialBooks={books}
-    initialPage={page}
-    client:load
+    show={show}
+    books={books}
+    currentPage={page}
+    booksPerPage={booksPerPage}
   />
 </Layout>

@@ -1,22 +1,12 @@
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import { fileURLToPath } from 'url';
+/// <reference types="vitest" />
+import { getViteConfig } from 'astro/config';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-export default defineConfig({
-  plugins: [react()],
+// Astro's Vite config lets tests import .astro components and render them
+// with the container API (see src/test/render.ts)
+export default getViteConfig({
   test: {
     globals: true,
-    environment: 'jsdom',
+    environment: 'node',
     setupFiles: './src/test/setup.ts',
-    css: true,
-  },
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
   },
 });
-
