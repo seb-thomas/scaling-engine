@@ -1,5 +1,6 @@
 ---
 import Header from '../components/Header.astro';
+import Analytics from '../components/Analytics.astro';
 // Fonts are bundled (Fontsource) rather than loaded from Google Fonts, which
 // cost a render-blocking stylesheet request to a third-party origin
 import '@fontsource-variable/eb-garamond/wght.css';
@@ -91,6 +92,7 @@ for (const code of [speculationRules, headScript]) {
     <main class="pb-16">
       <slot />
     </main>
+    <Analytics />
   </body>
 </html>
 

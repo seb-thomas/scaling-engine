@@ -1,0 +1,64 @@
+---
+// Page views and Listen/Buy clicks, sent to PostHog without its SDK
+// (~98 KB gzipped). No cookies: the visitor id lives in sessionStorage,
+// so a visit is one tab session and nobody is tracked across days.
+// Events go to /ingest/, which nginx proxies to PostHog's EU host.
+import { POSTHOG_KEY } from '../lib/analytics'
+---
+{POSTHOG_KEY && <div hidden data-posthog-key={POSTHOG_KEY}></div>}
+
+<script>
+  const key = document.querySelector<HTMLElement>('[data-posthog-key]')?.dataset.posthogKey
+  const optedOut = navigator.webdriver
+    || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl
+    || navigator.doNotTrack === '1'
+    || location.hostname !== 'radioreads.fun'
+
+  if (key && !optedOut) {
+    let id: string
+    try {
+      id = sessionStorage.getItem('rr_sid') || crypto.randomUUID()
+      sessionStorage.setItem('rr_sid', id)
+    } catch {
+      id = crypto.randomUUID()
+    }
+
+    const referrer = document.referrer
+    const capture = (event: string, properties: Record<string, unknown> = {}) => {
+      const body = JSON.stringify({
+        api_key: key,
+        event,
+        distinct_id: id,
+        timestamp: new Date().toISOString(),
+        properties: {
+          $current_url: location.href,
+          $host: location.host,
+          $pathname: location.pathname,
+          $referrer: referrer || '$direct',
+          $referring_domain: referrer ? new URL(referrer).hostname : '$direct',
+          $screen_width: screen.width,
+          // Anonymous events: no person profiles
+          $process_person_profile: false,
+          ...properties,
+        },
+      })
+      // sendBeacon survives the page unloading (Listen/Buy open new tabs or navigate)
+      if (!navigator.sendBeacon?.('/ingest/i/v0/e/', new Blob([body], { type: 'application/json' }))) {
+        fetch('/ingest/i/v0/e/', { method: 'POST', body, keepalive: true }).catch(() => {})
+      }
+    }
+
+    capture('$pageview', { title: document.title })
+
+    // Links marked data-track="listen" or "buy" (book page)
+    document.addEventListener('click', (e) => {
+      const link = (e.target as Element).closest<HTMLAnchorElement>('a[data-track]')
+      if (!link) return
+      capture(`${link.dataset.track}_click`, {
+        book: link.dataset.book,
+        show: link.dataset.show,
+        destination: link.href,
+      })
+    })
+  }
+</script>

@@ -105,7 +105,7 @@ const outlineButtonClass = cn(
               </div>
               <p class="italic mb-2 text-gray-700 dark:text-gray-300">{episode.title}</p>
               {episode.url && (
-                <a href={episode.url} target="_blank" rel="noopener noreferrer" class={outlineButtonClass}>
+                <a href={episode.url} target="_blank" rel="noopener noreferrer" class={outlineButtonClass} data-track="listen" data-book={book.slug} data-show={episode.brand.slug}>
                   Listen to the episode
                   <Icon name="external-link" class="w-4 h-4" />
                 </a>
@@ -120,7 +120,7 @@ const outlineButtonClass = cn(
       {book.purchase_link && (
         <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded">
           <p class="text-sm text-gray-700 dark:text-gray-300 mb-4">Liked what you heard? Buy it from an independent bookshop.</p>
-          <a href={book.purchase_link} target="_blank" rel="noopener noreferrer" class={outlineButtonClass}>
+          <a href={book.purchase_link} target="_blank" rel="noopener noreferrer" class={outlineButtonClass} data-track="buy" data-book={book.slug} data-show={contextBrand?.slug}>
             Buy on Bookshop.org
             <Icon name="external-link" class="w-4 h-4" />
           </a>

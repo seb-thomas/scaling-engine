@@ -102,6 +102,23 @@ server {
     }
 
     # Static files from Django
+    # Analytics events → PostHog EU (frontend/src/components/Analytics.astro).
+    # Same-origin, so no CSP change and fewer ad-blocker losses. The host is a
+    # variable so nginx resolves it per request and still starts if DNS is down.
+    location /ingest/ {
+        resolver 127.0.0.11 valid=300s ipv6=off;
+        resolver_timeout 5s;
+        set $posthog_host eu.i.posthog.com;
+        rewrite ^/ingest/(.*)$ /$1 break;
+        proxy_pass https://$posthog_host;
+        proxy_set_header Host $posthog_host;
+        proxy_ssl_server_name on;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header Cookie "";
+        client_max_body_size 64k;
+    }
+
     location /staticfiles/ {
         alias /home/app/web/staticfiles/;
     }
