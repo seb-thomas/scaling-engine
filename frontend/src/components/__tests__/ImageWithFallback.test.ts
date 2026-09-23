@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { render } from '@/test/render'
+import { headScript } from '@/lib/headScript'
 import ImageWithFallback from '../ImageWithFallback.astro'
 
 describe('ImageWithFallback', () => {
@@ -14,8 +15,10 @@ describe('ImageWithFallback', () => {
   it('swaps to the placeholder when the image fails', async () => {
     const screen = await render(ImageWithFallback, { src: '/c.jpg', alt: 'Cover of X', title: 'X' })
     const img = screen.getByAltText('Cover of X')
-    // jsdom doesn't run inline handlers, so invoke the onerror attribute directly
-    new Function(img.getAttribute('onerror')!).call(img)
+    // The swap is done by a document-level listener in the Layout's head script
+    window.matchMedia = (() => ({ matches: false, addEventListener() {} })) as unknown as typeof window.matchMedia
+    new Function('HTMLImageElement', headScript)(window.HTMLImageElement)
+    img.dispatchEvent(new Event('error'))
     expect(img.style.display).toBe('none')
     expect(img.nextElementSibling?.classList.contains('hidden')).toBe(false)
   })

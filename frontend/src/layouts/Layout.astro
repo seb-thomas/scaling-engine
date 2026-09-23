@@ -6,8 +6,11 @@ import '@fontsource-variable/eb-garamond/wght.css';
 import '@fontsource-variable/eb-garamond/wght-italic.css';
 import '@fontsource-variable/inter/wght.css';
 import garamondLatin from '@fontsource-variable/eb-garamond/files/eb-garamond-latin-wght-normal.woff2?url';
+import garamondLatinItalic from '@fontsource-variable/eb-garamond/files/eb-garamond-latin-wght-italic.woff2?url';
 import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url';
 import '../index.css';
+import { createHash } from 'node:crypto';
+import { headScript } from '../lib/headScript';
 
 interface Props {
   title?: string;
@@ -29,6 +32,22 @@ const {
 } = Astro.props;
 
 const canonicalURL = new URL(pathname, SITE_URL).href;
+
+const speculationRules = JSON.stringify({
+  prerender: [{
+    where: { and: [
+      { href_matches: '/*' },
+      { not: { href_matches: ['/admin/*', '/api/*', '/media/*', '/staticfiles/*'] } },
+    ] },
+    eagerness: 'moderate',
+  }],
+});
+
+// Astro's CSP hashes the scripts it bundles but not is:inline ones, so
+// allow these two by the hash of their exact contents
+for (const code of [speculationRules, headScript]) {
+  Astro.csp?.insertScriptHash(`sha256-${createHash('sha256').update(code).digest('base64')}`);
+}
 ---
 
 <!doctype html>
@@ -39,6 +58,8 @@ const canonicalURL = new URL(pathname, SITE_URL).href;
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preload" href={interLatin} as="font" type="font/woff2" crossorigin />
     <link rel="preload" href={garamondLatin} as="font" type="font/woff2" crossorigin />
+    <!-- The italic is used by the header logo on every page -->
+    <link rel="preload" href={garamondLatinItalic} as="font" type="font/woff2" crossorigin />
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonicalURL} />
@@ -53,26 +74,8 @@ const canonicalURL = new URL(pathname, SITE_URL).href;
     <meta name="twitter:description" content={description} />
     <!-- Chrome/Edge prerender a page when its link is hovered (or pressed), so
          the click shows it instantly. Other browsers ignore this. -->
-    <script is:inline type="speculationrules">
-      {
-        "prerender": [{
-          "where": { "and": [
-            { "href_matches": "/*" },
-            { "not": { "href_matches": ["/admin/*", "/api/*", "/media/*", "/staticfiles/*"] } }
-          ] },
-          "eagerness": "moderate"
-        }]
-      }
-    </script>
-    <script is:inline>
-      // Follow the system colour scheme; runs before first paint to prevent a flash
-      (function() {
-        const mq = window.matchMedia('(prefers-color-scheme: dark)');
-        const apply = () => document.documentElement.classList.toggle('dark', mq.matches);
-        apply();
-        mq.addEventListener('change', apply);
-      })();
-    </script>
+    <script is:inline type="speculationrules" set:html={speculationRules} />
+    <script is:inline set:html={headScript} />
   </head>
   <body class="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
     <Header pathname={pathname} />

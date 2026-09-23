@@ -13,5 +13,5 @@ interface Props {
 const { books, currentPage, booksPerPage, url } = Astro.props
 const totalPages = Math.ceil(books.count / booksPerPage)
 ---
-{books.results.map((book) => <BookCard book={book} />)}
+{books.results.map((book, index) => <BookCard book={book} priority={index === 0} />)}
 {totalPages > 1 && <Pagination currentPage={currentPage} totalPages={totalPages} url={url} />}

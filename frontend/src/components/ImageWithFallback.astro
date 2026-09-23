@@ -18,8 +18,6 @@ interface Props {
 
 const { src, thumbnails = [], sizes, alt, class: className = '', title, author, brandColor, priority = false } = Astro.props
 const srcset = thumbnails.length ? thumbnails.map((t) => `${t.url} ${t.width}w`).join(', ') : undefined
-// On a broken image, hide it and reveal the fallback rendered right after it
-const onError = "this.style.display='none';this.nextElementSibling.classList.remove('hidden')"
 ---
 {src && (
   <img
@@ -32,7 +30,7 @@ const onError = "this.style.display='none';this.nextElementSibling.classList.rem
     height="600"
     loading={priority ? 'eager' : 'lazy'}
     fetchpriority={priority ? 'high' : undefined}
-    onerror={onError}
+    data-fallback
   />
 )}
 {title ? (

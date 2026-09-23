@@ -130,6 +130,16 @@ server {
         proxy_cache_lock on;
         proxy_cache_bypass $http_x_cache_bypass;
         add_header X-Cache $upstream_cache_status always;
+        # Security headers for the Astro pages (Django sets its own on /admin/
+        # and /api/). Astro sends the script/style CSP; frame-ancestors can only
+        # come from a header, so it's here. Browsers enforce both policies.
+        # No includeSubDomains, matching Django's HSTS setting.
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header Content-Security-Policy "frame-ancestors 'none'" always;
+        add_header X-Frame-Options DENY always;
+        add_header Cross-Origin-Opener-Policy same-origin always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy strict-origin-when-cross-origin always;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header X-Forwarded-Host $host:$server_port;

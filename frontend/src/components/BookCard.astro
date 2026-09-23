@@ -6,9 +6,11 @@ import type { Book } from '@/types'
 interface Props {
   book: Book
   featured?: boolean
+  /** First card on the page: its cover is the LCP image */
+  priority?: boolean
 }
 
-const { book, featured = false } = Astro.props
+const { book, featured = false, priority = false } = Astro.props
 const ep = book.episodes?.[0]
 const brand = ep?.brand
 const href = `/${brand?.slug ?? 'unknown'}/${book.slug}`
@@ -27,6 +29,7 @@ const href = `/${brand?.slug ?? 'unknown'}/${book.slug}`
             title={book.title}
             author={book.author}
             brandColor={brand?.brand_color}
+            priority={priority}
           />
         </div>
         <div class="flex-1">
@@ -56,6 +59,7 @@ const href = `/${brand?.slug ?? 'unknown'}/${book.slug}`
           title={book.title}
           author={book.author}
           brandColor={brand?.brand_color}
+          priority={priority}
         />
       </div>
       <div class="flex-1 flex flex-col">
