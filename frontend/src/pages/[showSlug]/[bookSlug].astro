@@ -1,12 +1,14 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import BookDetailPageContent from '../../components/BookDetailPageContent.astro';
-import { fetchBook } from '../../api/client';
+import { fetchBook, NotFoundError } from '../../api/client';
+import { formatDateLong } from '../../lib/utils';
+import { bookJsonLd, SITE_URL } from '../../lib/structuredData';
 
 const { showSlug, bookSlug } = Astro.params;
 
 if (!showSlug || !bookSlug) {
-  return Astro.redirect('/404');
+  return Astro.rewrite('/404');
 }
 
 // Fetch book by slug
@@ -14,26 +16,39 @@ let book;
 try {
   book = await fetchBook(bookSlug);
 } catch (error) {
-  console.error('Error fetching book:', error);
-  return Astro.redirect('/404');
+  // Only a real 404 from the API means the page is gone; anything else is
+  // an outage and must not look like a missing page to search engines
+  if (error instanceof NotFoundError) return Astro.rewrite('/404');
+  throw error;
 }
 
 if (!book) {
-  return Astro.redirect('/404');
+  return Astro.rewrite('/404');
 }
 
 // Verify the book belongs to the correct show (by slug)
 const primaryBrandSlug = book.episodes?.[0]?.brand?.slug;
 if (primaryBrandSlug !== showSlug) {
   // Redirect to correct URL if show slug doesn't match
-  return Astro.redirect(`/${primaryBrandSlug ?? 'unknown'}/${book.slug}`);
+  return Astro.redirect(`/${primaryBrandSlug ?? 'unknown'}/${book.slug}`, 301);
 }
 
-const brandName = book.episodes?.[0]?.brand?.name || '';
-const pageTitle = `${book.title} by ${book.author || 'Unknown'} — Radio Reads`;
-const pageDescription = book.description
-  ? book.description.slice(0, 155) + (book.description.length > 155 ? '...' : '')
-  : `${book.title} by ${book.author || 'Unknown'}, discussed on ${brandName}. Find out more about this book on Radio Reads.`;
+const episode = book.episodes?.[0];
+const brandName = episode?.brand?.name || '';
+const stationName = episode?.brand?.station?.name || '';
+const byline = book.author ? `${book.title} by ${book.author}` : book.title;
+
+// Search results should say where the book was heard: that's what people search for
+const pageTitle = brandName
+  ? `${byline}, as heard on ${brandName} — Radio Reads`
+  : `${byline} — Radio Reads`;
+const heard = brandName
+  ? `Discussed on ${brandName}${stationName ? ` (${stationName})` : ''}${episode?.aired_at ? `, ${formatDateLong(episode.aired_at)}` : ''}. `
+  : '';
+const fullDescription = heard + (book.description || 'Listen to the conversation and find out more about the book.');
+const pageDescription = fullDescription.length > 160
+  ? fullDescription.slice(0, 157).replace(/\s+\S*$/, '') + '…'
+  : fullDescription;
 const pageImage = book.cover_image || undefined;
 ---
 
@@ -43,6 +58,7 @@ const pageImage = book.cover_image || undefined;
   ogType="book"
   ogImage={pageImage}
   pathname={Astro.url.pathname}
+  jsonLd={bookJsonLd(book, new URL(Astro.url.pathname, SITE_URL).href)}
 >
   <BookDetailPageContent book={book} showSlug={showSlug} />
 </Layout>

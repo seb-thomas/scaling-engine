@@ -11,6 +11,7 @@ import interLatin from '@fontsource-variable/inter/files/inter-latin-wght-normal
 import '../index.css';
 import { createHash } from 'node:crypto';
 import { headScript } from '../lib/headScript';
+import { SITE_URL, serializeJsonLd } from '../lib/structuredData';
 
 interface Props {
   title?: string;
@@ -18,20 +19,27 @@ interface Props {
   ogImage?: string;
   ogType?: 'website' | 'article' | 'book';
   pathname?: string;
+  /** schema.org structured data for this page */
+  jsonLd?: object;
+  /** Keep this page out of search results (error pages) */
+  noindex?: boolean;
 }
 
-const SITE_URL = 'https://radioreads.fun';
 const DEFAULT_DESCRIPTION = 'Books discussed on BBC Radio 4 and NPR — author interviews, reviews and prize-winners, each with a link to the episode so you can hear the conversation.';
 
 const {
-  title = 'Radio Reads — Books from Radio Shows',
+  title = 'Radio Reads — Books discussed on BBC Radio 4 and NPR',
   description = DEFAULT_DESCRIPTION,
   ogImage,
   ogType = 'website',
   pathname = Astro.url.pathname,
+  jsonLd,
+  noindex = false,
 } = Astro.props;
 
 const canonicalURL = new URL(pathname, SITE_URL).href;
+// Covers come from the API as /media/... paths; social cards need absolute URLs
+const ogImageURL = ogImage ? new URL(ogImage, SITE_URL).href : undefined;
 
 const speculationRules = JSON.stringify({
   prerender: [{
@@ -62,13 +70,13 @@ for (const code of [speculationRules, headScript]) {
     <link rel="preload" href={garamondLatinItalic} as="font" type="font/woff2" crossorigin />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <link rel="canonical" href={canonicalURL} />
+    {noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={canonicalURL} />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:site_name" content="Radio Reads" />
-    {ogImage && <meta property="og:image" content={ogImage} />}
+    {ogImageURL && <meta property="og:image" content={ogImageURL} />}
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
@@ -76,6 +84,7 @@ for (const code of [speculationRules, headScript]) {
          the click shows it instantly. Other browsers ignore this. -->
     <script is:inline type="speculationrules" set:html={speculationRules} />
     <script is:inline set:html={headScript} />
+    {jsonLd && <script is:inline type="application/ld+json" set:html={serializeJsonLd(jsonLd)} />}
   </head>
   <body class="min-h-screen bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
     <Header pathname={pathname} />

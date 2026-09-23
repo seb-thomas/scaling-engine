@@ -1,12 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import TopicPageContent from '../../components/TopicPageContent.astro';
-import { fetchTopic, fetchTopicBooks } from '../../api/client';
+import { fetchTopic, fetchTopicBooks, NotFoundError } from '../../api/client';
 
 const { topicSlug } = Astro.params;
 
 if (!topicSlug) {
-  return Astro.redirect('/404');
+  return Astro.rewrite('/404');
 }
 
 const page = parseInt(Astro.url.searchParams.get('page') || '1', 10);
@@ -23,12 +23,12 @@ try {
   topic = topicData;
   books = booksData;
 } catch (error) {
-  console.error('Error fetching topic data:', error);
-  return Astro.redirect('/404');
+  if (error instanceof NotFoundError) return Astro.rewrite('/404');
+  throw error;
 }
 
 if (!topic) {
-  return Astro.redirect('/404');
+  return Astro.rewrite('/404');
 }
 
 const pageTitle = `${topic.name} Books — Radio Reads`;

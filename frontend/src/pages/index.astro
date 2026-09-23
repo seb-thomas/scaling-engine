@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import HomePageContent from '../components/HomePageContent.astro';
 import { fetchBooks, fetchShows } from '../api/client';
 import type { Show } from '../types';
+import { websiteJsonLd } from '../lib/structuredData';
 
 // Fetch data (equivalent to loader function)
 let books = { results: [], count: 0 };
@@ -28,6 +29,7 @@ try {
   title="Radio Reads — Books discussed on BBC Radio 4 and NPR"
   description="The books talked about on BBC Radio 4 and NPR this week, from Front Row, Start the Week, Fresh Air and more. Each one comes with the conversation, so you can hear what they said before you read it."
   pathname={Astro.url.pathname}
+  jsonLd={websiteJsonLd()}
 >
   <HomePageContent books={books} shows={shows} />
 </Layout>

@@ -1,12 +1,12 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import ShowPageContent from '../../components/ShowPageContent.astro';
-import { fetchShow, fetchShowBooks } from '../../api/client';
+import { fetchShow, fetchShowBooks, NotFoundError } from '../../api/client';
 
 const { showSlug } = Astro.params;
 
 if (!showSlug) {
-  return Astro.redirect('/404');
+  return Astro.rewrite('/404');
 }
 
 // Get query params
@@ -25,19 +25,19 @@ try {
   show = showData;
   books = booksData;
 } catch (error) {
-  console.error('Error fetching show data:', error);
-  return Astro.redirect('/404');
+  if (error instanceof NotFoundError) return Astro.rewrite('/404');
+  throw error;
 }
 
 if (!show) {
-  return Astro.redirect('/404');
+  return Astro.rewrite('/404');
 }
 
 const stationName = show.station?.name || '';
 const pageTitle = `${show.name} — Books from ${stationName} | Radio Reads`;
 const pageDescription = show.description
   ? show.description.slice(0, 155) + (show.description.length > 155 ? '...' : '')
-  : `Books discussed and recommended on ${show.name} (${stationName}). ${show.book_count} books and counting.`;
+  : `Every book discussed on ${show.name} (${stationName}), with links to the episodes. ${show.book_count} books and counting.`;
 ---
 
 <Layout

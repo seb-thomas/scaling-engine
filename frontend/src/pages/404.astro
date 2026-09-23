@@ -1,0 +1,17 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+// Rewrites from the dynamic routes land here too, so set the status explicitly
+Astro.response.status = 404;
+---
+
+<Layout title="Page not found — Radio Reads" pathname="/404" noindex>
+  <div class="container pt-10 pb-16 max-w-2xl">
+    <h1 class="font-serif text-3xl mb-6">We couldn't find that page</h1>
+    <p class="text-gray-600 dark:text-gray-400 leading-relaxed">
+      It may have moved, or the book may have been taken down after a second
+      listen. Try <a href="/books" class="underline hover:text-gray-900 dark:hover:text-gray-100 transition-colors">searching all books</a>
+      or see <a href="/" class="underline hover:text-gray-900 dark:hover:text-gray-100 transition-colors">what's on air this week</a>.
+    </p>
+  </div>
+</Layout>

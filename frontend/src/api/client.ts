@@ -23,6 +23,14 @@ const getApiBase = () => {
 
 const API_BASE = getApiBase()
 
+/** The API answered 404: the page should 404 too. Other failures are outages, not missing pages. */
+export class NotFoundError extends Error {}
+
+function ensureOk(response: Response, what: string) {
+  if (response.status === 404) throw new NotFoundError(`${what} not found`)
+  if (!response.ok) throw new Error(`Failed to fetch ${what}`)
+}
+
 // Base URL without /api suffix, for endpoints mounted at project level
 const API_ROOT = API_BASE.replace(/\/api\/?$/, '')
 
@@ -64,7 +72,7 @@ export async function fetchBooks(
 
 export async function fetchBook(slug: string) {
   const response = await fetch(`${API_BASE}/books/${slug}/`);
-  if (!response.ok) throw new Error('Failed to fetch book');
+  ensureOk(response, 'book');
   return response.json();
 }
 
@@ -81,7 +89,7 @@ export async function fetchShows() {
 
 export async function fetchShow(slug: string) {
   const response = await fetch(`${API_BASE}/brands/${slug}/`);
-  if (!response.ok) throw new Error('Failed to fetch show');
+  ensureOk(response, 'show');
   return response.json();
 }
 
@@ -111,7 +119,8 @@ export async function fetchStation(stationId: string) {
   const response = await fetch(`${API_BASE}/stations/?station_id=${stationId}`);
   if (!response.ok) throw new Error('Failed to fetch station');
   const data = await response.json();
-  return data.results?.[0] || data;
+  // Filtering by station_id: an empty result means no such station
+  return data.results ? data.results[0] ?? null : data;
 }
 
 export async function fetchTopics() {
@@ -122,7 +131,7 @@ export async function fetchTopics() {
 
 export async function fetchTopic(slug: string) {
   const response = await fetch(`${API_ROOT}/api/topics/${slug}/`);
-  if (!response.ok) throw new Error('Failed to fetch topic');
+  ensureOk(response, 'topic');
   return response.json();
 }
 
