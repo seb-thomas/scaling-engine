@@ -409,6 +409,14 @@ The app uses Let's Encrypt certificates. Certs expire after 90 days. Renewal use
 
    Or call the script in the repo: `deploy/renew-cert.sh` (see that file for the exact command and path).
 
+**Domains:** the certificate covers `radioreads.fun` and `www.radioreads.fun` (nginx 301s `www` to the apex). `certbot renew` keeps both names. To issue it from scratch, or to add a name:
+
+```bash
+certbot certonly --webroot -w /root/scaling-engine/certbot-webroot --cert-name radioreads.fun \
+  -d radioreads.fun -d www.radioreads.fun --expand
+docker compose -f /root/scaling-engine/docker-compose.prod.yml exec -T nginx nginx -s reload
+```
+
 ## Production Hosting Recommendations
 
 ### Option 1: DigitalOcean Droplet ⭐ RECOMMENDED
