@@ -10,6 +10,7 @@ import { POSTHOG_KEY } from '../lib/analytics'
 <script>
   const key = document.querySelector<HTMLElement>('[data-posthog-key]')?.dataset.posthogKey
   const optedOut = navigator.webdriver
+    || /Chrome-Lighthouse|bot|crawl|spider/i.test(navigator.userAgent)
     || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl
     || navigator.doNotTrack === '1'
     || location.hostname !== 'radioreads.fun'
