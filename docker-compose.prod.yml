@@ -26,7 +26,9 @@ services:
     build:
       context: ./api
       dockerfile: Dockerfile.prod
-    command: gunicorn paperwaves.wsgi:application --bind 0.0.0.0:8000
+    # Threads so one slow request (e.g. the full health check) can't queue every
+    # page render behind it; the default was a single synchronous worker
+    command: gunicorn paperwaves.wsgi:application --bind 0.0.0.0:8000 --worker-class gthread --workers 2 --threads 4 --timeout 60
     volumes:
       - static_volume:/home/app/web/staticfiles
       - media_volume:/home/app/web/media
@@ -40,7 +42,9 @@ services:
     restart: unless-stopped
     logging: *default-logging
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health/"]
+      # Liveness only: /api/health/ checks celery, redis, the pipeline and the
+      # cert, which isn't this container's health (and is slower)
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/"]
       interval: 30s
       timeout: 10s
       retries: 3

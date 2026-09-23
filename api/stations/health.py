@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 # Simple time-based cache
 _cache = {"data": None, "expires": 0}
-CACHE_TTL = 30  # seconds
+CACHE_TTL = 60  # seconds
 
 
 def get_system_health():
@@ -114,7 +114,9 @@ def _check_celery_workers(result):
     try:
         from paperwaves.celery import app
 
-        inspect = app.control.inspect(timeout=5.0)
+        # limit=1: return on the first reply. Without it, inspect() waits the
+        # full timeout collecting replies, holding a gunicorn worker for 5s.
+        inspect = app.control.inspect(timeout=2.0, limit=1)
         ping_response = inspect.ping()
         if ping_response:
             worker_names = list(ping_response.keys())

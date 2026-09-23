@@ -51,6 +51,19 @@ const canonicalURL = new URL(pathname, SITE_URL).href;
     <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
+    <!-- Chrome/Edge prerender a page when its link is hovered (or pressed), so
+         the click shows it instantly. Other browsers ignore this. -->
+    <script is:inline type="speculationrules">
+      {
+        "prerender": [{
+          "where": { "and": [
+            { "href_matches": "/*" },
+            { "not": { "href_matches": ["/admin/*", "/api/*", "/media/*", "/staticfiles/*"] } }
+          ] },
+          "eagerness": "moderate"
+        }]
+      }
+    </script>
     <script is:inline>
       // Follow the system colour scheme; runs before first paint to prevent a flash
       (function() {
