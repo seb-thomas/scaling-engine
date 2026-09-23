@@ -37,7 +37,7 @@ const wave = `url("data:image/svg+xml,%3Csvg width='32' height='4' viewBox='0 0 
 ---
 <nav class="flex items-center justify-center gap-1 mt-12" aria-label="Pagination">
   {currentPage === 1 ? (
-    <span class={`${arrowClass} opacity-30`} aria-label="Previous page" aria-disabled="true"><Icon name="chevron-left" class="size-4" /></span>
+    <a role="link" class={`${arrowClass} opacity-30`} aria-label="Previous page" aria-disabled="true"><Icon name="chevron-left" class="size-4" /></a>
   ) : (
     <a href={pageHref(currentPage - 1)} class={arrowClass} aria-label="Previous page" rel="prev"><Icon name="chevron-left" class="size-4" /></a>
   )}
@@ -65,7 +65,7 @@ const wave = `url("data:image/svg+xml,%3Csvg width='32' height='4' viewBox='0 0 
   </div>
 
   {currentPage >= totalPages ? (
-    <span class={`${arrowClass} opacity-30`} aria-label="Next page" aria-disabled="true"><Icon name="chevron-right" class="size-4" /></span>
+    <a role="link" class={`${arrowClass} opacity-30`} aria-label="Next page" aria-disabled="true"><Icon name="chevron-right" class="size-4" /></a>
   ) : (
     <a href={pageHref(currentPage + 1)} class={arrowClass} aria-label="Next page" rel="next"><Icon name="chevron-right" class="size-4" /></a>
   )}

@@ -68,6 +68,8 @@ const buyButtonClass = cn(
         <div class="flex-shrink-0 w-48" style="container-type: inline-size">
           <ImageWithFallback
             src={book.cover_image}
+            thumbnails={book.cover_thumbnails}
+            sizes="192px"
             alt={`Cover of ${book.title}`}
             class="w-full h-auto shadow-xl"
             title={book.title}

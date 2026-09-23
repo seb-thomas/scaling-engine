@@ -2,6 +2,7 @@ import logging
 
 from django.db import DatabaseError
 from rest_framework import serializers
+from .covers import thumbnail_urls
 from .models import Station, Book, Episode, Brand, Topic
 
 logger = logging.getLogger(__name__)
@@ -52,14 +53,19 @@ class TopicSerializer(serializers.ModelSerializer):
 class BookSerializer(serializers.ModelSerializer):
     episodes = EpisodeSerializer(many=True, read_only=True)
     cover_image = serializers.SerializerMethodField()
+    cover_thumbnails = serializers.SerializerMethodField()
     topics = TopicSerializer(many=True, read_only=True)
 
     class Meta:
         model = Book
-        fields = ('id', 'title', 'slug', 'author', 'topics', 'description', 'cover_image', 'purchase_link', 'episodes')
+        fields = ('id', 'title', 'slug', 'author', 'topics', 'description', 'cover_image', 'cover_thumbnails', 'purchase_link', 'episodes')
 
     def get_cover_image(self, obj):
         """Return cover image URL if available"""
         if obj.cover_image:
             return obj.cover_image.url
         return ""
+
+    def get_cover_thumbnails(self, obj):
+        """Small WebP versions of the cover for srcset: [{width, url}]"""
+        return thumbnail_urls(obj)

@@ -2,8 +2,9 @@ from django.dispatch import receiver
 from django.db import transaction
 from django.db.models.signals import post_save
 from django.conf import settings
-from .models import Episode
+from .models import Book, Episode
 from .tasks import contains_keywords_task, ai_extract_books_task
+from .covers import generate_thumbnails
 
 
 @receiver(post_save, sender=Episode)
@@ -36,3 +37,12 @@ def episode_post_save(sender, instance, created, **kwargs):
         else:
             # Default to keyword if invalid mode
             transaction.on_commit(lambda: contains_keywords_task.delay(instance.pk))
+
+
+@receiver(post_save, sender=Book)
+def book_post_save(sender, instance, update_fields=None, **kwargs):
+    """Keep cover thumbnails in step with the cover (no-op when already fresh)."""
+    if update_fields is not None and "cover_image" not in update_fields:
+        return
+    if instance.cover_image:
+        generate_thumbnails(instance)

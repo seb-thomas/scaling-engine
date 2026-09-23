@@ -298,6 +298,10 @@ jobs:
             echo "Fixing broken cover image paths..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py fix_cover_images || true
 
+            # WebP cover thumbnails for srcset (idempotent: only missing/stale ones)
+            echo "Generating cover thumbnails..."
+            $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T web python manage.py generate_cover_thumbnails || true
+
             # Fix staticfiles permissions and collect
             echo "Fixing staticfiles permissions..."
             $DOCKER_COMPOSE -f $COMPOSE_FILE exec -T -u root web sh -c "rm -rf /home/app/web/staticfiles/* && chown -R app:app /home/app/web/staticfiles"

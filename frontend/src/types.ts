@@ -26,6 +26,8 @@ export type Book = {
   topics?: { slug: string; name: string }[];
   description?: string;
   cover_image?: string;
+  /** Small WebP versions of cover_image, smallest first */
+  cover_thumbnails?: { width: number; url: string }[];
   purchase_link?: string;
   episodes: BookEpisode[];
 };

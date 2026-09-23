@@ -34,3 +34,25 @@ describe('ImageWithFallback', () => {
     expect(img).toHaveAttribute('fetchpriority', 'high')
   })
 })
+
+describe('ImageWithFallback srcset', () => {
+  const thumbnails = [
+    { width: 160, url: '/media/thumbs/a-160.webp?v=1' },
+    { width: 400, url: '/media/thumbs/a-400.webp?v=1' },
+  ]
+
+  it('offers thumbnails via srcset with the rendered size', async () => {
+    const screen = await render(ImageWithFallback, { src: '/media/covers/a.jpg', thumbnails, sizes: '64px', alt: 'A' })
+    const img = screen.getByAltText('A')
+    expect(img).toHaveAttribute('srcset', '/media/thumbs/a-160.webp?v=1 160w, /media/thumbs/a-400.webp?v=1 400w')
+    expect(img).toHaveAttribute('sizes', '64px')
+    expect(img).toHaveAttribute('src', '/media/covers/a.jpg')
+  })
+
+  it('omits srcset and sizes without thumbnails', async () => {
+    const screen = await render(ImageWithFallback, { src: '/media/covers/a.jpg', sizes: '64px', alt: 'A' })
+    const img = screen.getByAltText('A')
+    expect(img).not.toHaveAttribute('srcset')
+    expect(img).not.toHaveAttribute('sizes')
+  })
+})

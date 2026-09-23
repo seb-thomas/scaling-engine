@@ -3,6 +3,10 @@ import PlaceholderCover from './PlaceholderCover.astro'
 
 interface Props {
   src?: string
+  /** Smaller versions of src for srcset, e.g. book.cover_thumbnails */
+  thumbnails?: { width: number; url: string }[]
+  /** Rendered width, for the browser to pick from srcset (e.g. "64px") */
+  sizes?: string
   alt: string
   class?: string
   title?: string
@@ -12,13 +16,16 @@ interface Props {
   priority?: boolean
 }
 
-const { src, alt, class: className = '', title, author, brandColor, priority = false } = Astro.props
+const { src, thumbnails = [], sizes, alt, class: className = '', title, author, brandColor, priority = false } = Astro.props
+const srcset = thumbnails.length ? thumbnails.map((t) => `${t.url} ${t.width}w`).join(', ') : undefined
 // On a broken image, hide it and reveal the fallback rendered right after it
 const onError = "this.style.display='none';this.nextElementSibling.classList.remove('hidden')"
 ---
 {src && (
   <img
     src={src}
+    srcset={srcset}
+    sizes={srcset ? sizes : undefined}
     alt={alt}
     class={className}
     width="400"

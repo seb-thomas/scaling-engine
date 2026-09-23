@@ -31,7 +31,7 @@ describe('Pagination', () => {
   it('disables previous on the first page', async () => {
     const screen = await render(Pagination, { currentPage: 1, totalPages: 5, url: url('/books') })
     const prev = screen.getByLabelText('Previous page')
-    expect(prev.tagName).toBe('SPAN')
+    expect(prev).not.toHaveAttribute('href')
     expect(prev).toHaveAttribute('aria-disabled', 'true')
   })
 

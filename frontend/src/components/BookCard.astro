@@ -20,6 +20,8 @@ const href = `/${brand?.slug ?? 'unknown'}/${book.slug}`
         <div class="flex-shrink-0 w-32" style="container-type: inline-size">
           <ImageWithFallback
             src={book.cover_image}
+            thumbnails={book.cover_thumbnails}
+            sizes="128px"
             alt={`Cover of ${book.title}`}
             class="w-full h-auto shadow-lg"
             title={book.title}
@@ -47,6 +49,8 @@ const href = `/${brand?.slug ?? 'unknown'}/${book.slug}`
       <div class="flex-shrink-0 w-16" style="container-type: inline-size">
         <ImageWithFallback
           src={book.cover_image}
+          thumbnails={book.cover_thumbnails}
+          sizes="64px"
           alt={`Cover of ${book.title}`}
           class="w-full h-auto shadow"
           title={book.title}
