@@ -15,7 +15,15 @@ import { POSTHOG_KEY } from '../lib/analytics'
     || navigator.doNotTrack === '1'
     || location.hostname !== 'radioreads.fun'
 
-  if (key && !optedOut) {
+  // Pages are prerendered when a link is hovered (speculation rules in Layout).
+  // Wait until one is actually shown, or every hover counts as a visit, and
+  // sessionStorage written during prerender is thrown away.
+  const whenShown = (fn: () => void) =>
+    (document as Document & { prerendering?: boolean }).prerendering
+      ? document.addEventListener('prerenderingchange', fn, { once: true })
+      : fn()
+
+  if (key && !optedOut) whenShown(() => {
     let id: string
     try {
       id = sessionStorage.getItem('rr_sid') || crypto.randomUUID()
@@ -61,5 +69,5 @@ import { POSTHOG_KEY } from '../lib/analytics'
         destination: link.href,
       })
     })
-  }
+  })
 </script>
