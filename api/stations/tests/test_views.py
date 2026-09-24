@@ -40,3 +40,27 @@ class TestStationViewSet:
 
     # Note: StationViewSet is ReadOnlyModelViewSet, so create/update/delete operations
     # are not supported and would return 405 Method Not Allowed
+
+
+@pytest.mark.unit
+class TestSitemapBooks:
+    """Tests for the slugs-only sitemap endpoint."""
+
+    def test_lists_verified_books_with_show_of_latest_episode(self, api_client, brand, book):
+        from datetime import datetime, timezone
+        from stations.models import Book, Brand, Episode
+
+        other = Brand.objects.create(station=brand.station, name='Other Show', url='https://example.com/other')
+        book.episodes.update(aired_at=datetime(2026, 1, 1, tzinfo=timezone.utc))
+        later = Episode.objects.create(
+            brand=other, title='Later', url='https://example.com/later',
+            aired_at=datetime(2026, 3, 1, tzinfo=timezone.utc),
+        )
+        book.episodes.add(later)
+        book.verification_status = Book.VERIFICATION_VERIFIED
+        book.save()
+        Book.objects.create(title='Unverified')
+
+        response = api_client.get('/api/sitemap/books/')
+        assert response.status_code == status.HTTP_200_OK
+        assert response.json() == [{'slug': book.slug, 'show': other.slug, 'lastmod': '2026-03-01'}]

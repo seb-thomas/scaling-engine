@@ -1,6 +1,6 @@
 from django.http import Http404, JsonResponse
 from django.core.paginator import Paginator
-from django.db.models import Count, F, Max, Prefetch, Q
+from django.db.models import Count, F, Max, OuterRef, Prefetch, Q, Subquery
 from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -112,6 +112,36 @@ class BookViewSet(viewsets.ReadOnlyModelViewSet):
         # M2M joins can produce duplicates
         queryset = queryset.distinct()
         return queryset
+
+
+def sitemap_books(request):
+    """Every published book's URL parts, for the frontend sitemap.
+
+    Slugs only: paging through the full books API took ~30s, longer than
+    search engines wait for a sitemap. `show` matches the frontend's book
+    URL (the brand of the book's first episode by -aired_at, as in
+    BookViewSet's prefetch).
+    """
+    first_episode = Episode.objects.filter(books=OuterRef("pk")).order_by("-aired_at")
+    books = (
+        Book.objects.filter(verification_status=Book.VERIFICATION_VERIFIED)
+        .annotate(
+            show=Subquery(first_episode.values("brand__slug")[:1]),
+            latest_aired=Max("episodes__aired_at"),
+        )
+        .filter(show__isnull=False)
+        .order_by("-id")
+        .values("slug", "show", "latest_aired")
+    )
+    result = [
+        {
+            "slug": b["slug"],
+            "show": b["show"],
+            "lastmod": b["latest_aired"].date().isoformat() if b["latest_aired"] else None,
+        }
+        for b in books
+    ]
+    return JsonResponse(result, safe=False)
 
 
 def topics_list(request):

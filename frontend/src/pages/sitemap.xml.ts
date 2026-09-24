@@ -1,12 +1,13 @@
 import type { APIRoute } from 'astro';
-import { fetchBooks, fetchShows, fetchTopics } from '../api/client';
+import { fetchSitemapBooks, fetchShows, fetchTopics } from '../api/client';
 
 const SITE_URL = 'https://radioreads.fun';
 
 export const GET: APIRoute = async () => {
-  // Fetch all data for sitemap
-  const [allBooks, shows, topics] = await Promise.all([
-    fetchAllBooks(),
+  // Books must load: a sitemap without them would tell search engines
+  // those pages are gone, so let a failure error instead
+  const [books, shows, topics] = await Promise.all([
+    fetchSitemapBooks(),
     fetchShows().catch(() => []),
     fetchTopics().catch(() => []),
   ]);
@@ -14,7 +15,7 @@ export const GET: APIRoute = async () => {
   const showsList = Array.isArray(shows) ? shows : (shows as any).results || [];
   const topicsList = Array.isArray(topics) ? topics : [];
 
-  const urls: { loc: string; priority: string; changefreq: string }[] = [];
+  const urls: { loc: string; priority: string; changefreq: string; lastmod?: string }[] = [];
 
   // Static pages
   urls.push({ loc: '/', priority: '1.0', changefreq: 'daily' });
@@ -34,17 +35,20 @@ export const GET: APIRoute = async () => {
   }
 
   // Book detail pages
-  for (const book of allBooks) {
-    const showSlug = book.episodes?.[0]?.brand?.slug;
-    if (showSlug) {
-      urls.push({ loc: `/${showSlug}/${book.slug}`, priority: '0.7', changefreq: 'monthly' });
-    }
+  for (const book of books) {
+    urls.push({
+      loc: `/${book.show}/${book.slug}`,
+      priority: '0.7',
+      changefreq: 'monthly',
+      ...(book.lastmod && { lastmod: book.lastmod }),
+    });
   }
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${urls.map(u => `  <url>
-    <loc>${SITE_URL}${u.loc}</loc>
+    <loc>${SITE_URL}${u.loc}</loc>${u.lastmod ? `
+    <lastmod>${u.lastmod}</lastmod>` : ''}
     <changefreq>${u.changefreq}</changefreq>
     <priority>${u.priority}</priority>
   </url>`).join('\n')}
@@ -54,22 +58,3 @@ ${urls.map(u => `  <url>
     headers: { 'Content-Type': 'application/xml' },
   });
 };
-
-async function fetchAllBooks() {
-  const allBooks: any[] = [];
-  let page = 1;
-  const pageSize = 100;
-
-  while (true) {
-    try {
-      const data = await fetchBooks(page, pageSize);
-      allBooks.push(...data.results);
-      if (!data.next) break;
-      page++;
-    } catch {
-      break;
-    }
-  }
-
-  return allBooks;
-}

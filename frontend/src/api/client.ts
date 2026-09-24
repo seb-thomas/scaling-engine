@@ -123,6 +123,13 @@ export async function fetchStation(stationId: string) {
   return data.results ? data.results[0] ?? null : data;
 }
 
+/** Every published book's URL parts, for the sitemap */
+export async function fetchSitemapBooks(): Promise<{ slug: string; show: string; lastmod: string | null }[]> {
+  const response = await fetch(`${API_ROOT}/api/sitemap/books/`);
+  ensureOk(response, 'sitemap books');
+  return response.json();
+}
+
 export async function fetchTopics() {
   const response = await fetch(`${API_ROOT}/api/topics/`);
   if (!response.ok) throw new Error('Failed to fetch topics');
