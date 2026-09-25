@@ -12,15 +12,20 @@ interface Props {
 
 const { items } = Astro.props
 ---
-<nav class="flex items-center gap-2 text-sm mb-8">
-  {items.map((item, index) => (
-    <div class="flex items-center gap-2">
-      {index > 0 && <Icon name="chevron-right" class="w-4 h-4 text-gray-400" />}
-      {item.href ? (
-        <a href={item.href} class="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">{item.label}</a>
-      ) : (
-        <span class="text-gray-700 dark:text-gray-400">{item.label}</span>
-      )}
-    </div>
-  ))}
+<nav class="flex items-center gap-2 text-sm mb-8 min-w-0">
+  {items.map((item, index) => {
+    // The current page (last item) shrinks to one truncated line so a long
+    // book title doesn't wrap the trail into a column on narrow screens.
+    const isLast = index === items.length - 1
+    return (
+      <div class={isLast ? 'flex items-center gap-2 min-w-0' : 'flex items-center gap-2 shrink-0'}>
+        {index > 0 && <Icon name="chevron-right" class="w-4 h-4 text-gray-400 shrink-0" />}
+        {item.href ? (
+          <a href={item.href} class="text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors whitespace-nowrap">{item.label}</a>
+        ) : (
+          <span class="text-gray-700 dark:text-gray-400 truncate">{item.label}</span>
+        )}
+      </div>
+    )
+  })}
 </nav>

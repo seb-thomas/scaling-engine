@@ -21,7 +21,7 @@ const thisWeek = books.results.filter((book) => Date.now() - airedAt(book) < WEE
 const onAir = thisWeek.length >= 4 ? thisWeek : books.results.slice(0, 8)
 const heading = thisWeek.length >= 4 ? 'This week on air' : 'Recently on air'
 ---
-<div class="container py-12">
+<div class="container py-8 md:py-12">
   <section class="max-w-2xl mb-16">
     <h1 class="font-serif text-3xl md:text-4xl leading-tight mb-5">
       Books worth talking about.

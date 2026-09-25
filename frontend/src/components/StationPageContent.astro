@@ -11,7 +11,7 @@ interface Props {
 const { station, shows } = Astro.props
 const linkClass = 'text-sm text-gray-600 dark:text-gray-400 hover:text-orange-700 dark:hover:text-orange-400 transition-colors'
 ---
-<div class="container py-12">
+<div class="container py-8 md:py-12">
   <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: station.name }]} />
 
   <div class="mb-12">

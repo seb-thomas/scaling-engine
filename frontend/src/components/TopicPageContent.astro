@@ -12,7 +12,7 @@ interface Props {
 
 const { topic, books, currentPage, booksPerPage } = Astro.props
 ---
-<div class="container py-12">
+<div class="container py-8 md:py-12">
   <Breadcrumbs items={[
     { label: 'Home', href: '/' },
     { label: 'Topics', href: '/topics' },

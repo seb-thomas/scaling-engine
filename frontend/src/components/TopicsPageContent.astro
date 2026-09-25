@@ -14,7 +14,7 @@ const { topics, stationNames } = Astro.props
 const networks = [...new Set(stationNames.map((n) => n.split(/\s/)[0]))]
 const stationsText = networks.length > 0 ? networks.join(' and ') : 'radio'
 ---
-<div class="container py-12">
+<div class="container py-8 md:py-12">
   <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Topics' }]} />
 
   <div class="mb-12">

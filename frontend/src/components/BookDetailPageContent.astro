@@ -59,17 +59,17 @@ const outlineButtonClass = cn(
   'inline-flex items-center gap-2',
 )
 ---
-<div class="container py-12">
+<div class="container py-8 md:py-12">
   <Breadcrumbs items={breadcrumbItems} />
 
   <div class="max-w-3xl">
     <article>
-      <div class="flex gap-8 mb-8">
-        <div class="flex-shrink-0 w-48" style="container-type: inline-size">
+      <div class="flex flex-col sm:flex-row gap-6 sm:gap-8 mb-8">
+        <div class="flex-shrink-0 w-36 sm:w-48" style="container-type: inline-size">
           <ImageWithFallback
             src={book.cover_image}
             thumbnails={book.cover_thumbnails}
-            sizes="192px"
+            sizes="(min-width: 640px) 192px, 144px"
             alt={`Cover of ${book.title}`}
             class="w-full h-auto shadow-xl"
             title={book.title}
@@ -78,8 +78,8 @@ const outlineButtonClass = cn(
             priority
           />
         </div>
-        <div class="flex-1">
-          <h1 class="font-serif text-5xl mb-6">{book.title}</h1>
+        <div class="flex-1 min-w-0">
+          <h1 class="font-serif text-4xl sm:text-5xl leading-tight mb-4 sm:mb-6" style="text-wrap: balance">{book.title}</h1>
 
           {book.author && <div class="text-xl text-gray-600 dark:text-gray-400 mb-4">by {book.author}</div>}
 
@@ -94,7 +94,7 @@ const outlineButtonClass = cn(
       </div>
 
       <div class="border-y border-gray-200 dark:border-gray-800 py-6">
-        <h2 class="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4">Hear it discussed</h2>
+        <h2 class="text-sm tracking-wider uppercase text-gray-600 dark:text-gray-400 mb-4">Featured on</h2>
         <div class="space-y-6">
           {sortedEpisodes.map((episode) => (
             <div>
@@ -115,7 +115,7 @@ const outlineButtonClass = cn(
         </div>
       </div>
 
-      {book.description && <p class="text-xl leading-relaxed text-gray-900 dark:text-gray-200 my-8">{book.description}</p>}
+      {book.description && <p class="text-lg sm:text-xl leading-relaxed text-gray-900 dark:text-gray-200 my-8">{book.description}</p>}
 
       {book.purchase_link && (
         <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded">

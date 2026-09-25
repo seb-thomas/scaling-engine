@@ -13,8 +13,8 @@ interface Props {
 
 const { books, search, currentPage, booksPerPage } = Astro.props
 ---
-<div class="container py-12">
-  <Breadcrumbs items={[{ label: 'All Books' }]} />
+<div class="container py-8 md:py-12">
+  <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Books' }]} />
 
   <div class="border-b border-gray-200 dark:border-gray-800 mb-8">
     <h1 class="text-sm tracking-wider uppercase mb-4">All Books</h1>

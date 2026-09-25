@@ -15,7 +15,7 @@ const showsByStation = stations
   .map((station) => ({ station, shows: shows.filter((show) => show.station?.station_id === station.station_id) }))
   .filter((group) => group.shows.length > 0)
 ---
-<div class="container py-12">
+<div class="container py-8 md:py-12">
   <Breadcrumbs items={[{ label: 'Home', href: '/' }, { label: 'Shows' }]} />
 
   <div class="mb-12">
