@@ -9,7 +9,7 @@ A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses A
 - **Task Queue**: Celery + Redis
 - **Scraping**: Scrapy 2.11.2 (BBC), feedparser (RSS/podcast feeds)
 - **AI**: Anthropic Claude API
-- **Frontend**: Astro (SSR) + React components, Tailwind CSS
+- **Frontend**: Astro (SSR, no client framework), Tailwind CSS, Bun runtime
 - **Deployment**: Docker Compose, Nginx, Gunicorn
 
 ## Frontend Design Principles
@@ -61,14 +61,17 @@ A Django web application that scrapes radio episodes (BBC Radio 4 + NPR), uses A
 - **Access production safely**: Use SSH tunnel (see DATABASE.md)
 - Django settings enforce PostgreSQL - will fail if misconfigured
 
-## Current Status (Feb 2026)
-- ✅ 5 shows live: Front Row, Free Thinking, Bookclub, A Good Read (BBC), Fresh Air (NPR)
-- ✅ ~4,500+ episodes scraped across all shows
-- ✅ ~295 books extracted with covers, categories, and purchase links
-- ✅ RSS scraping for podcast-based shows (generic, reusable)
-- ✅ Automated scraping + extraction running daily
-- ✅ NY Times-inspired frontend live at radioreads.fun
-- ✅ Category admin shows unmatched AI category suggestions
+## Current Status (Oct 2026, release v0.8.0)
+- ✅ 11 shows live. BBC (Scrapy): Front Row, Free Thinking, Bookclub, A Good Read, Start the Week, Opening Lines. RSS: Fresh Air, Book of the Day, The Book Show, Code Switch. WNYC API: The Splendid Table
+- ✅ ~3,400 episodes scraped; ~1,500 COMPLETE, ~1,140 EXTRACTION_NO_BOOKS
+- ✅ ~1,980 books extracted (all but a handful Google Books-verified) with covers, categories and purchase links
+- ✅ Three scrape paths in production: BBC Scrapy spider, generic RSS, WNYC JSON API
+- ✅ Two-phase pipeline: extraction (30 min) then Google Books verification (hourly), single `stage` field
+- ✅ Frontend is plain server-rendered Astro (no React), self-hosted fonts, WebP cover thumbnails, nginx page cache; Lighthouse 100 on key pages
+- ✅ Self-maintaining server: watchdog, nightly DB backups, uptime workflow, deploy smoke test
+- ✅ Django 5.2 LTS, Astro 7; PostHog analytics (no SDK in the browser) and error tracking
+- ⚠️ ~687 episodes sit at a lowercase `scraped` stage (not `SCRAPED`), so the extraction scheduler never picks them up; plus 93 in VERIFICATION_QUEUED and 5 EXTRACTION_FAILED (counts as of 2026-10-01)
+- ⏳ Google Search Console: sitemap submitted 2026-10-01 showed "Couldn't fetch" although `/sitemap.xml` serves 200 (~2,000 URLs, 0.4s uncached); resubmit if it persists
 
 ## Todo List
 

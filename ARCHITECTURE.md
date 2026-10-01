@@ -5,7 +5,7 @@ This document describes the current system design after merging **RawEpisodeData
 ## Truths / guarantees
 
 - **Scrape source**: The system knows what to scrape from `Brand.url`. For BBC shows this is the programme page listing; for RSS-based shows (e.g. NPR Fresh Air) it is the podcast feed URL.
-- **Discovery**: Episodes are discovered from listing HTML (BBC) or RSS entries (podcast feeds) on each run. `Brand.spider_name` controls the dispatch: `"bbc_episodes"` (default) uses Scrapy, `"rss"` uses the lightweight `rss_utils.scrape_rss_brand()` function.
+- **Discovery**: Episodes are discovered from listing HTML (BBC) or RSS entries (podcast feeds) on each run. `Brand.spider_name` controls the dispatch: `"bbc_episodes"` (default) uses Scrapy, `"rss"` uses `rss_utils.scrape_rss_brand()`, `"wnyc_api"` uses `wnyc_utils.scrape_wnyc_brand()`.
 - **Immutability**: An episode is scraped once and never refreshed; descriptions are immutable.
 - **Idempotency**: `Episode.url` is unique at DB level; the spider skips when `Episode.objects.filter(url=...).exists()`, so duplicate URLs are never stored.
 - **Single unit of work**: Episode holds the scraped snapshot, pipeline status, and derived output (books). There is no separate raw-data table.
@@ -61,7 +61,7 @@ Episode lifecycle is tracked by a single `stage` field that captures the full pi
 
 ## Domain models (merged)
 
-- **Station** → **Brand** (1:N): Brand has `url` (BBC brand page or RSS feed URL), `spider_name` (`"bbc_episodes"` or `"rss"`), `brand_color` (hex).
+- **Station** → **Brand** (1:N): Brand has `url` (BBC brand page or RSS feed URL), `spider_name` (`"bbc_episodes"`, `"rss"` or `"wnyc_api"`), `brand_color` (hex).
 - **Brand** → **Episode** (1:N): Episode has `url` (unique), `title`, `slug`, `aired_at`, plus:
   - **Snapshot**: `scraped_data` (JSON: url, title, date_text, description, meta_tags, html_title, etc.)
   - **Pipeline**: `stage` (SCRAPED | EXTRACTION_QUEUED | EXTRACTING | EXTRACTION_NO_BOOKS | EXTRACTION_FAILED | VERIFICATION_QUEUED | VERIFICATION_FAILED | REVIEW | COMPLETE), `processed_at`, `last_error`, `task_id`, `extraction_result`
@@ -91,6 +91,7 @@ flowchart TB
   subgraph external [External]
     BBC[BBC Sounds]
     NPR[NPR RSS Feeds]
+    WNYC[WNYC API]
     Claude[Claude API]
     GoogleBooks[Google Books API]
   end
@@ -104,9 +105,13 @@ flowchart TB
   subgraph scraping [Scraping discovery + snapshot]
     Spider[Scrapy BbcEpisodeSpider]
     RSSUtil[rss_utils.scrape_rss_brand]
+    WNYCUtil[wnyc_utils.scrape_wnyc_brand]
     Pipeline[SaveToDbPipeline]
     Brand -->|"spider_name=bbc_episodes"| Spider
     Brand -->|"spider_name=rss"| RSSUtil
+    Brand -->|"spider_name=wnyc_api"| WNYCUtil
+    WNYC --> WNYCUtil
+    WNYCUtil -->|create Episode skip if exists| Episode
     BBC --> Spider
     NPR --> RSSUtil
     Spider -->|discover episode urls skip if exists| Pipeline
@@ -221,6 +226,28 @@ flowchart LR
 | `ai_extract_books_task(episode_id)` | Enqueued by scheduler or admin reprocess | Sets `EXTRACTING`, runs extraction, creates candidate Books, sets `VERIFICATION_QUEUED`, `EXTRACTION_NO_BOOKS`, or `EXTRACTION_FAILED`. |
 | `verify_pending_books` | Celery Beat (hourly) | Verifies pending books via Google Books API. Updates episode stage to `COMPLETE`, `REVIEW`, or `VERIFICATION_FAILED` based on results. |
 
+## Serving and operations
+
+```mermaid
+flowchart LR
+  User --> Nginx["Nginx (TLS, HTTP/2, 60s page cache)"]
+  Nginx -->|"/api, /admin, /media"| Gunicorn[Django on Gunicorn]
+  Nginx -->|pages| Astro["Astro SSR (Bun)"]
+  Astro -->|SSR fetch| Gunicorn
+  Gunicorn --> PG[(PostgreSQL 16)]
+  Gunicorn --> Redis[(Redis 7)]
+  Worker[Celery worker + beat] --> Redis
+  Worker --> PG
+  Astro -.->|page views, errors| PostHog
+  Gunicorn -.->|errors| PostHog
+```
+
+- **Page cache**: nginx caches rendered pages for 60s (`X-Cache: HIT/MISS/STALE/BYPASS`); the deploy clears it.
+- **Cover thumbnails**: saving `Book.cover_image` writes 160/240/400px WebP copies to `media/thumbs/` (post_save signal); the API exposes `cover_thumbnails` for `srcset`.
+- **Sitemap**: `frontend/src/pages/sitemap.xml.ts` builds from a slugs-only API endpoint.
+- **Server automation**: watchdog (5 min), nightly DB backup, weekly Docker prune, certbot renewal, all installed by `deploy/install-cron.sh`.
+- **CI/CD and monitoring**: GitHub Actions run tests and deploy on push to `master`; Lighthouse CI runs after deploys and daily; an uptime workflow and UptimeRobot watch the site.
+
 ## API safety
 
 Public REST API **must not** expose pipeline/debug fields. Episode serializer uses explicit `fields` and **excludes** `scraped_data`, `extraction_result`, `last_error`, `task_id`. Those are for admin and debugging only.
@@ -236,7 +263,7 @@ Public REST API **must not** expose pipeline/debug fields. Episode serializer us
 | Tasks | `api/stations/tasks.py` | Spider-agnostic dispatch (`scrape_brand` checks `brand.spider_name`); stage transitions; extraction scheduling; verification scheduling. |
 | Extraction | `api/stations/ai_utils.py` | Reads `scraped_data`; calls Claude; creates candidate Books; tracks unmatched categories; parses dates (BBC + RFC 2822). |
 | Verification | `api/stations/utils.py` | Google Books API: `intitle:`/`inauthor:` search across multiple editions, two-step cover lookup (search → volume detail for tokenised URLs), ISBN extraction. |
-| Frontend | `frontend/` | Astro SSR with React components, Tailwind CSS. Pages: latest, all books, shows, topics, about. |
+| Frontend | `frontend/` | Astro SSR (no client framework; a few small inline scripts), Tailwind CSS. Pages: home, books, shows, topics, about, book/show/topic detail, sitemap.xml. |
 | Admin | `api/stations/admin.py` | Episode list/change: colour-coded stage badge, confidence, previews, reprocess single/bulk. Review queue for REVIEW episodes. System health dashboard with stage counts. Book list/change: cover error column, refetch cover button (single + bulk). Category list: unmatched AI suggestions banner. Extraction evaluation view. |
 | Config | `api/paperwaves/settings.py` | `FLOWER_URL` (optional) for admin “Open Flower” link. |
 
