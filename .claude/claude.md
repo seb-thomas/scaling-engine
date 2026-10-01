@@ -183,7 +183,7 @@ BOOKSHOP_AFFILIATE_ID=16640
 │   │   ├── spiders/        # BBC episode spider
 │   │   └── pipelines.py    # Data processing
 │   └── requirements.txt    # Python dependencies
-├── frontend/                # Astro SSR + React + Tailwind
+├── frontend/                # Astro SSR + Tailwind
 ├── nginx/                   # Nginx config
 ├── docker-compose.dev.yml   # Development setup
 ├── docker-compose.prod.yml  # Production setup
